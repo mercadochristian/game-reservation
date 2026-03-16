@@ -60,9 +60,14 @@ export const onboardingSchema = z.object({
   })
     .min(1, 'Please enter your emergency contact\'s number')
     .regex(/^\+63\d{10}$/, 'Enter a valid Philippine mobile number (e.g. 912 345 6789)'),
-  skill_level: z.enum(SKILL_LEVELS, {
-    errorMap: () => ({ message: 'Please choose your skill level' }),
-  }),
+  skill_level: z.string({
+    required_error: 'Please choose your skill level',
+    invalid_type_error: 'Please choose your skill level',
+  })
+    .min(1, 'Please choose your skill level')
+    .refine((val) => SKILL_LEVELS.includes(val as any), {
+      message: 'Please choose your skill level',
+    }) as any as z.ZodType<typeof SKILL_LEVELS[number]>,
 })
 
 export type OnboardingFormData = z.infer<typeof onboardingSchema>
