@@ -1,0 +1,35 @@
+{
+  "name": "Dreamers Volleyball Club",
+  "tagline": "Dream hard, play harder.",
+  "logo": {
+    "url": "/logo.svg",
+    "altText": "Dreamers Volleyball Club Logo",
+    "width": 40,
+    "height": 40
+  },
+  "colors": {
+    "primary": "#3b82f6",
+    "secondary": "#1e40af",
+    "accent": "#f59e0b",
+    "background": "#ffffff",
+    "text": "#1f2937",
+    "border": "#e5e7eb"
+  },
+  "theme": {
+    "lightMode": {
+      "background": "#ffffff",
+      "foreground": "#1f2937",
+      "muted": "#9ca3af"
+    },
+    "darkMode": {
+      "background": "#1f2937",
+      "foreground": "#f3f4f6",
+      "muted": "#6b7280"
+    }
+  },
+  "social": {
+    "twitter": "https://twitter.com/dreamersvc",
+    "facebook": "https://facebook.com/dreamersvc",
+    "instagram": "https://instagram.com/dreamersvc"
+  }
+}
