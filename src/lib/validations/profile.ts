@@ -10,19 +10,17 @@ const SKILL_LEVELS = [
 
 export const onboardingSchema = z.object({
   birthday_month: z
-    .number({ invalid_type_error: 'Please select a month' })
-    .int()
-    .min(1, 'Month must be between 1 and 12')
-    .max(12, 'Month must be between 1 and 12')
-    .nullable()
-    .optional(),
+    .union([z.number().int().min(1).max(12), z.null(), z.undefined()])
+    .refine((val) => val === null || val === undefined || (val >= 1 && val <= 12), {
+      message: 'Please select your birth month',
+    })
+    .transform((val) => val ?? null),
   birthday_day: z
-    .number({ invalid_type_error: 'Please select a day' })
-    .int()
-    .min(1, 'Day must be between 1 and 31')
-    .max(31, 'Day must be between 1 and 31')
-    .nullable()
-    .optional(),
+    .union([z.number().int().min(1).max(31), z.null(), z.undefined()])
+    .refine((val) => val === null || val === undefined || (val >= 1 && val <= 31), {
+      message: 'Please select your birth day',
+    })
+    .transform((val) => val ?? null),
   birthday_year: z
     .number()
     .int('Year must be a whole number')
