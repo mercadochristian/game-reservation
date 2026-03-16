@@ -9,7 +9,6 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Select } from '@/components/ui/select'
 import { onboardingSchema, type OnboardingFormData } from '@/lib/validations/profile'
 import { branding } from '@/lib/config/branding'
 
@@ -207,9 +206,9 @@ export default function CreateProfilePage() {
                     <Label htmlFor="month" className="text-foreground text-xs font-medium">
                       Month
                     </Label>
-                    <Select
+                    <select
                       id="month"
-                      className="bg-muted border-input text-foreground placeholder:text-muted-foreground focus-visible:ring-primary"
+                      className="flex h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-sm text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                       {...register('birthday_month', { setValueAs: (v) => (v === '' ? null : Number(v)) })}
                     >
                       <option value="">Select</option>
@@ -218,7 +217,7 @@ export default function CreateProfilePage() {
                           {m.label.slice(0, 3)}
                         </option>
                       ))}
-                    </Select>
+                    </select>
                     {errors.birthday_month && (
                       <p className="text-xs text-destructive">{errors.birthday_month.message}</p>
                     )}
@@ -229,9 +228,9 @@ export default function CreateProfilePage() {
                     <Label htmlFor="day" className="text-foreground text-xs font-medium">
                       Day
                     </Label>
-                    <Select
+                    <select
                       id="day"
-                      className="bg-muted border-input text-foreground placeholder:text-muted-foreground focus-visible:ring-primary"
+                      className="flex h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-sm text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                       {...register('birthday_day', { setValueAs: (v) => (v === '' ? null : Number(v)) })}
                     >
                       <option value="">Select</option>
@@ -240,7 +239,7 @@ export default function CreateProfilePage() {
                           {d}
                         </option>
                       ))}
-                    </Select>
+                    </select>
                     {errors.birthday_day && (
                       <p className="text-xs text-destructive">{errors.birthday_day.message}</p>
                     )}
@@ -390,20 +389,13 @@ export default function CreateProfilePage() {
                         key={level.value}
                         type="button"
                         onClick={() => handleSkillLevelClick(level.value)}
-                        className="w-full text-left p-4 rounded-lg border-2 transition-all"
-                        style={
+                        className={`w-full text-left p-4 rounded-lg border-2 transition-all text-foreground ${
                           isSelected
-                            ? {
-                                backgroundColor: `${branding.colors.primary}15`,
-                                borderColor: branding.colors.primary,
-                              }
-                            : {
-                                backgroundColor: 'var(--color-card)',
-                                borderColor: 'var(--color-border)',
-                              }
-                        }
+                            ? 'bg-blue-500/10 border-blue-500'
+                            : 'bg-card border-border'
+                        }`}
                       >
-                        <div className="font-semibold text-foreground">{level.label}</div>
+                        <div className="font-semibold">{level.label}</div>
                         <div className="text-sm text-muted-foreground mt-1">{level.description}</div>
                       </button>
                     )
