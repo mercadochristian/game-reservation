@@ -42,8 +42,9 @@ const SKILL_LEVELS = [
 const SECTIONS = [
   { id: 1, name: 'Birthday' },
   { id: 2, name: 'Gender' },
-  { id: 3, name: 'Emergency Contact' },
-  { id: 4, name: 'Skill Level' },
+  { id: 3, name: 'Contact Number' },
+  { id: 4, name: 'Emergency Contact' },
+  { id: 5, name: 'Skill Level' },
 ]
 
 interface SectionHeaderProps {
@@ -73,7 +74,8 @@ export default function CreateProfilePage() {
   const [isLoading, setIsLoading] = useState(false)
   const [selectedGenderPreset, setSelectedGenderPreset] = useState<string | null>(null)
   const [selectedSkillLevel, setSelectedSkillLevel] = useState<string | null>(null)
-  const [phoneDisplay, setPhoneDisplay] = useState('')
+  const [playerPhoneDisplay, setPlayerPhoneDisplay] = useState('')
+  const [emergencyPhoneDisplay, setEmergencyPhoneDisplay] = useState('')
   const router = useRouter()
 
   const {
@@ -108,18 +110,31 @@ export default function CreateProfilePage() {
     setSelectedSkillLevel(value)
   }
 
-  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const digits = e.target.value.replace(/\D/g, '').slice(0, 13) // allow room for pasted +63...
-    setPhoneDisplay(digits)
+  const handlePlayerPhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const digits = e.target.value.replace(/\D/g, '').slice(0, 13)
+    setPlayerPhoneDisplay(digits)
   }
 
-  const handlePhoneBlur = () => {
-    let cleaned = phoneDisplay.replace(/\D/g, '')
-    // Strip +63 prefix (if user typed 63 first) or leading 0
+  const handlePlayerPhoneBlur = () => {
+    let cleaned = playerPhoneDisplay.replace(/\D/g, '')
     if (cleaned.startsWith('63')) cleaned = cleaned.slice(2)
     else if (cleaned.startsWith('0')) cleaned = cleaned.slice(1)
     cleaned = cleaned.slice(0, 10)
-    setPhoneDisplay(cleaned)
+    setPlayerPhoneDisplay(cleaned)
+    setValue('player_contact_number', cleaned ? `+63${cleaned}` : '')
+  }
+
+  const handleEmergencyPhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const digits = e.target.value.replace(/\D/g, '').slice(0, 13)
+    setEmergencyPhoneDisplay(digits)
+  }
+
+  const handleEmergencyPhoneBlur = () => {
+    let cleaned = emergencyPhoneDisplay.replace(/\D/g, '')
+    if (cleaned.startsWith('63')) cleaned = cleaned.slice(2)
+    else if (cleaned.startsWith('0')) cleaned = cleaned.slice(1)
+    cleaned = cleaned.slice(0, 10)
+    setEmergencyPhoneDisplay(cleaned)
     setValue('emergency_contact_number', cleaned ? `+63${cleaned}` : '')
   }
 
@@ -323,9 +338,41 @@ export default function CreateProfilePage() {
               </div>
             </Card>
 
+            {/* Player Contact Section */}
+            <Card className="border-border bg-card/50 p-6">
+              <SectionHeader number={3} icon={<Shield className="h-5 w-5" />} title="Your Contact Number" />
+              <div className="space-y-4">
+                <p className="text-sm text-muted-foreground">So we can reach you about games and updates.</p>
+
+                <div className="space-y-2">
+                  <Label htmlFor="player-number" className="text-foreground">
+                    Mobile Number
+                  </Label>
+                  <div className="flex">
+                    <span className="flex items-center px-3 rounded-l-md border border-r-0 border-input bg-muted text-sm text-muted-foreground select-none">
+                      +63
+                    </span>
+                    <Input
+                      id="player-number"
+                      type="tel"
+                      inputMode="numeric"
+                      placeholder="9XX XXX XXXX"
+                      value={playerPhoneDisplay}
+                      onChange={handlePlayerPhoneChange}
+                      onBlur={handlePlayerPhoneBlur}
+                      className="rounded-l-none bg-muted border-input text-foreground placeholder:text-muted-foreground focus-visible:ring-primary"
+                    />
+                  </div>
+                  {errors.player_contact_number && (
+                    <p className="text-xs text-destructive">{errors.player_contact_number.message}</p>
+                  )}
+                </div>
+              </div>
+            </Card>
+
             {/* Emergency Contact Section */}
             <Card className="border-border bg-card/50 p-6">
-              <SectionHeader number={3} icon={<Shield className="h-5 w-5" />} title="Emergency Contact" />
+              <SectionHeader number={4} icon={<Shield className="h-5 w-5" />} title="Emergency Contact" />
               <div className="space-y-4">
                 <p className="text-sm text-muted-foreground">Required, but can be edited later.</p>
 
@@ -374,9 +421,9 @@ export default function CreateProfilePage() {
                       type="tel"
                       inputMode="numeric"
                       placeholder="9XX XXX XXXX"
-                      value={phoneDisplay}
-                      onChange={handlePhoneChange}
-                      onBlur={handlePhoneBlur}
+                      value={emergencyPhoneDisplay}
+                      onChange={handleEmergencyPhoneChange}
+                      onBlur={handleEmergencyPhoneBlur}
                       className="rounded-l-none bg-muted border-input text-foreground placeholder:text-muted-foreground focus-visible:ring-primary"
                     />
                   </div>
@@ -389,7 +436,7 @@ export default function CreateProfilePage() {
 
             {/* Skill Level Section */}
             <Card className="border-border bg-card/50 p-6">
-              <SectionHeader number={4} icon={<Star className="h-5 w-5" />} title="Skill Level" />
+              <SectionHeader number={5} icon={<Star className="h-5 w-5" />} title="Skill Level" />
               <div className="space-y-4">
                 <p className="text-sm text-muted-foreground">
                   Select your current level. Admins and facilitators will confirm this after seeing you play.
