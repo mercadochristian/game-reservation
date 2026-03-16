@@ -16,14 +16,4 @@ export const loginSchema = z.object({
     .max(72, 'Password must be fewer than 72 characters'),
 })
 
-export const magicLinkSchema = z.object({
-  email: z.string({
-    required_error: 'Please enter your email address',
-    invalid_type_error: 'Please enter your email address',
-  })
-    .min(1, 'Please enter your email address')
-    .email('Please enter a valid email address'),
-})
-
 export type LoginFormData = z.infer<typeof loginSchema>
-export type MagicLinkFormData = z.infer<typeof magicLinkSchema>

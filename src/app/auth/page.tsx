@@ -5,6 +5,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useRouter } from 'next/navigation'
 import { Eye, EyeOff, Mail, Lock, Loader2 } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -17,6 +18,11 @@ import {
   loginSchema,
   type LoginFormData,
 } from '@/lib/validations/auth'
+
+const fadeUpVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' } },
+}
 
 export default function AuthPage() {
   const [isLoading, setIsLoading] = useState(false)
@@ -69,7 +75,8 @@ export default function AuthPage() {
 
   return (
     <div className="dark min-h-screen flex items-center justify-center px-4 py-8 bg-background">
-      <Card className="w-full max-w-md bg-card border-border shadow-2xl">
+      <motion.div initial="hidden" animate="visible" variants={fadeUpVariants}>
+        <Card className="w-full max-w-md bg-card border-border shadow-2xl">
         <div className="p-8 sm:p-10">
           {/* Brand Header */}
           <div className="mb-8 text-center">
@@ -274,6 +281,7 @@ export default function AuthPage() {
           </Button>
         </div>
       </Card>
+      </motion.div>
     </div>
   )
 }

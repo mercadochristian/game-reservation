@@ -18,6 +18,7 @@ export type Database = {
           skill_level: SkillLevel | null
           avatar_url: string | null
           created_at: string
+          updated_at: string
           birthday_month: number | null
           birthday_day: number | null
           birthday_year: number | null
@@ -35,6 +36,7 @@ export type Database = {
           skill_level?: SkillLevel | null
           avatar_url?: string | null
           created_at?: string
+          updated_at?: string
           birthday_month?: number | null
           birthday_day?: number | null
           birthday_year?: number | null
@@ -52,6 +54,7 @@ export type Database = {
           skill_level?: SkillLevel | null
           avatar_url?: string | null
           created_at?: string
+          updated_at?: string
           birthday_month?: number | null
           birthday_day?: number | null
           birthday_year?: number | null
@@ -68,36 +71,39 @@ export type Database = {
           title: string
           start_time: string
           end_time: string
-          venue: string
+          location_id: string
           max_players: number
           required_level: SkillLevel | null
           status: 'open' | 'full' | 'cancelled' | 'completed'
           created_by: string
           created_at: string
+          updated_at: string
         }
         Insert: {
           id?: string
           title: string
           start_time: string
           end_time: string
-          venue: string
+          location_id: string
           max_players: number
           required_level?: SkillLevel | null
           status?: 'open' | 'full' | 'cancelled' | 'completed'
           created_by: string
           created_at?: string
+          updated_at?: string
         }
         Update: {
           id?: string
           title?: string
           start_time?: string
           end_time?: string
-          venue?: string
+          location_id?: string
           max_players?: number
           required_level?: SkillLevel | null
           status?: 'open' | 'full' | 'cancelled' | 'completed'
           created_by?: string
           created_at?: string
+          updated_at?: string
         }
       }
       registrations: {
@@ -112,6 +118,7 @@ export type Database = {
           attended: boolean
           qr_token: string | null
           created_at: string
+          updated_at: string
         }
         Insert: {
           id?: string
@@ -124,6 +131,7 @@ export type Database = {
           attended?: boolean
           qr_token?: string | null
           created_at?: string
+          updated_at?: string
         }
         Update: {
           id?: string
@@ -136,6 +144,7 @@ export type Database = {
           attended?: boolean
           qr_token?: string | null
           created_at?: string
+          updated_at?: string
         }
       }
       teams: {
@@ -199,6 +208,41 @@ export type Database = {
           awarded_by?: string
           note?: string | null
           awarded_at?: string
+        }
+      }
+      locations: {
+        Row: {
+          id: string
+          name: string
+          address: string | null
+          google_map_url: string | null
+          notes: string | null
+          is_active: boolean
+          created_by: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          address?: string | null
+          google_map_url?: string | null
+          notes?: string | null
+          is_active?: boolean
+          created_by: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          address?: string | null
+          google_map_url?: string | null
+          notes?: string | null
+          is_active?: boolean
+          created_by?: string
+          created_at?: string
+          updated_at?: string
         }
       }
       role_whitelist: {

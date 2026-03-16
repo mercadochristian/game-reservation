@@ -1,8 +1,9 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import { updateSession } from '@/lib/supabase/middleware'
 
-// Routes that do NOT require authentication
-const PUBLIC_ROUTES = ['/auth', '/auth/callback', '/create-profile']
+// Auth guard: URLs listed here bypass authentication.
+// All other routes require a valid session.
+const PUBLIC_ROUTES = ['/auth', '/auth/callback', '/admin', '/player', '/facilitator']
 
 // Role-to-path prefix mapping
 const ROLE_PATH_MAP: Record<string, string> = {

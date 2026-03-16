@@ -9,6 +9,7 @@ export type Registration = Database['public']['Tables']['registrations']['Row']
 export type Team = Database['public']['Tables']['teams']['Row']
 export type TeamMember = Database['public']['Tables']['team_members']['Row']
 export type MvpAward = Database['public']['Tables']['mvp_awards']['Row']
+export type Location = Database['public']['Tables']['locations']['Row']
 export type RoleWhitelist = Database['public']['Tables']['role_whitelist']['Row']
 
 // Enum types
@@ -22,3 +23,4 @@ export type ScheduleInsert = Database['public']['Tables']['schedules']['Insert']
 export type RegistrationInsert = Database['public']['Tables']['registrations']['Insert']
 export type TeamInsert = Database['public']['Tables']['teams']['Insert']
 export type MvpAwardInsert = Database['public']['Tables']['mvp_awards']['Insert']
+export type LocationInsert = Database['public']['Tables']['locations']['Insert']

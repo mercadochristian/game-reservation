@@ -5,12 +5,22 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useRouter } from 'next/navigation'
 import { Calendar, User, Shield, Star, Loader2 } from 'lucide-react'
+import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { onboardingSchema, type OnboardingFormData } from '@/lib/validations/profile'
 import { branding } from '@/lib/config/branding'
+
+const fadeUpVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: (custom: number = 0) => ({
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.4, delay: custom * 0.08 },
+  }),
+}
 
 const MONTHS = [
   { value: 1, label: 'January' },
@@ -228,6 +238,7 @@ export default function CreateProfilePage() {
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
             {/* Birthday Section */}
+            <motion.div custom={0} initial="hidden" animate="visible" variants={fadeUpVariants}>
             <Card className="border-border bg-card/50 p-6">
               <SectionHeader number={1} icon={<Calendar className="h-5 w-5" />} title="Date of Birth" />
               <div className="space-y-4">
@@ -297,8 +308,10 @@ export default function CreateProfilePage() {
                 </div>
               </div>
             </Card>
+            </motion.div>
 
             {/* Gender Section */}
+            <motion.div custom={1} initial="hidden" animate="visible" variants={fadeUpVariants}>
             <Card className="border-border bg-card/50 p-6">
               <SectionHeader number={2} icon={<User className="h-5 w-5" />} title="Gender" />
               <div className="space-y-4">
@@ -337,8 +350,10 @@ export default function CreateProfilePage() {
                 </div>
               </div>
             </Card>
+            </motion.div>
 
             {/* Player Contact Section */}
+            <motion.div custom={2} initial="hidden" animate="visible" variants={fadeUpVariants}>
             <Card className="border-border bg-card/50 p-6">
               <SectionHeader number={3} icon={<Shield className="h-5 w-5" />} title="Your Contact Number" />
               <div className="space-y-4">
@@ -369,8 +384,10 @@ export default function CreateProfilePage() {
                 </div>
               </div>
             </Card>
+            </motion.div>
 
             {/* Emergency Contact Section */}
+            <motion.div custom={3} initial="hidden" animate="visible" variants={fadeUpVariants}>
             <Card className="border-border bg-card/50 p-6">
               <SectionHeader number={4} icon={<Shield className="h-5 w-5" />} title="Emergency Contact" />
               <div className="space-y-4">
@@ -433,8 +450,10 @@ export default function CreateProfilePage() {
                 </div>
               </div>
             </Card>
+            </motion.div>
 
             {/* Skill Level Section */}
+            <motion.div custom={4} initial="hidden" animate="visible" variants={fadeUpVariants}>
             <Card className="border-border bg-card/50 p-6">
               <SectionHeader number={5} icon={<Star className="h-5 w-5" />} title="Skill Level" />
               <div className="space-y-4">
@@ -469,6 +488,7 @@ export default function CreateProfilePage() {
                 )}
               </div>
             </Card>
+            </motion.div>
 
             {/* Submit Button */}
             <Button
