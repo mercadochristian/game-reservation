@@ -73,6 +73,7 @@ export default function CreateProfilePage() {
   const [isLoading, setIsLoading] = useState(false)
   const [selectedGenderPreset, setSelectedGenderPreset] = useState<string | null>(null)
   const [selectedSkillLevel, setSelectedSkillLevel] = useState<string | null>(null)
+  const [phoneDisplay, setPhoneDisplay] = useState('')
   const router = useRouter()
 
   const {
@@ -105,6 +106,21 @@ export default function CreateProfilePage() {
   const handleSkillLevelClick = (value: string) => {
     setValue('skill_level', value)
     setSelectedSkillLevel(value)
+  }
+
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const digits = e.target.value.replace(/\D/g, '').slice(0, 13) // allow room for pasted +63...
+    setPhoneDisplay(digits)
+  }
+
+  const handlePhoneBlur = () => {
+    let cleaned = phoneDisplay.replace(/\D/g, '')
+    // Strip +63 prefix (if user typed 63 first) or leading 0
+    if (cleaned.startsWith('63')) cleaned = cleaned.slice(2)
+    else if (cleaned.startsWith('0')) cleaned = cleaned.slice(1)
+    cleaned = cleaned.slice(0, 10)
+    setPhoneDisplay(cleaned)
+    setValue('emergency_contact_number', cleaned ? `+63${cleaned}` : '')
   }
 
   async function onSubmit(data: OnboardingFormData) {
@@ -278,20 +294,11 @@ export default function CreateProfilePage() {
                       key={preset}
                       type="button"
                       onClick={() => handleGenderPresetClick(preset)}
-                      className="px-4 py-2 rounded-full text-sm font-medium transition-all border"
-                      style={
+                      className={`px-4 py-2 rounded-full text-sm font-medium transition-all border ${
                         selectedGenderPreset === preset
-                          ? {
-                              backgroundColor: branding.colors.primary,
-                              color: 'white',
-                              borderColor: branding.colors.primary,
-                            }
-                          : {
-                              backgroundColor: 'var(--color-muted)',
-                              color: 'var(--color-muted-foreground)',
-                              borderColor: 'var(--color-border)',
-                            }
-                      }
+                          ? 'bg-blue-500 text-white border-blue-500'
+                          : 'bg-muted text-muted-foreground border-border hover:bg-blue-500/10 hover:border-blue-500/50 hover:text-foreground'
+                      }`}
                     >
                       {preset}
                     </button>
@@ -358,13 +365,21 @@ export default function CreateProfilePage() {
                   <Label htmlFor="ec-number" className="text-foreground">
                     Contact Number
                   </Label>
-                  <Input
-                    id="ec-number"
-                    type="tel"
-                    placeholder="Phone number"
-                    className="bg-muted border-input text-foreground placeholder:text-muted-foreground focus-visible:ring-primary"
-                    {...register('emergency_contact_number')}
-                  />
+                  <div className="flex">
+                    <span className="flex items-center px-3 rounded-l-md border border-r-0 border-input bg-muted text-sm text-muted-foreground select-none">
+                      +63
+                    </span>
+                    <Input
+                      id="ec-number"
+                      type="tel"
+                      inputMode="numeric"
+                      placeholder="9XX XXX XXXX"
+                      value={phoneDisplay}
+                      onChange={handlePhoneChange}
+                      onBlur={handlePhoneBlur}
+                      className="rounded-l-none bg-muted border-input text-foreground placeholder:text-muted-foreground focus-visible:ring-primary"
+                    />
+                  </div>
                   {errors.emergency_contact_number && (
                     <p className="text-xs text-destructive">{errors.emergency_contact_number.message}</p>
                   )}
@@ -392,7 +407,7 @@ export default function CreateProfilePage() {
                         className={`w-full text-left p-4 rounded-lg border-2 transition-all text-foreground ${
                           isSelected
                             ? 'bg-blue-500/10 border-blue-500'
-                            : 'bg-card border-border'
+                            : 'bg-card border-border hover:bg-blue-500/5 hover:border-blue-500/30'
                         }`}
                       >
                         <div className="font-semibold">{level.label}</div>

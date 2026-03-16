@@ -10,12 +10,12 @@ const SKILL_LEVELS = [
 
 export const onboardingSchema = z.object({
   birthday_month: z
-    .number({ required_error: 'Month is required' })
+    .number({ required_error: 'Please select a month', invalid_type_error: 'Please select a month' })
     .int()
     .min(1, 'Month must be between 1 and 12')
     .max(12, 'Month must be between 1 and 12'),
   birthday_day: z
-    .number({ required_error: 'Day is required' })
+    .number({ required_error: 'Please select a day', invalid_type_error: 'Please select a day' })
     .int()
     .min(1, 'Day must be between 1 and 31')
     .max(31, 'Day must be between 1 and 31'),
@@ -37,10 +37,9 @@ export const onboardingSchema = z.object({
     .max(50, 'Relationship must be less than 50 characters'),
   emergency_contact_number: z
     .string()
-    .min(1, 'Contact number is required')
-    .max(20, 'Contact number must be less than 20 characters'),
+    .regex(/^\+63\d{10}$/, 'Enter a valid 10-digit Philippine mobile number'),
   skill_level: z.enum(SKILL_LEVELS, {
-    required_error: 'Skill level is required',
+    errorMap: () => ({ message: 'Please select your skill level' }),
   }),
 })
 
