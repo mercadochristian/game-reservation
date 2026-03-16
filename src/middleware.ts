@@ -2,7 +2,7 @@ import { type NextRequest, NextResponse } from 'next/server'
 import { updateSession } from '@/lib/supabase/middleware'
 
 // Routes that do NOT require authentication
-const PUBLIC_ROUTES = ['/auth', '/auth/callback', '/onboarding']
+const PUBLIC_ROUTES = ['/auth', '/auth/callback', '/create-profile']
 
 // Role-to-path prefix mapping
 const ROLE_PATH_MAP: Record<string, string> = {
@@ -32,7 +32,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl)
   }
 
-  // Authenticated user accessing /auth — redirect to their dashboard or onboarding
+  // Authenticated user accessing /auth — redirect to their dashboard or create-profile
   if (user && isPublicRoute && pathname === '/auth') {
     const { data: profile } = await supabase
       .from('users')
@@ -43,11 +43,11 @@ export async function middleware(request: NextRequest) {
     const role = (profile as any)?.role ?? 'player'
     const profileCompleted = (profile as any)?.profile_completed ?? false
 
-    // Players who haven't completed onboarding go there first
+    // Players who haven't completed profile creation go there first
     if (role === 'player' && !profileCompleted) {
-      const onboardingUrl = request.nextUrl.clone()
-      onboardingUrl.pathname = '/onboarding'
-      return NextResponse.redirect(onboardingUrl)
+      const createProfileUrl = request.nextUrl.clone()
+      createProfileUrl.pathname = '/create-profile'
+      return NextResponse.redirect(createProfileUrl)
     }
 
     const dashboardUrl = request.nextUrl.clone()
@@ -66,11 +66,11 @@ export async function middleware(request: NextRequest) {
     const role = (profile as any)?.role ?? 'player'
     const profileCompleted = (profile as any)?.profile_completed ?? false
 
-    // Redirect players who haven't completed onboarding
-    if (role === 'player' && !profileCompleted && pathname !== '/onboarding') {
-      const onboardingUrl = request.nextUrl.clone()
-      onboardingUrl.pathname = '/onboarding'
-      return NextResponse.redirect(onboardingUrl)
+    // Redirect players who haven't completed profile creation
+    if (role === 'player' && !profileCompleted && pathname !== '/create-profile') {
+      const createProfileUrl = request.nextUrl.clone()
+      createProfileUrl.pathname = '/create-profile'
+      return NextResponse.redirect(createProfileUrl)
     }
 
     const allowedPrefix = ROLE_PATH_MAP[role]

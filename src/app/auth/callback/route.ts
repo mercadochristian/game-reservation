@@ -44,9 +44,9 @@ export async function GET(request: NextRequest) {
         const role = (profile as any)?.role ?? 'player'
         const profileCompleted = (profile as any)?.profile_completed ?? false
 
-        // Players who haven't completed onboarding go there first
+        // Players who haven't completed profile creation go there first
         if (role === 'player' && !profileCompleted) {
-          return NextResponse.redirect(`${origin}/onboarding`)
+          return NextResponse.redirect(`${origin}/create-profile`)
         }
 
         const dashboardPath = getRoleDashboard(role)
