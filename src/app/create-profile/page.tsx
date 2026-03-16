@@ -224,7 +224,7 @@ export default function CreateProfilePage() {
                     </Label>
                     <select
                       id="month"
-                      className="flex h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-sm text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                      className="flex h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-sm text-foreground cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                       {...register('birthday_month', { setValueAs: (v) => (v === '' ? null : Number(v)) })}
                     >
                       <option value="">Select</option>
@@ -246,7 +246,7 @@ export default function CreateProfilePage() {
                     </Label>
                     <select
                       id="day"
-                      className="flex h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-sm text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                      className="flex h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-sm text-foreground cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                       {...register('birthday_day', { setValueAs: (v) => (v === '' ? null : Number(v)) })}
                     >
                       <option value="">Select</option>
@@ -294,7 +294,7 @@ export default function CreateProfilePage() {
                       key={preset}
                       type="button"
                       onClick={() => handleGenderPresetClick(preset)}
-                      className={`px-4 py-2 rounded-full text-sm font-medium transition-all border ${
+                      className={`px-4 py-2 rounded-full text-sm font-medium transition-all border cursor-pointer ${
                         selectedGenderPreset === preset
                           ? 'bg-blue-500 text-white border-blue-500'
                           : 'bg-muted text-muted-foreground border-border hover:bg-blue-500/10 hover:border-blue-500/50 hover:text-foreground'
@@ -404,7 +404,7 @@ export default function CreateProfilePage() {
                         key={level.value}
                         type="button"
                         onClick={() => handleSkillLevelClick(level.value)}
-                        className={`w-full text-left p-4 rounded-lg border-2 transition-all text-foreground ${
+                        className={`w-full text-left p-4 rounded-lg border-2 transition-all text-foreground cursor-pointer ${
                           isSelected
                             ? 'bg-blue-500/10 border-blue-500'
                             : 'bg-card border-border hover:bg-blue-500/5 hover:border-blue-500/30'
