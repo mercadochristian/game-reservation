@@ -13,7 +13,8 @@ export type Database = {
         Row: {
           id: string
           email: string
-          full_name: string | null
+          first_name: string | null
+          last_name: string | null
           role: 'admin' | 'player' | 'facilitator'
           skill_level: SkillLevel | null
           avatar_url: string | null
@@ -26,12 +27,14 @@ export type Database = {
           emergency_contact_name: string | null
           emergency_contact_relationship: string | null
           emergency_contact_number: string | null
+          player_contact_number: string | null
           profile_completed: boolean
         }
         Insert: {
           id: string
           email: string
-          full_name?: string | null
+          first_name?: string | null
+          last_name?: string | null
           role?: 'admin' | 'player' | 'facilitator'
           skill_level?: SkillLevel | null
           avatar_url?: string | null
@@ -44,12 +47,14 @@ export type Database = {
           emergency_contact_name?: string | null
           emergency_contact_relationship?: string | null
           emergency_contact_number?: string | null
+          player_contact_number?: string | null
           profile_completed?: boolean
         }
         Update: {
           id?: string
           email?: string
-          full_name?: string | null
+          first_name?: string | null
+          last_name?: string | null
           role?: 'admin' | 'player' | 'facilitator'
           skill_level?: SkillLevel | null
           avatar_url?: string | null
@@ -62,6 +67,7 @@ export type Database = {
           emergency_contact_name?: string | null
           emergency_contact_relationship?: string | null
           emergency_contact_number?: string | null
+          player_contact_number?: string | null
           profile_completed?: boolean
         }
       }
@@ -257,6 +263,35 @@ export type Database = {
         Update: {
           email?: string
           role?: 'admin' | 'player' | 'facilitator'
+        }
+      }
+      logs: {
+        Row: {
+          id: string
+          level: 'info' | 'warn' | 'error'
+          action: string
+          user_id: string | null
+          message: string | null
+          metadata: Json
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          level: 'info' | 'warn' | 'error'
+          action: string
+          user_id?: string | null
+          message?: string | null
+          metadata?: Json
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          level?: 'info' | 'warn' | 'error'
+          action?: string
+          user_id?: string | null
+          message?: string | null
+          metadata?: Json
+          created_at?: string
         }
       }
     }

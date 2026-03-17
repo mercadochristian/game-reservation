@@ -51,11 +51,12 @@ const SKILL_LEVELS = [
 ]
 
 const SECTIONS = [
-  { id: 1, name: 'Birthday' },
-  { id: 2, name: 'Gender' },
-  { id: 3, name: 'Contact Number' },
-  { id: 4, name: 'Emergency Contact' },
-  { id: 5, name: 'Skill Level' },
+  { id: 1, name: 'Name' },
+  { id: 2, name: 'Date of Birth' },
+  { id: 3, name: 'Gender' },
+  { id: 4, name: 'Contact Number' },
+  { id: 5, name: 'Emergency Contact' },
+  { id: 6, name: 'Skill Level' },
 ]
 
 interface SectionHeaderProps {
@@ -98,6 +99,8 @@ export default function CreateProfilePage() {
   } = useForm<OnboardingFormData>({
     resolver: zodResolver(onboardingSchema),
     defaultValues: {
+      first_name: '',
+      last_name: '',
       gender: '',
     },
   })
@@ -165,7 +168,13 @@ export default function CreateProfilePage() {
         return
       }
 
-      router.push('/player')
+      const { role } = await response.json()
+      const ROLE_DASHBOARD: Record<string, string> = {
+        admin: '/admin',
+        facilitator: '/facilitator',
+        player: '/player',
+      }
+      router.push(ROLE_DASHBOARD[role] ?? '/player')
     } catch (error) {
       console.error('Error submitting form:', error)
       toast.error('Something went wrong. Please try again.')
@@ -240,10 +249,49 @@ export default function CreateProfilePage() {
           </div>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
-            {/* Birthday Section */}
+            {/* Name Section */}
             <motion.div custom={0} initial="hidden" animate="visible" variants={fadeUpVariants}>
             <Card className="border-border bg-card/50 p-6">
-              <SectionHeader number={1} icon={<Calendar className="h-5 w-5" />} title="Date of Birth" />
+              <SectionHeader number={1} icon={<User className="h-5 w-5" />} title="Name" />
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="first-name" className="text-foreground text-xs font-medium">
+                      First Name
+                    </Label>
+                    <Input
+                      id="first-name"
+                      placeholder="John"
+                      className="bg-muted border-input text-foreground placeholder:text-muted-foreground focus-visible:ring-primary"
+                      {...register('first_name')}
+                    />
+                    {errors.first_name && (
+                      <p className="text-xs text-destructive">{errors.first_name.message}</p>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="last-name" className="text-foreground text-xs font-medium">
+                      Last Name
+                    </Label>
+                    <Input
+                      id="last-name"
+                      placeholder="Doe"
+                      className="bg-muted border-input text-foreground placeholder:text-muted-foreground focus-visible:ring-primary"
+                      {...register('last_name')}
+                    />
+                    {errors.last_name && (
+                      <p className="text-xs text-destructive">{errors.last_name.message}</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </Card>
+            </motion.div>
+
+            {/* Birthday Section */}
+            <motion.div custom={1} initial="hidden" animate="visible" variants={fadeUpVariants}>
+            <Card className="border-border bg-card/50 p-6">
+              <SectionHeader number={2} icon={<Calendar className="h-5 w-5" />} title="Date of Birth" />
               <div className="space-y-4">
                 <div className="grid grid-cols-3 gap-3">
                   {/* Month */}
@@ -314,9 +362,9 @@ export default function CreateProfilePage() {
             </motion.div>
 
             {/* Gender Section */}
-            <motion.div custom={1} initial="hidden" animate="visible" variants={fadeUpVariants}>
+            <motion.div custom={2} initial="hidden" animate="visible" variants={fadeUpVariants}>
             <Card className="border-border bg-card/50 p-6">
-              <SectionHeader number={2} icon={<User className="h-5 w-5" />} title="Gender" />
+              <SectionHeader number={3} icon={<User className="h-5 w-5" />} title="Gender" />
               <div className="space-y-4">
                 {/* Preset Chips */}
                 <div className="flex flex-wrap gap-2">
@@ -356,9 +404,9 @@ export default function CreateProfilePage() {
             </motion.div>
 
             {/* Player Contact Section */}
-            <motion.div custom={2} initial="hidden" animate="visible" variants={fadeUpVariants}>
+            <motion.div custom={3} initial="hidden" animate="visible" variants={fadeUpVariants}>
             <Card className="border-border bg-card/50 p-6">
-              <SectionHeader number={3} icon={<Shield className="h-5 w-5" />} title="Your Contact Number" />
+              <SectionHeader number={4} icon={<Shield className="h-5 w-5" />} title="Your Contact Number" />
               <div className="space-y-4">
                 <p className="text-sm text-muted-foreground">So we can reach you about games and updates.</p>
 
@@ -390,9 +438,9 @@ export default function CreateProfilePage() {
             </motion.div>
 
             {/* Emergency Contact Section */}
-            <motion.div custom={3} initial="hidden" animate="visible" variants={fadeUpVariants}>
+            <motion.div custom={4} initial="hidden" animate="visible" variants={fadeUpVariants}>
             <Card className="border-border bg-card/50 p-6">
-              <SectionHeader number={4} icon={<Shield className="h-5 w-5" />} title="Emergency Contact" />
+              <SectionHeader number={5} icon={<Shield className="h-5 w-5" />} title="Emergency Contact" />
               <div className="space-y-4">
                 <p className="text-sm text-muted-foreground">Required, but can be edited later.</p>
 
@@ -456,9 +504,9 @@ export default function CreateProfilePage() {
             </motion.div>
 
             {/* Skill Level Section */}
-            <motion.div custom={4} initial="hidden" animate="visible" variants={fadeUpVariants}>
+            <motion.div custom={5} initial="hidden" animate="visible" variants={fadeUpVariants}>
             <Card className="border-border bg-card/50 p-6">
-              <SectionHeader number={5} icon={<Star className="h-5 w-5" />} title="Skill Level" />
+              <SectionHeader number={6} icon={<Star className="h-5 w-5" />} title="Skill Level" />
               <div className="space-y-4">
                 <p className="text-sm text-muted-foreground">
                   Select your current level. Admins and facilitators will confirm this after seeing you play.

@@ -9,6 +9,12 @@ const SKILL_LEVELS = [
 ] as const
 
 export const onboardingSchema = z.object({
+  first_name: z.string('Please enter your first name')
+    .min(1, 'Please enter your first name')
+    .max(100, 'First name must be 100 characters or less'),
+  last_name: z.string('Please enter your last name')
+    .min(1, 'Please enter your last name')
+    .max(100, 'Last name must be 100 characters or less'),
   birthday_month: z
     .number('Please select your birth month')
     .int('Please select your birth month')
