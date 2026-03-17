@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
     .from('users')
     .select('profile_completed')
     .eq('id', user.id)
-    .single()
+    .single() as any
 
   if (profile?.profile_completed) {
     return NextResponse.json({ error: 'Profile already completed' }, { status: 403 })
@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
   } = result.data
 
   // 4. Update with service client (bypasses RLS)
-  const serviceClient = createServiceClient()
+  const serviceClient = createServiceClient() as any
   const { error: updateError } = await serviceClient
     .from('users')
     .update({

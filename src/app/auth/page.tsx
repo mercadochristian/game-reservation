@@ -1,9 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Eye, EyeOff, Mail, Lock, Loader2 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { toast } from 'sonner'
@@ -19,18 +19,34 @@ import {
   type LoginFormData,
 } from '@/lib/validations/auth'
 
-const fadeUpVariants = {
-  hidden: { opacity: 0, y: 20 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' } },
+function getAuthErrorMessage(message: string): string {
+  if (message.includes('Invalid login credentials')) return 'Incorrect email or password. Please try again.'
+  if (message.includes('Email not confirmed')) return 'Please confirm your email before signing in.'
+  if (message.includes('User already registered')) return 'An account with this email already exists.'
+  if (message.includes('only request this after')) return 'Please wait a moment before requesting another link.'
+  if (message.includes('Unable to validate email')) return 'Please enter a valid email address.'
+  return 'Something went wrong. Please try again.'
 }
 
-export default function AuthPage() {
+const fadeUpVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.4 } },
+}
+
+function AuthPageContent() {
   const [isLoading, setIsLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const router = useRouter()
+  const searchParams = useSearchParams()
   const supabase = createClient()
 
   const loginForm = useForm<LoginFormData>({ resolver: zodResolver(loginSchema) })
+
+  useEffect(() => {
+    if (searchParams.get('error') === 'auth_callback_failed') {
+      toast.error('The sign-in link has expired or is invalid. Please try again.')
+    }
+  }, [searchParams])
 
   async function handleEmailLogin(data: LoginFormData) {
     setIsLoading(true)
@@ -39,7 +55,7 @@ export default function AuthPage() {
       password: data.password,
     })
     if (error) {
-      toast.error(error.message)
+      toast.error(getAuthErrorMessage(error.message))
     } else {
       router.push('/')
     }
@@ -62,7 +78,7 @@ export default function AuthPage() {
       },
     })
     if (error) {
-      toast.error(error.message)
+      toast.error(getAuthErrorMessage(error.message))
     } else {
       toast.success('Check your email for the magic link!')
     }
@@ -73,7 +89,7 @@ export default function AuthPage() {
     <div className="dark min-h-screen flex items-center justify-center px-4 py-8 bg-background">
       <motion.div initial="hidden" animate="visible" variants={fadeUpVariants}>
         <Card className="w-full max-w-md bg-card border-border shadow-2xl">
-        <div className="p-8 sm:p-10">
+          <div className="p-8 sm:p-10">
           {/* Brand Header */}
           <div className="mb-8 text-center">
             {branding.logo && (
@@ -267,5 +283,13 @@ export default function AuthPage() {
       </Card>
       </motion.div>
     </div>
+  )
+}
+
+export default function AuthPage() {
+  return (
+    <Suspense>
+      <AuthPageContent />
+    </Suspense>
   )
 }

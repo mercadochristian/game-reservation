@@ -117,7 +117,7 @@ export default function CreateProfilePage() {
   }
 
   const handleSkillLevelClick = (value: string) => {
-    setValue('skill_level', value)
+    setValue('skill_level', value as any)
     setSelectedSkillLevel(value)
   }
 

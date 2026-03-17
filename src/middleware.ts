@@ -76,6 +76,13 @@ export async function middleware(request: NextRequest) {
 
     const allowedPrefix = ROLE_PATH_MAP[role]
 
+    // Redirect from '/' to role dashboard
+    if (pathname === '/') {
+      const redirectUrl = request.nextUrl.clone()
+      redirectUrl.pathname = allowedPrefix ?? '/player'
+      return NextResponse.redirect(redirectUrl)
+    }
+
     // Check if user is on a path they're not allowed to access
     const isOnWrongRolePath = Object.entries(ROLE_PATH_MAP).some(
       ([r, prefix]) => r !== role && pathname.startsWith(prefix)
