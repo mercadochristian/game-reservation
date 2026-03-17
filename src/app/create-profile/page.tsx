@@ -254,7 +254,7 @@ export default function CreateProfilePage() {
                     <select
                       id="month"
                       className="flex h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-sm text-foreground cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                      {...register('birthday_month', { setValueAs: (v) => (v === '' ? null : Number(v)) })}
+                      {...register('birthday_month', { setValueAs: (v) => (v === '' ? undefined : Number(v)) })}
                     >
                       <option value="">Select</option>
                       {MONTHS.map((m) => (
@@ -276,7 +276,7 @@ export default function CreateProfilePage() {
                     <select
                       id="day"
                       className="flex h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-sm text-foreground cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                      {...register('birthday_day', { setValueAs: (v) => (v === '' ? null : Number(v)) })}
+                      {...register('birthday_day', { setValueAs: (v) => (v === '' ? undefined : Number(v)) })}
                     >
                       <option value="">Select</option>
                       {DAYS.map((d) => (
@@ -301,7 +301,7 @@ export default function CreateProfilePage() {
                       placeholder="Opt."
                       className="bg-muted border-input text-foreground placeholder:text-muted-foreground focus-visible:ring-primary"
                       {...register('birthday_year', {
-                        setValueAs: (v) => (v === '' || v === null ? null : Number(v)),
+                        setValueAs: (v) => (v === '' || v === null ? undefined : Number(v)),
                       })}
                     />
                     {errors.birthday_year && (

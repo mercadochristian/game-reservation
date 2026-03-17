@@ -13,22 +13,17 @@ export const onboardingSchema = z.object({
     .number('Please select your birth month')
     .int('Please select your birth month')
     .min(1, 'Please select your birth month')
-    .max(12, 'Please select your birth month')
-    .nullable()
-    .optional(),
+    .max(12, 'Please select your birth month'),
   birthday_day: z
     .number('Please select your birth day')
     .int('Please select your birth day')
     .min(1, 'Please select your birth day')
-    .max(31, 'Please select your birth day')
-    .nullable()
-    .optional(),
+    .max(31, 'Please select your birth day'),
   birthday_year: z
     .number('Please enter a valid year')
     .int('Please enter a valid year')
     .min(1900, 'Year must be 1900 or later')
     .max(new Date().getFullYear(), 'Year cannot be in the future')
-    .nullable()
     .optional(),
   gender: z.string('Please enter your gender')
     .min(1, 'Please enter your gender')
