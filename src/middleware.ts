@@ -3,7 +3,7 @@ import { updateSession } from '@/lib/supabase/middleware'
 
 // Auth guard: URLs listed here bypass authentication.
 // All other routes require a valid session.
-const PUBLIC_ROUTES = ['/auth', '/auth/callback', '/admin', '/player', '/facilitator']
+const PUBLIC_ROUTES = ['/auth', '/auth/callback']
 
 // Role-to-path prefix mapping
 const ROLE_PATH_MAP: Record<string, string> = {

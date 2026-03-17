@@ -6,6 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useRouter } from 'next/navigation'
 import { Calendar, User, Shield, Star, Loader2 } from 'lucide-react'
 import { motion } from 'framer-motion'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -160,12 +161,14 @@ export default function CreateProfilePage() {
       if (!response.ok) {
         const errorData = await response.json()
         console.error('Error completing profile:', errorData)
+        toast.error('Failed to create profile. Please try again.')
         return
       }
 
       router.push('/player')
     } catch (error) {
       console.error('Error submitting form:', error)
+      toast.error('Something went wrong. Please try again.')
     } finally {
       setIsLoading(false)
     }

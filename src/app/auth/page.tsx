@@ -6,11 +6,11 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useRouter } from 'next/navigation'
 import { Eye, EyeOff, Mail, Lock, Loader2 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { createClient } from '@/lib/supabase/client'
 import { branding } from '@/lib/config/branding'
@@ -27,7 +27,6 @@ const fadeUpVariants = {
 export default function AuthPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
-  const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const router = useRouter()
   const supabase = createClient()
 
@@ -35,13 +34,12 @@ export default function AuthPage() {
 
   async function handleEmailLogin(data: LoginFormData) {
     setIsLoading(true)
-    setErrorMessage(null)
     const { error } = await supabase.auth.signInWithPassword({
       email: data.email,
       password: data.password,
     })
     if (error) {
-      setErrorMessage(error.message)
+      toast.error(error.message)
     } else {
       router.push('/')
     }
@@ -51,10 +49,9 @@ export default function AuthPage() {
   async function handleMagicLink(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setIsLoading(true)
-    setErrorMessage(null)
     const email = (e.currentTarget.elements.namedItem('magic-email') as HTMLInputElement)?.value
     if (!email) {
-      setErrorMessage('Please enter an email address')
+      toast.error('Please enter an email address')
       setIsLoading(false)
       return
     }
@@ -65,10 +62,9 @@ export default function AuthPage() {
       },
     })
     if (error) {
-      setErrorMessage(error.message)
+      toast.error(error.message)
     } else {
-      setErrorMessage(null)
-      alert('Check your email for the magic link!')
+      toast.success('Check your email for the magic link!')
     }
     setIsLoading(false)
   }
@@ -107,12 +103,6 @@ export default function AuthPage() {
 
             {/* Login Tab */}
             <TabsContent value="login" className="space-y-6">
-              {errorMessage && (
-                <Alert variant="destructive">
-                  <AlertDescription>{errorMessage}</AlertDescription>
-                </Alert>
-              )}
-
               <form onSubmit={loginForm.handleSubmit(handleEmailLogin)} className="space-y-5">
                 {/* Email Field */}
                 <div className="space-y-2">
@@ -186,12 +176,6 @@ export default function AuthPage() {
 
             {/* Magic Link Tab */}
             <TabsContent value="magic" className="space-y-6">
-              {errorMessage && (
-                <Alert variant="destructive">
-                  <AlertDescription>{errorMessage}</AlertDescription>
-                </Alert>
-              )}
-
               <form onSubmit={handleMagicLink} className="space-y-5">
                 <p className="text-sm text-muted-foreground">
                   We'll send you a secure sign-in link via email.
