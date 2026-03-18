@@ -3,7 +3,7 @@
 import { Suspense, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { Calendar, User, Shield, Star, Loader2 } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { toast } from 'sonner'
@@ -81,8 +81,6 @@ export default function CreateProfilePage() {
   const [playerPhoneDisplay, setPlayerPhoneDisplay] = useState('')
   const [emergencyPhoneDisplay, setEmergencyPhoneDisplay] = useState('')
   const router = useRouter()
-  const searchParams = useSearchParams()
-  const returnUrl = searchParams.get('returnUrl') || '/'
 
   const {
     register,
@@ -163,7 +161,13 @@ export default function CreateProfilePage() {
         return
       }
 
-      router.push(returnUrl)
+      const { role } = await response.json()
+      const ROLE_DASHBOARD: Record<string, string> = {
+        admin: '/admin',
+        facilitator: '/facilitator',
+        player: '/player',
+      }
+      router.push(ROLE_DASHBOARD[role] ?? '/player')
     } catch (error) {
       console.error('Error submitting form:', error)
       toast.error('Something went wrong. Please try again.')
@@ -552,6 +556,5 @@ export default function CreateProfilePage() {
       </div>
     </div>
     </Suspense>
-    
   )
 }
