@@ -4,6 +4,12 @@ import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { onboardingSchema } from '@/lib/validations/profile'
 import { logActivity, logError } from '@/lib/logger'
+import type { UserRole } from '@/types'
+
+type UserProfileRow = {
+  profile_completed: boolean
+  role: UserRole
+}
 
 export async function POST(request: NextRequest) {
   // 1. Authenticate the caller with the normal (anon) server client
@@ -19,7 +25,7 @@ export async function POST(request: NextRequest) {
     .from('users')
     .select('profile_completed, role')
     .eq('id', user.id)
-    .single() as any
+    .single() as { data: UserProfileRow | null; error: unknown }
 
   if (profile?.profile_completed) {
     return NextResponse.json({ error: 'Profile already completed' }, { status: 403 })
@@ -54,9 +60,9 @@ export async function POST(request: NextRequest) {
   } = result.data
 
   // 4. Update with service client (bypasses RLS)
-  const serviceClient = createServiceClient() as any
-  const { error: updateError } = await serviceClient
-    .from('users')
+  const serviceClient = createServiceClient()
+  const { error: updateError } = await (serviceClient
+    .from('users') as any)
     .update({
       first_name,
       last_name,
@@ -75,7 +81,7 @@ export async function POST(request: NextRequest) {
 
   if (updateError) {
     void logError('profile.complete', updateError, user.id)
-    return NextResponse.json({ error: updateError.message }, { status: 500 })
+    return NextResponse.json({ error: 'Failed to save profile. Please try again.' }, { status: 500 })
   }
 
   void logActivity('profile.complete', user.id, { role: profile?.role, skill_level })

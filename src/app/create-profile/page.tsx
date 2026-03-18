@@ -161,13 +161,7 @@ export default function CreateProfilePage() {
         return
       }
 
-      const { role } = await response.json()
-      const ROLE_DASHBOARD: Record<string, string> = {
-        admin: '/admin',
-        facilitator: '/facilitator',
-        player: '/player',
-      }
-      router.push(ROLE_DASHBOARD[role] ?? '/player')
+      router.push('/')
     } catch (error) {
       console.error('Error submitting form:', error)
       toast.error('Something went wrong. Please try again.')

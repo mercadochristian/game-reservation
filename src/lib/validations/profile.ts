@@ -1,13 +1,5 @@
 import { z } from 'zod'
 
-const SKILL_LEVELS = [
-  'developmental',
-  'developmental_plus',
-  'intermediate',
-  'intermediate_plus',
-  'advanced',
-] as const
-
 export const onboardingSchema = z.object({
   first_name: z.string('Please enter your first name')
     .min(1, 'Please enter your first name')
@@ -46,9 +38,10 @@ export const onboardingSchema = z.object({
   emergency_contact_number: z.string('Please enter your emergency contact\'s number')
     .min(1, 'Please enter your emergency contact\'s number')
     .regex(/^\+63\d{10}$/, 'Enter a valid Philippine mobile number (e.g. 912 345 6789)'),
-  skill_level: z.string('Please choose your skill level')
-    .min(1, 'Please choose your skill level')
-    .refine((val) => SKILL_LEVELS.includes(val as any), 'Please choose your skill level'),
+  skill_level: z.enum(
+    ['developmental', 'developmental_plus', 'intermediate', 'intermediate_plus', 'advanced'],
+    { error: 'Please choose your skill level' }
+  ),
 })
 
 export type OnboardingFormData = z.infer<typeof onboardingSchema>

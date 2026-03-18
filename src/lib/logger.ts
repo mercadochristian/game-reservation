@@ -11,7 +11,7 @@ export async function logActivity(
     action,
     user_id: userId,
     metadata: metadata || {},
-  })
+  } as any)
 }
 
 export async function logError(
@@ -28,5 +28,5 @@ export async function logError(
     user_id: userId ?? null,
     message,
     metadata: metadata || {},
-  })
+  } as any)
 }
