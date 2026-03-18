@@ -5,6 +5,9 @@ import { updateSession } from '@/lib/supabase/middleware'
 // All other routes require a valid session.
 const PUBLIC_ROUTES = ['/auth', '/auth/callback', '/']
 
+// Routes that bypass profile completion check (e.g., the endpoint that completes the profile)
+const PROFILE_CHECK_EXEMPT = ['/api/profile/complete']
+
 // Role-to-path prefix mapping
 const ROLE_PATH_MAP: Record<string, string> = {
   admin: '/admin',
@@ -52,20 +55,23 @@ export async function middleware(request: NextRequest) {
     profileCompleted = (profile as { role: string; profile_completed: boolean } | null)?.profile_completed ?? false
   }
 
-  // Authenticated user accessing /auth or / — redirect to their dashboard or create-profile
-  if (user && isPublicRoute && (pathname === '/auth' || pathname === '/')) {
-    const role = profileRole ?? 'player'
+  // Authenticated user accessing /auth — redirect to their dashboard or create-profile
+  if (user && isPublicRoute && pathname === '/auth') {
     const completed = profileCompleted ?? false
+    const returnUrl = request.nextUrl.searchParams.get('returnUrl')
 
-    // Players who haven't completed profile creation go there first
-    if (role === 'player' && !completed) {
+    // All users who haven't completed profile creation go there first
+    if (!completed) {
       const createProfileUrl = request.nextUrl.clone()
       createProfileUrl.pathname = '/create-profile'
+      if (returnUrl) {
+        createProfileUrl.searchParams.set('returnUrl', returnUrl)
+      }
       return NextResponse.redirect(createProfileUrl)
     }
 
     const dashboardUrl = request.nextUrl.clone()
-    dashboardUrl.pathname = '/dashboard'
+    dashboardUrl.pathname = returnUrl || '/dashboard'
     return NextResponse.redirect(dashboardUrl)
   }
 
@@ -73,11 +79,13 @@ export async function middleware(request: NextRequest) {
   if (user && !isPublicRoute) {
     const role = profileRole ?? 'player'
     const completed = profileCompleted ?? false
+    const isProfileCheckExempt = PROFILE_CHECK_EXEMPT.some(route => pathname.startsWith(route))
 
-    // Redirect players who haven't completed profile creation
-    if (role === 'player' && !completed && pathname !== '/create-profile') {
+    // Redirect all users who haven't completed profile creation (except exempt routes)
+    if (!completed && pathname !== '/create-profile' && !isProfileCheckExempt) {
       const createProfileUrl = request.nextUrl.clone()
       createProfileUrl.pathname = '/create-profile'
+      createProfileUrl.searchParams.set('returnUrl', pathname)
       return NextResponse.redirect(createProfileUrl)
     }
 
