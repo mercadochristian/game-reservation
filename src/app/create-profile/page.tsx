@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { Suspense, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -173,7 +173,8 @@ export default function CreateProfilePage() {
   }
 
   return (
-    <div className="min-h-screen flex bg-background">
+    <Suspense>
+      <div className="min-h-screen flex bg-background">
       {/* Left Sidebar - Desktop Only */}
       <div className="hidden lg:flex flex-col w-1/3 bg-gradient-to-b from-primary/10 to-primary/5 border-r border-border sticky top-0 h-screen overflow-y-auto">
         <div className="p-8 flex flex-col gap-8">
@@ -550,5 +551,7 @@ export default function CreateProfilePage() {
         </div>
       </div>
     </div>
+    </Suspense>
+    
   )
 }
