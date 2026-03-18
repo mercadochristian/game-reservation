@@ -52,8 +52,8 @@ export async function middleware(request: NextRequest) {
     profileCompleted = (profile as { role: string; profile_completed: boolean } | null)?.profile_completed ?? false
   }
 
-  // Authenticated user accessing /auth — redirect to their dashboard or create-profile
-  if (user && isPublicRoute && pathname === '/auth') {
+  // Authenticated user accessing /auth or / — redirect to their dashboard or create-profile
+  if (user && isPublicRoute && (pathname === '/auth' || pathname === '/')) {
     const role = profileRole ?? 'player'
     const completed = profileCompleted ?? false
 
