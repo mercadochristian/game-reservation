@@ -13,6 +13,7 @@ import { Dialog as DialogPrimitive } from '@base-ui/react/dialog'
 import { Button } from '@/components/ui/button'
 import { POSITION_LABELS } from '@/lib/constants/labels'
 import { formatScheduleDate, formatScheduleTime } from '@/lib/utils/timezone'
+import { formatScheduleLabel } from '@/lib/utils/schedule-label'
 
 interface QRModalProps {
   open: boolean
@@ -39,7 +40,7 @@ export function QRModal({ open, onOpenChange, schedule, registration }: QRModalP
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{schedule.title}</DialogTitle>
+          <DialogTitle>{formatScheduleLabel(schedule)}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-6">

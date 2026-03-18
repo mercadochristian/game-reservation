@@ -2,7 +2,7 @@
 
 import { use, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { ChevronLeft, MapPin, Clock, Calendar, Upload, X, Plus, CheckCircle, AlertCircle, Search } from 'lucide-react'
+import { ChevronLeft, Upload, X, Plus, CheckCircle, AlertCircle, Search } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { createClient } from '@/lib/supabase/client'
 import { type ScheduleWithLocation, type PlayerPosition, type User } from '@/types'
@@ -10,9 +10,12 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { toast } from 'sonner'
+import { ScheduleInfo } from '@/components/schedule-info'
 import { fadeUpVariants } from '@/lib/animations'
+import { getUserFriendlyMessage } from '@/lib/errors/messages'
 import { SKILL_LEVEL_LABELS, POSITION_LABELS } from '@/lib/constants/labels'
 import { formatScheduleDateWithWeekday, formatScheduleDateShort, formatScheduleTime } from '@/lib/utils/timezone'
+import { formatScheduleLabel } from '@/lib/utils/schedule-label'
 
 type ScheduleSlot = {
   schedule: ScheduleWithLocation
@@ -441,12 +444,12 @@ export default function RegisterPage({ params }: { params: Promise<{ scheduleId:
 
           results.push({
             scheduleId,
-            title: slot.schedule.title,
+            title: formatScheduleLabel(slot.schedule),
             success: !insertError,
             error:
               insertError?.code === '23505'
                 ? 'Already registered'
-                : insertError?.message || 'Registration failed',
+                : getUserFriendlyMessage(insertError),
           })
         }
 
@@ -569,7 +572,7 @@ export default function RegisterPage({ params }: { params: Promise<{ scheduleId:
           toast.error(`Missing positions: ${missingStr}`)
         } else {
           setGroupResults(result.results || [])
-          toast.error(result.error || 'Registration failed')
+          toast.error('Registration failed. Please try again.')
         }
         setIsSubmitting(false)
         return
@@ -622,7 +625,7 @@ export default function RegisterPage({ params }: { params: Promise<{ scheduleId:
             variants={fadeUpVariants}
             className="space-y-4"
           >
-            <h1 className="text-2xl font-bold">{primarySchedule?.title || 'Schedule'}</h1>
+            <h1 className="text-2xl font-bold">{primarySchedule ? formatScheduleLabel(primarySchedule) : 'Schedule'}</h1>
             <Card className="p-6 border-destructive/50 bg-destructive/5">
               <p className="text-sm font-medium text-destructive mb-2">
                 {skillError ? 'Unable to Register' : 'Schedule not found'}
@@ -783,23 +786,14 @@ export default function RegisterPage({ params }: { params: Promise<{ scheduleId:
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <h3 className="text-sm font-medium">{s.title}</h3>
+                    <div className="flex items-center gap-2 mb-2">
                       {isPrimary && (
                         <Badge variant="outline" className="text-xs flex-shrink-0">
                           Primary
                         </Badge>
                       )}
                     </div>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      📍 {(s.locations as any).name}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      📅{' '}
-                      {formatScheduleDateWithWeekday(s.start_time)}{' '}
-                      🕐{' '}
-                      {formatScheduleTime(s.start_time)}
-                    </p>
+                    <ScheduleInfo schedule={s} />
                   </div>
                   {!isPrimary && (
                     <button
@@ -869,9 +863,9 @@ export default function RegisterPage({ params }: { params: Promise<{ scheduleId:
                         className="flex items-center justify-between gap-2 p-2 hover:bg-muted rounded transition-colors"
                       >
                         <div className="flex-1 min-w-0">
-                          <p className="text-xs font-medium truncate">{s.title}</p>
+                          <p className="text-xs font-medium truncate">{s.locations?.name}</p>
                           <p className="text-xs text-muted-foreground">
-                            {formatScheduleDateShort(s.start_time)}
+                            {formatScheduleDateWithWeekday(s.start_time)} · {formatScheduleTime(s.start_time)}
                           </p>
                         </div>
                         <Button

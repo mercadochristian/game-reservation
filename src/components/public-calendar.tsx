@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { ChevronLeft, ChevronRight, MapPin, Clock, CalendarX } from 'lucide-react'
+import { ChevronLeft, ChevronRight, CalendarX } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
@@ -14,6 +14,7 @@ import { Badge } from '@/components/ui/badge'
 import { LoginModal } from '@/components/login-modal'
 import { QRModal } from '@/components/qr-modal'
 import { PositionModal } from '@/components/position-modal'
+import { ScheduleInfo } from '@/components/schedule-info'
 import { fadeUpVariants } from '@/lib/animations'
 import { SKILL_LEVEL_LABELS } from '@/lib/constants/labels'
 import {
@@ -349,23 +350,7 @@ export function PublicCalendar({ schedules }: PublicCalendarProps) {
                       >
                         <div className="rounded-2xl bg-card ring-1 ring-foreground/8 shadow-sm overflow-hidden">
                           <div className="p-5 space-y-4">
-                            <div>
-                              <h3 className="text-base font-semibold text-foreground">{schedule.title}</h3>
-                            </div>
-
-                            {/* Location & Time */}
-                            <div className="flex gap-4 text-sm text-muted-foreground">
-                              <div className="flex items-center gap-2">
-                                <MapPin className="h-4 w-4 flex-shrink-0" />
-                                <span>{schedule.locations.name}</span>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <Clock className="h-4 w-4 flex-shrink-0" />
-                                <span>
-                                  {formattedStartTime} – {formattedEndTime}
-                                </span>
-                              </div>
-                            </div>
+                            <ScheduleInfo schedule={schedule} />
 
                             {/* Divider */}
                             <div className="border-t border-border/50" />
