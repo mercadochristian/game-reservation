@@ -49,7 +49,6 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
-    "@rolldown/binding-darwin-x64": "^1.0.0-rc.9",
     "@vitest/coverage-v8": "^4.1.0",
     "vite-tsconfig-paths": "^6.1.1",
     "vitest": "^4.1.0"
