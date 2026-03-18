@@ -83,10 +83,19 @@ function AuthPageContent() {
       return
     }
 
-    const { error } = await supabase.auth.signUp({ email, password })
+    const { error: signUpError } = await supabase.auth.signUp({ email, password })
 
-    if (error) {
-      toast.error(getAuthErrorMessage(error.message))
+    if (signUpError) {
+      toast.error(getAuthErrorMessage(signUpError.message))
+      setIsLoading(false)
+      return
+    }
+
+    // After successful sign-up, sign in the user to create a session
+    const { error: signInError } = await supabase.auth.signInWithPassword({ email, password })
+
+    if (signInError) {
+      toast.error(getAuthErrorMessage(signInError.message))
     } else {
       toast.success('Account created! Redirecting...')
       router.push(returnUrl)
