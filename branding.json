@@ -2,10 +2,10 @@
   "name": "Dreamers Volleyball Club",
   "tagline": "Dream hard, play harder.",
   "logo": {
-    "url": "/logo.svg",
+    "url": "/logo.png",
     "altText": "Dreamers Volleyball Club Logo",
-    "width": 40,
-    "height": 40
+    "width": 48,
+    "height": 64
   },
   "colors": {
     "primary": "#3b82f6",

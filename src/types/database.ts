@@ -13,8 +13,9 @@ export type Database = {
         Row: {
           id: string
           email: string
-          full_name: string | null
-          role: 'admin' | 'player' | 'facilitator'
+          first_name: string | null
+          last_name: string | null
+          role: 'admin' | 'player' | 'facilitator' | 'super_admin'
           skill_level: SkillLevel | null
           avatar_url: string | null
           created_at: string
@@ -26,13 +27,16 @@ export type Database = {
           emergency_contact_name: string | null
           emergency_contact_relationship: string | null
           emergency_contact_number: string | null
+          player_contact_number: string | null
           profile_completed: boolean
+          is_guest: boolean
         }
         Insert: {
           id: string
           email: string
-          full_name?: string | null
-          role?: 'admin' | 'player' | 'facilitator'
+          first_name?: string | null
+          last_name?: string | null
+          role?: 'admin' | 'player' | 'facilitator' | 'super_admin'
           skill_level?: SkillLevel | null
           avatar_url?: string | null
           created_at?: string
@@ -44,13 +48,16 @@ export type Database = {
           emergency_contact_name?: string | null
           emergency_contact_relationship?: string | null
           emergency_contact_number?: string | null
+          player_contact_number?: string | null
           profile_completed?: boolean
+          is_guest?: boolean
         }
         Update: {
           id?: string
           email?: string
-          full_name?: string | null
-          role?: 'admin' | 'player' | 'facilitator'
+          first_name?: string | null
+          last_name?: string | null
+          role?: 'admin' | 'player' | 'facilitator' | 'super_admin'
           skill_level?: SkillLevel | null
           avatar_url?: string | null
           created_at?: string
@@ -62,7 +69,9 @@ export type Database = {
           emergency_contact_name?: string | null
           emergency_contact_relationship?: string | null
           emergency_contact_number?: string | null
+          player_contact_number?: string | null
           profile_completed?: boolean
+          is_guest?: boolean
         }
       }
       schedules: {
@@ -73,7 +82,8 @@ export type Database = {
           end_time: string
           location_id: string
           max_players: number
-          required_level: SkillLevel | null
+          num_teams: number
+          required_levels: SkillLevel[]
           status: 'open' | 'full' | 'cancelled' | 'completed'
           created_by: string
           created_at: string
@@ -86,7 +96,8 @@ export type Database = {
           end_time: string
           location_id: string
           max_players: number
-          required_level?: SkillLevel | null
+          num_teams: number
+          required_levels?: SkillLevel[]
           status?: 'open' | 'full' | 'cancelled' | 'completed'
           created_by: string
           created_at?: string
@@ -99,7 +110,8 @@ export type Database = {
           end_time?: string
           location_id?: string
           max_players?: number
-          required_level?: SkillLevel | null
+          num_teams?: number
+          required_levels?: SkillLevel[]
           status?: 'open' | 'full' | 'cancelled' | 'completed'
           created_by?: string
           created_at?: string
@@ -117,6 +129,7 @@ export type Database = {
           payment_proof_url: string | null
           attended: boolean
           qr_token: string | null
+          preferred_position: PlayerPosition | null
           created_at: string
           updated_at: string
         }
@@ -130,6 +143,7 @@ export type Database = {
           payment_proof_url?: string | null
           attended?: boolean
           qr_token?: string | null
+          preferred_position?: PlayerPosition | null
           created_at?: string
           updated_at?: string
         }
@@ -143,6 +157,7 @@ export type Database = {
           payment_proof_url?: string | null
           attended?: boolean
           qr_token?: string | null
+          preferred_position?: PlayerPosition | null
           created_at?: string
           updated_at?: string
         }
@@ -172,16 +187,19 @@ export type Database = {
           id: string
           team_id: string
           player_id: string
+          position: PlayerPosition | null
         }
         Insert: {
           id?: string
           team_id: string
           player_id: string
+          position?: PlayerPosition | null
         }
         Update: {
           id?: string
           team_id?: string
           player_id?: string
+          position?: PlayerPosition | null
         }
       }
       mvp_awards: {
@@ -256,7 +274,36 @@ export type Database = {
         }
         Update: {
           email?: string
-          role?: 'admin' | 'player' | 'facilitator'
+          role?: 'admin' | 'player' | 'facilitator' | 'super_admin'
+        }
+      }
+      logs: {
+        Row: {
+          id: string
+          level: 'info' | 'warn' | 'error'
+          action: string
+          user_id: string | null
+          message: string | null
+          metadata: Json
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          level: 'info' | 'warn' | 'error'
+          action: string
+          user_id?: string | null
+          message?: string | null
+          metadata?: Json
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          level?: 'info' | 'warn' | 'error'
+          action?: string
+          user_id?: string | null
+          message?: string | null
+          metadata?: Json
+          created_at?: string
         }
       }
     }
@@ -266,6 +313,7 @@ export type Database = {
       schedule_status: 'open' | 'full' | 'cancelled' | 'completed'
       payment_status: 'pending' | 'review' | 'paid' | 'rejected'
       team_preference: 'shuffle' | 'teammate'
+      player_position: PlayerPosition
     }
   }
 }
@@ -276,3 +324,10 @@ export type SkillLevel =
   | 'intermediate'
   | 'intermediate_plus'
   | 'advanced'
+
+export type PlayerPosition =
+  | 'open_spiker'
+  | 'opposite_spiker'
+  | 'middle_blocker'
+  | 'setter'
+  | 'middle_setter'
