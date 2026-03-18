@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { ChevronLeft, ChevronRight, CalendarX } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -116,8 +116,8 @@ export function PublicCalendar({ schedules }: PublicCalendarProps) {
     })
   }, [schedules])
 
-  // Fetch registration counts and position counts on mount
-  useEffect(() => {
+  // Fetch registration counts and position counts
+  const fetchCounts = useCallback(async () => {
     if (schedules.length === 0) {
       setCountsLoading(false)
       return
@@ -126,37 +126,62 @@ export function PublicCalendar({ schedules }: PublicCalendarProps) {
     const supabase = createClient()
     const scheduleIds = schedules.map((s) => s.id)
 
-    supabase
+    const { data, error } = await supabase
       .from('registrations')
       .select('schedule_id, preferred_position')
       .in('schedule_id', scheduleIds)
-      .then(({ data, error }) => {
-        if (error) {
-          console.error('[PublicCalendar] Failed to fetch registration counts:', error)
-          toast.error('Could not load registration counts', {
-            description: getUserFriendlyMessage(error),
-          })
-          setCountsLoading(false)
-          return
-        }
 
-        const counts: Record<string, number> = {}
-        const posCounts: Record<string, Record<string, number>> = {}
-
-        for (const row of data ?? []) {
-          const sid = (row as any).schedule_id
-          counts[sid] = (counts[sid] ?? 0) + 1
-          const pos = (row as any).preferred_position
-          if (pos) {
-            posCounts[sid] ??= {}
-            posCounts[sid][pos] = (posCounts[sid][pos] ?? 0) + 1
-          }
-        }
-        setRegistrationCounts(counts)
-        setPositionCounts(posCounts)
-        setCountsLoading(false)
+    if (error) {
+      console.error('[PublicCalendar] Failed to fetch registration counts:', error)
+      toast.error('Could not load registration counts', {
+        description: getUserFriendlyMessage(error),
       })
+      setCountsLoading(false)
+      return
+    }
+
+    const counts: Record<string, number> = {}
+    const posCounts: Record<string, Record<string, number>> = {}
+
+    for (const row of data ?? []) {
+      const sid = (row as any).schedule_id
+      counts[sid] = (counts[sid] ?? 0) + 1
+      const pos = (row as any).preferred_position
+      if (pos) {
+        posCounts[sid] ??= {}
+        posCounts[sid][pos] = (posCounts[sid][pos] ?? 0) + 1
+      }
+    }
+    setRegistrationCounts(counts)
+    setPositionCounts(posCounts)
+    setCountsLoading(false)
   }, [schedules])
+
+  // Fetch counts on mount and when schedules change
+  useEffect(() => {
+    void fetchCounts()
+  }, [fetchCounts])
+
+  // Subscribe to real-time registration changes
+  useEffect(() => {
+    if (schedules.length === 0) return
+
+    const supabase = createClient()
+    const channel = supabase
+      .channel('registrations-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'registrations' },
+        () => {
+          void fetchCounts()
+        }
+      )
+      .subscribe()
+
+    return () => {
+      void supabase.removeChannel(channel)
+    }
+  }, [schedules, fetchCounts])
 
   // Auto-navigate for ?schedule=<id> param after magic link login
   useEffect(() => {
