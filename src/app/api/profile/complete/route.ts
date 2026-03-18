@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { onboardingSchema } from '@/lib/validations/profile'
 import { logActivity, logError } from '@/lib/logger'
+import { clearProfileCache } from '@/lib/middleware/profile-cache'
 import type { UserRole } from '@/types'
 
 type UserProfileRow = {
@@ -85,5 +86,7 @@ export async function POST(request: NextRequest) {
   }
 
   void logActivity('profile.complete', user.id, { role: profile?.role, skill_level })
-  return NextResponse.json({ success: true, role: profile?.role ?? 'player' })
+  const response = NextResponse.json({ success: true, role: profile?.role ?? 'player' })
+  clearProfileCache(response)
+  return response
 }

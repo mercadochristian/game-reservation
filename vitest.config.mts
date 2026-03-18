@@ -8,6 +8,7 @@ export default defineConfig({
     },
   },
   test: {
+    setupFiles: ['src/__tests__/setup.ts'],
     environment: 'node',
     include: ['src/**/__tests__/**/*.test.ts'],
     coverage: {
@@ -15,9 +16,19 @@ export default defineConfig({
       include: [
         'src/lib/validations/**',
         'src/lib/utils/timezone.ts',
+        'src/lib/utils/position-slots.ts',
+        'src/lib/utils/schedule-label.ts',
         'src/lib/errors/messages.ts',
         'src/lib/constants/labels.ts',
         'src/lib/config/branding.ts',
+        'src/lib/middleware/profile-cache.ts',
+        'src/middleware.ts',
+        'src/app/api/registrations/counts/route.ts',
+        'src/app/api/registrations/by-position/route.ts',
+        'src/app/api/profile/complete/route.ts',
+        'src/app/api/users/search/route.ts',
+        'src/app/api/register/group/route.ts',
+        'src/app/api/admin/register/route.ts',
       ],
       reporter: ['text', 'html'],
       thresholds: { lines: 90, functions: 90, branches: 85 },
