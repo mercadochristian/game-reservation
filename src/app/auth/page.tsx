@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { Mail, Loader2 } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { toast } from 'sonner'
+import { fadeUpVariants } from '@/lib/animations'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -21,10 +22,6 @@ function getAuthErrorMessage(message: string): string {
   return 'Something went wrong. Please try again.'
 }
 
-const fadeUpVariants = {
-  hidden: { opacity: 0, y: 20 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.4 } },
-}
 
 function AuthPageContent() {
   const [isLoading, setIsLoading] = useState(false)
@@ -62,7 +59,7 @@ function AuthPageContent() {
   }
 
   return (
-    <div className="dark min-h-screen flex items-center justify-center px-4 py-8 bg-background">
+    <div className="min-h-screen flex items-center justify-center px-4 py-8 bg-background">
       <motion.div initial="hidden" animate="visible" variants={fadeUpVariants}>
         <Card className="w-full max-w-md bg-card border-border shadow-2xl">
           <div className="p-8 sm:p-10">
@@ -75,7 +72,7 @@ function AuthPageContent() {
                   alt={branding.logo.altText}
                   width={branding.logo.width}
                   height={branding.logo.height}
-                  className="h-12 w-auto"
+                  className="h-24 w-auto"
                 />
               </div>
             )}
@@ -100,7 +97,7 @@ function AuthPageContent() {
                   name="magic-email"
                   type="email"
                   placeholder="you@example.com"
-                  className="pl-10 bg-muted border-input text-foreground placeholder:text-muted-foreground focus-visible:ring-blue-500 focus-visible:border-blue-500"
+                  className="pl-10 bg-muted border-input text-foreground placeholder:text-muted-foreground focus-visible:ring-ring focus-visible:border-ring"
                   required
                 />
               </div>

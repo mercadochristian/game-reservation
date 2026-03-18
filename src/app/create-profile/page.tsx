@@ -13,15 +13,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { onboardingSchema, type OnboardingFormData } from '@/lib/validations/profile'
 import { branding } from '@/lib/config/branding'
-
-const fadeUpVariants = {
-  hidden: { opacity: 0, y: 20 },
-  visible: (custom: number = 0) => ({
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.4, delay: custom * 0.08 },
-  }),
-}
+import { fadeUpVariants } from '@/lib/animations'
 
 const MONTHS = [
   { value: 1, label: 'January' },
@@ -162,7 +154,8 @@ export default function CreateProfilePage() {
       })
 
       if (!response.ok) {
-        const errorData = await response.json()
+        const text = await response.text()
+        const errorData = text ? JSON.parse(text) : {}
         console.error('Error completing profile:', errorData)
         toast.error('Failed to create profile. Please try again.')
         return
@@ -184,7 +177,7 @@ export default function CreateProfilePage() {
   }
 
   return (
-    <div className="dark min-h-screen flex bg-background">
+    <div className="min-h-screen flex bg-background">
       {/* Left Sidebar - Desktop Only */}
       <div className="hidden lg:flex flex-col w-1/3 bg-gradient-to-b from-primary/10 to-primary/5 border-r border-border sticky top-0 h-screen overflow-y-auto">
         <div className="p-8 flex flex-col gap-8">
@@ -216,7 +209,7 @@ export default function CreateProfilePage() {
                 >
                   {section.id}
                 </div>
-                <span className="text-muted-foreground">{section.name}</span>
+                <span className="text-foreground/80">{section.name}</span>
               </div>
             ))}
           </div>
@@ -375,8 +368,8 @@ export default function CreateProfilePage() {
                       onClick={() => handleGenderPresetClick(preset)}
                       className={`px-4 py-2 rounded-full text-sm font-medium transition-all border cursor-pointer ${
                         selectedGenderPreset === preset
-                          ? 'bg-blue-500 text-white border-blue-500'
-                          : 'bg-muted text-muted-foreground border-border hover:bg-blue-500/10 hover:border-blue-500/50 hover:text-foreground'
+                          ? 'bg-primary text-primary-foreground border-primary'
+                          : 'bg-muted text-muted-foreground border-border hover:bg-primary/10 hover:border-primary/50 hover:text-foreground'
                       }`}
                     >
                       {preset}
@@ -523,8 +516,8 @@ export default function CreateProfilePage() {
                         onClick={() => handleSkillLevelClick(level.value)}
                         className={`w-full text-left p-4 rounded-lg border-2 transition-all text-foreground cursor-pointer ${
                           isSelected
-                            ? 'bg-blue-500/10 border-blue-500'
-                            : 'bg-card border-border hover:bg-blue-500/5 hover:border-blue-500/30'
+                            ? 'bg-primary/10 border-primary'
+                            : 'bg-card border-border hover:bg-primary/5 hover:border-primary/30'
                         }`}
                       >
                         <div className="font-semibold">{level.label}</div>
