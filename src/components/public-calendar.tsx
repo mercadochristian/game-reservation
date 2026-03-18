@@ -7,9 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
 import { type ScheduleWithLocation, type User, type Registration } from '@/types'
-import { getUserFriendlyMessage } from '@/lib/errors/messages'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { LoginModal } from '@/components/login-modal'
 import { QRModal } from '@/components/qr-modal'
@@ -21,19 +19,12 @@ import {
   getNowInManila,
   toManilaDateKey,
   getTodayManilaKey,
-  formatScheduleTime,
 } from '@/lib/utils/timezone'
+import { POSITION_SLOTS, getPositionAvailable, getPositionTotal } from '@/lib/utils/position-slots'
 
 interface PublicCalendarProps {
   schedules: ScheduleWithLocation[]
 }
-
-const POSITION_SLOTS: Array<{ key: string; label: string; multiplier: number }> = [
-  { key: 'open_spiker', label: 'Open Spiker', multiplier: 2 },
-  { key: 'opposite_spiker', label: 'Opposite Spiker', multiplier: 1 },
-  { key: 'middle_blocker', label: 'Middle Blocker', multiplier: 2 },
-  { key: 'setter', label: 'Setter', multiplier: 1 },
-]
 
 export function PublicCalendar({ schedules }: PublicCalendarProps) {
   const router = useRouter()
@@ -116,53 +107,36 @@ export function PublicCalendar({ schedules }: PublicCalendarProps) {
     })
   }, [schedules])
 
-  // Fetch registration counts and position counts
+  // Fetch registration counts and position counts via service-client API (bypasses RLS)
   const fetchCounts = useCallback(async () => {
     if (schedules.length === 0) {
       setCountsLoading(false)
       return
     }
 
-    const supabase = createClient()
-    const scheduleIds = schedules.map((s) => s.id)
+    const scheduleIds = schedules.map((s) => s.id).join(',')
 
-    const { data, error } = await supabase
-      .from('registrations')
-      .select('schedule_id, preferred_position')
-      .in('schedule_id', scheduleIds)
-
-    if (error) {
-      console.error('[PublicCalendar] Failed to fetch registration counts:', error)
-      toast.error('Could not load registration counts', {
-        description: getUserFriendlyMessage(error),
-      })
+    try {
+      const res = await fetch(`/api/registrations/counts?schedule_ids=${scheduleIds}`)
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      const { counts, positionCounts: posCounts } = await res.json()
+      setRegistrationCounts(counts ?? {})
+      setPositionCounts(posCounts ?? {})
+    } catch (err) {
+      console.error('[PublicCalendar] Failed to fetch registration counts:', err)
+      toast.error('Could not load registration counts')
+    } finally {
       setCountsLoading(false)
-      return
     }
-
-    const counts: Record<string, number> = {}
-    const posCounts: Record<string, Record<string, number>> = {}
-
-    for (const row of data ?? []) {
-      const sid = (row as any).schedule_id
-      counts[sid] = (counts[sid] ?? 0) + 1
-      const pos = (row as any).preferred_position
-      if (pos) {
-        posCounts[sid] ??= {}
-        posCounts[sid][pos] = (posCounts[sid][pos] ?? 0) + 1
-      }
-    }
-    setRegistrationCounts(counts)
-    setPositionCounts(posCounts)
-    setCountsLoading(false)
   }, [schedules])
 
   // Fetch counts on mount and when schedules change
   useEffect(() => {
+    setCountsLoading(true)
     void fetchCounts()
   }, [fetchCounts])
 
-  // Subscribe to real-time registration changes
+  // Subscribe to real-time registration changes and refetch via API
   useEffect(() => {
     if (schedules.length === 0) return
 
@@ -172,15 +146,11 @@ export function PublicCalendar({ schedules }: PublicCalendarProps) {
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'registrations' },
-        () => {
-          void fetchCounts()
-        }
+        () => { void fetchCounts() }
       )
       .subscribe()
 
-    return () => {
-      void supabase.removeChannel(channel)
-    }
+    return () => { void supabase.removeChannel(channel) }
   }, [schedules, fetchCounts])
 
   // Auto-navigate for ?schedule=<id> param after magic link login
@@ -194,9 +164,9 @@ export function PublicCalendar({ schedules }: PublicCalendarProps) {
       router.push(`/register/${scheduleId}?date=${selectedDate || ''}`)
 
       // Clean up the URL query param
-      const url = new URL(window.location.href)
+      const url = new URL(globalThis.location.href)
       url.searchParams.delete('schedule')
-      window.history.replaceState({}, '', url.toString())
+      globalThis.history.replaceState({}, '', url.toString())
     }
   }, [searchParams, user, schedules, selectedDate, router])
 
@@ -356,9 +326,6 @@ export function PublicCalendar({ schedules }: PublicCalendarProps) {
                     const spotsRemaining = schedule.max_players - registrationCount
                     const isFull = spotsRemaining <= 0
 
-                    const formattedStartTime = formatScheduleTime(schedule.start_time)
-                    const formattedEndTime = formatScheduleTime(schedule.end_time)
-
                     const spotsBadgeVariant = isFull
                       ? 'destructive'
                       : spotsRemaining <= 6
@@ -401,10 +368,9 @@ export function PublicCalendar({ schedules }: PublicCalendarProps) {
                                 }`}
                               >
                                 {POSITION_SLOTS.map((pos) => {
-                                  const total = schedule.num_teams * pos.multiplier
-                                  const registered =
-                                    positionCounts[schedule.id]?.[pos.key] ?? 0
-                                  const available = Math.max(0, total - registered)
+                                  const total = getPositionTotal(pos.key, schedule.num_teams)
+                                  const registered = positionCounts[schedule.id]?.[pos.key] ?? 0
+                                  const available = getPositionAvailable(pos.key, schedule.num_teams, registered)
                                   const isFull = available <= 0
                                   const badgeVariant = isFull
                                     ? 'destructive'
@@ -518,8 +484,7 @@ export function PublicCalendar({ schedules }: PublicCalendarProps) {
         position={modalPosition}
         totalSlots={
           modalSchedule && modalPosition
-            ? (POSITION_SLOTS.find((p) => p.key === modalPosition)?.multiplier ?? 0) *
-              modalSchedule.num_teams
+            ? getPositionTotal(modalPosition, modalSchedule.num_teams)
             : 0
         }
         registeredCount={
