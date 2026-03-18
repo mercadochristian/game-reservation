@@ -3,11 +3,16 @@ import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import type { Database } from '@/types/database'
+import type { UserRole } from '@/types'
+
+type UserProfileRow = {
+  role: UserRole
+  profile_completed: boolean
+}
 
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
-  const next = searchParams.get('next') ?? '/'
 
   if (code) {
     const cookieStore = await cookies()
@@ -39,33 +44,22 @@ export async function GET(request: NextRequest) {
           .from('users')
           .select('role, profile_completed')
           .eq('id', user.id)
-          .single()
+          .single() as { data: UserProfileRow | null; error: unknown }
 
-        const role = (profile as any)?.role ?? 'player'
-        const profileCompleted = (profile as any)?.profile_completed ?? false
+        const role = profile?.role ?? 'player'
+        const profileCompleted = profile?.profile_completed ?? false
 
         // Players who haven't completed profile creation go there first
         if (role === 'player' && !profileCompleted) {
           return NextResponse.redirect(`${origin}/create-profile`)
         }
 
-        const dashboardPath = getRoleDashboard(role)
-        return NextResponse.redirect(`${origin}${dashboardPath}`)
+        // Redirect to homepage
+        return NextResponse.redirect(`${origin}/`)
       }
     }
   }
 
   // Auth failed — redirect to auth page with error
   return NextResponse.redirect(`${origin}/auth?error=auth_callback_failed`)
-}
-
-function getRoleDashboard(role: string): string {
-  switch (role) {
-    case 'admin':
-      return '/admin'
-    case 'facilitator':
-      return '/facilitator'
-    default:
-      return '/player'
-  }
 }

@@ -6,21 +6,14 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useRouter } from 'next/navigation'
 import { Calendar, User, Shield, Star, Loader2 } from 'lucide-react'
 import { motion } from 'framer-motion'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { onboardingSchema, type OnboardingFormData } from '@/lib/validations/profile'
 import { branding } from '@/lib/config/branding'
-
-const fadeUpVariants = {
-  hidden: { opacity: 0, y: 20 },
-  visible: (custom: number = 0) => ({
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.4, delay: custom * 0.08 },
-  }),
-}
+import { fadeUpVariants } from '@/lib/animations'
 
 const MONTHS = [
   { value: 1, label: 'January' },
@@ -50,11 +43,12 @@ const SKILL_LEVELS = [
 ]
 
 const SECTIONS = [
-  { id: 1, name: 'Birthday' },
-  { id: 2, name: 'Gender' },
-  { id: 3, name: 'Contact Number' },
-  { id: 4, name: 'Emergency Contact' },
-  { id: 5, name: 'Skill Level' },
+  { id: 1, name: 'Name' },
+  { id: 2, name: 'Date of Birth' },
+  { id: 3, name: 'Gender' },
+  { id: 4, name: 'Contact Number' },
+  { id: 5, name: 'Emergency Contact' },
+  { id: 6, name: 'Skill Level' },
 ]
 
 interface SectionHeaderProps {
@@ -97,6 +91,8 @@ export default function CreateProfilePage() {
   } = useForm<OnboardingFormData>({
     resolver: zodResolver(onboardingSchema),
     defaultValues: {
+      first_name: '',
+      last_name: '',
       gender: '',
     },
   })
@@ -116,7 +112,7 @@ export default function CreateProfilePage() {
   }
 
   const handleSkillLevelClick = (value: string) => {
-    setValue('skill_level', value)
+    setValue('skill_level', value as any)
     setSelectedSkillLevel(value)
   }
 
@@ -158,21 +154,24 @@ export default function CreateProfilePage() {
       })
 
       if (!response.ok) {
-        const errorData = await response.json()
+        const text = await response.text()
+        const errorData = text ? JSON.parse(text) : {}
         console.error('Error completing profile:', errorData)
+        toast.error('Failed to create profile. Please try again.')
         return
       }
 
-      router.push('/player')
+      router.push('/')
     } catch (error) {
       console.error('Error submitting form:', error)
+      toast.error('Something went wrong. Please try again.')
     } finally {
       setIsLoading(false)
     }
   }
 
   return (
-    <div className="dark min-h-screen flex bg-background">
+    <div className="min-h-screen flex bg-background">
       {/* Left Sidebar - Desktop Only */}
       <div className="hidden lg:flex flex-col w-1/3 bg-gradient-to-b from-primary/10 to-primary/5 border-r border-border sticky top-0 h-screen overflow-y-auto">
         <div className="p-8 flex flex-col gap-8">
@@ -204,7 +203,7 @@ export default function CreateProfilePage() {
                 >
                   {section.id}
                 </div>
-                <span className="text-muted-foreground">{section.name}</span>
+                <span className="text-foreground/80">{section.name}</span>
               </div>
             ))}
           </div>
@@ -237,10 +236,49 @@ export default function CreateProfilePage() {
           </div>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
-            {/* Birthday Section */}
+            {/* Name Section */}
             <motion.div custom={0} initial="hidden" animate="visible" variants={fadeUpVariants}>
             <Card className="border-border bg-card/50 p-6">
-              <SectionHeader number={1} icon={<Calendar className="h-5 w-5" />} title="Date of Birth" />
+              <SectionHeader number={1} icon={<User className="h-5 w-5" />} title="Name" />
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="first-name" className="text-foreground text-xs font-medium">
+                      First Name
+                    </Label>
+                    <Input
+                      id="first-name"
+                      placeholder="John"
+                      className="bg-muted border-input text-foreground placeholder:text-muted-foreground focus-visible:ring-primary"
+                      {...register('first_name')}
+                    />
+                    {errors.first_name && (
+                      <p className="text-xs text-destructive">{errors.first_name.message}</p>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="last-name" className="text-foreground text-xs font-medium">
+                      Last Name
+                    </Label>
+                    <Input
+                      id="last-name"
+                      placeholder="Doe"
+                      className="bg-muted border-input text-foreground placeholder:text-muted-foreground focus-visible:ring-primary"
+                      {...register('last_name')}
+                    />
+                    {errors.last_name && (
+                      <p className="text-xs text-destructive">{errors.last_name.message}</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </Card>
+            </motion.div>
+
+            {/* Birthday Section */}
+            <motion.div custom={1} initial="hidden" animate="visible" variants={fadeUpVariants}>
+            <Card className="border-border bg-card/50 p-6">
+              <SectionHeader number={2} icon={<Calendar className="h-5 w-5" />} title="Date of Birth" />
               <div className="space-y-4">
                 <div className="grid grid-cols-3 gap-3">
                   {/* Month */}
@@ -251,7 +289,7 @@ export default function CreateProfilePage() {
                     <select
                       id="month"
                       className="flex h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-sm text-foreground cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                      {...register('birthday_month', { setValueAs: (v) => (v === '' ? null : Number(v)) })}
+                      {...register('birthday_month', { setValueAs: (v) => (v === '' ? undefined : Number(v)) })}
                     >
                       <option value="">Select</option>
                       {MONTHS.map((m) => (
@@ -273,7 +311,7 @@ export default function CreateProfilePage() {
                     <select
                       id="day"
                       className="flex h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-sm text-foreground cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                      {...register('birthday_day', { setValueAs: (v) => (v === '' ? null : Number(v)) })}
+                      {...register('birthday_day', { setValueAs: (v) => (v === '' ? undefined : Number(v)) })}
                     >
                       <option value="">Select</option>
                       {DAYS.map((d) => (
@@ -298,7 +336,7 @@ export default function CreateProfilePage() {
                       placeholder="Opt."
                       className="bg-muted border-input text-foreground placeholder:text-muted-foreground focus-visible:ring-primary"
                       {...register('birthday_year', {
-                        setValueAs: (v) => (v === '' || v === null ? null : Number(v)),
+                        setValueAs: (v) => (v === '' || v === null ? undefined : Number(v)),
                       })}
                     />
                     {errors.birthday_year && (
@@ -311,9 +349,9 @@ export default function CreateProfilePage() {
             </motion.div>
 
             {/* Gender Section */}
-            <motion.div custom={1} initial="hidden" animate="visible" variants={fadeUpVariants}>
+            <motion.div custom={2} initial="hidden" animate="visible" variants={fadeUpVariants}>
             <Card className="border-border bg-card/50 p-6">
-              <SectionHeader number={2} icon={<User className="h-5 w-5" />} title="Gender" />
+              <SectionHeader number={3} icon={<User className="h-5 w-5" />} title="Gender" />
               <div className="space-y-4">
                 {/* Preset Chips */}
                 <div className="flex flex-wrap gap-2">
@@ -324,8 +362,8 @@ export default function CreateProfilePage() {
                       onClick={() => handleGenderPresetClick(preset)}
                       className={`px-4 py-2 rounded-full text-sm font-medium transition-all border cursor-pointer ${
                         selectedGenderPreset === preset
-                          ? 'bg-blue-500 text-white border-blue-500'
-                          : 'bg-muted text-muted-foreground border-border hover:bg-blue-500/10 hover:border-blue-500/50 hover:text-foreground'
+                          ? 'bg-primary text-primary-foreground border-primary'
+                          : 'bg-muted text-muted-foreground border-border hover:bg-primary/10 hover:border-primary/50 hover:text-foreground'
                       }`}
                     >
                       {preset}
@@ -353,9 +391,9 @@ export default function CreateProfilePage() {
             </motion.div>
 
             {/* Player Contact Section */}
-            <motion.div custom={2} initial="hidden" animate="visible" variants={fadeUpVariants}>
+            <motion.div custom={3} initial="hidden" animate="visible" variants={fadeUpVariants}>
             <Card className="border-border bg-card/50 p-6">
-              <SectionHeader number={3} icon={<Shield className="h-5 w-5" />} title="Your Contact Number" />
+              <SectionHeader number={4} icon={<Shield className="h-5 w-5" />} title="Your Contact Number" />
               <div className="space-y-4">
                 <p className="text-sm text-muted-foreground">So we can reach you about games and updates.</p>
 
@@ -387,9 +425,9 @@ export default function CreateProfilePage() {
             </motion.div>
 
             {/* Emergency Contact Section */}
-            <motion.div custom={3} initial="hidden" animate="visible" variants={fadeUpVariants}>
+            <motion.div custom={4} initial="hidden" animate="visible" variants={fadeUpVariants}>
             <Card className="border-border bg-card/50 p-6">
-              <SectionHeader number={4} icon={<Shield className="h-5 w-5" />} title="Emergency Contact" />
+              <SectionHeader number={5} icon={<Shield className="h-5 w-5" />} title="Emergency Contact" />
               <div className="space-y-4">
                 <p className="text-sm text-muted-foreground">Required, but can be edited later.</p>
 
@@ -453,9 +491,9 @@ export default function CreateProfilePage() {
             </motion.div>
 
             {/* Skill Level Section */}
-            <motion.div custom={4} initial="hidden" animate="visible" variants={fadeUpVariants}>
+            <motion.div custom={5} initial="hidden" animate="visible" variants={fadeUpVariants}>
             <Card className="border-border bg-card/50 p-6">
-              <SectionHeader number={5} icon={<Star className="h-5 w-5" />} title="Skill Level" />
+              <SectionHeader number={6} icon={<Star className="h-5 w-5" />} title="Skill Level" />
               <div className="space-y-4">
                 <p className="text-sm text-muted-foreground">
                   Select your current level. Admins and facilitators will confirm this after seeing you play.
@@ -472,8 +510,8 @@ export default function CreateProfilePage() {
                         onClick={() => handleSkillLevelClick(level.value)}
                         className={`w-full text-left p-4 rounded-lg border-2 transition-all text-foreground cursor-pointer ${
                           isSelected
-                            ? 'bg-blue-500/10 border-blue-500'
-                            : 'bg-card border-border hover:bg-blue-500/5 hover:border-blue-500/30'
+                            ? 'bg-primary/10 border-primary'
+                            : 'bg-card border-border hover:bg-primary/5 hover:border-primary/30'
                         }`}
                       >
                         <div className="font-semibold">{level.label}</div>
