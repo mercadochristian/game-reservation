@@ -39,7 +39,7 @@ export function createMockRequest(
     ;(init.headers as Headers).set('cookie', cookieHeader)
   }
 
-  return new NextRequest(fullUrl, init)
+  return new NextRequest(fullUrl, init as RequestInit & { signal?: AbortSignal })
 }
 
 /**

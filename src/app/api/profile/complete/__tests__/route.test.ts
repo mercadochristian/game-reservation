@@ -5,6 +5,7 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { clearProfileCache } from '@/lib/middleware/profile-cache'
 import { createMockRequest } from '@/__tests__/helpers/next-mock'
 import { createMockServiceClient, createMockServerClient } from '@/__tests__/helpers/supabase-mock'
+import { NextRequest } from 'next/server'
 
 vi.mock('@/lib/supabase/server')
 vi.mock('@/lib/supabase/service')
@@ -87,11 +88,13 @@ describe('POST /api/profile/complete', () => {
     })
 
     // Simulate invalid JSON by manually creating request
-    const request = new Request('http://localhost/api/profile/complete', {
+    const request = new NextRequest('http://localhost/api/profile/complete', {
       method: 'POST',
       body: 'not json',
+      headers: {
+        'content-type': 'application/json',
+      },
     })
-    request.nextUrl = new URL('http://localhost/api/profile/complete')
 
     const response = await POST(request)
     const responseBody = await response.json()
