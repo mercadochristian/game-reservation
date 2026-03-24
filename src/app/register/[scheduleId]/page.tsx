@@ -2,7 +2,7 @@
 
 import { use, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { ChevronLeft, Upload, X, Plus, CheckCircle, AlertCircle, Search } from 'lucide-react'
+import { ChevronLeft, Upload, X, Plus, CheckCircle, AlertCircle, Search, CreditCard, CalendarX, Users, XCircle } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { createClient } from '@/lib/supabase/client'
 import { type ScheduleWithLocation, type PlayerPosition, type User } from '@/types'
@@ -11,11 +11,13 @@ import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { toast } from 'sonner'
 import { ScheduleInfo } from '@/components/schedule-info'
+import { PaymentChannelsModal } from '@/components/payment-channels-modal'
 import { fadeUpVariants } from '@/lib/animations'
 import { getUserFriendlyMessage } from '@/lib/errors/messages'
 import { SKILL_LEVEL_LABELS, POSITION_LABELS } from '@/lib/constants/labels'
 import { formatScheduleDateWithWeekday, formatScheduleDateShort, formatScheduleTime } from '@/lib/utils/timezone'
 import { formatScheduleLabel } from '@/lib/utils/schedule-label'
+import { computeSoloAmount } from '@/lib/utils/pricing'
 
 type ScheduleSlot = {
   schedule: ScheduleWithLocation
@@ -75,6 +77,7 @@ export default function RegisterPage({ params }: { params: Promise<{ scheduleId:
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
   const [skillError, setSkillError] = useState(false)
+  const [scheduleError, setScheduleError] = useState<'past' | 'full' | 'closed' | null>(null)
 
   // Multi-schedule state
   const [selectedSchedules, setSelectedSchedules] = useState<Record<string, ScheduleSlot>>({})
@@ -89,6 +92,10 @@ export default function RegisterPage({ params }: { params: Promise<{ scheduleId:
   const [paymentFile, setPaymentFile] = useState<File | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitResults, setSubmitResults] = useState<SubmitResult[]>([])
+
+  // Payment channels modal state
+  const [showPaymentChannelsModal, setShowPaymentChannelsModal] = useState(false)
+  const [selectedChannelId, setSelectedChannelId] = useState<string | undefined>()
 
   // Group registration state
   const [mode, setMode] = useState<'solo' | 'group' | 'team'>('solo')
@@ -163,18 +170,20 @@ export default function RegisterPage({ params }: { params: Promise<{ scheduleId:
         return
       }
 
-      // Fetch primary schedule
+      // Fetch primary schedule with registration count
       const { data: sched } = (await supabase
         .from('schedules')
-        .select('*, locations(id, name)')
+        .select('*, locations(id, name), registrations(count)')
         .eq('id', scheduleId)
-        .single()) as { data: ScheduleWithLocation | null }
+        .single()) as { data: any }
 
       if (!sched) {
         toast.error('Schedule not found')
         router.push('/')
         return
       }
+
+      const registrationCount = sched.registrations?.[0]?.count ?? 0
 
       // Check skill level
       const requiredLevels = (sched as any).required_levels || []
@@ -184,17 +193,52 @@ export default function RegisterPage({ params }: { params: Promise<{ scheduleId:
         return
       }
 
-      // Fetch registration count for primary schedule
-      const { data: primaryRegs } = await supabase
-        .from('registrations')
-        .select('id')
-        .eq('schedule_id', scheduleId)
+      // Check if schedule is past, full, or closed
+      const isPast = new Date(sched.start_time) < new Date()
+      const isFull = sched.status === 'full' || registrationCount >= sched.max_players
+      const isClosed = sched.status === 'cancelled' || sched.status === 'completed'
+
+      if (isPast) {
+        setScheduleError('past')
+        setLoading(false)
+        setSelectedSchedules({
+          [scheduleId]: {
+            schedule: sched,
+            registrationCount,
+          },
+        })
+        return
+      }
+
+      if (isFull) {
+        setScheduleError('full')
+        setLoading(false)
+        setSelectedSchedules({
+          [scheduleId]: {
+            schedule: sched,
+            registrationCount,
+          },
+        })
+        return
+      }
+
+      if (isClosed) {
+        setScheduleError('closed')
+        setLoading(false)
+        setSelectedSchedules({
+          [scheduleId]: {
+            schedule: sched,
+            registrationCount,
+          },
+        })
+        return
+      }
 
       // Populate selectedSchedules with primary schedule
       setSelectedSchedules({
         [scheduleId]: {
           schedule: sched,
-          registrationCount: primaryRegs?.length ?? 0,
+          registrationCount,
         },
       })
 
@@ -211,11 +255,12 @@ export default function RegisterPage({ params }: { params: Promise<{ scheduleId:
     try {
       const supabase = createClient()
 
-      // Fetch all open schedules
+      // Fetch all open schedules (excluding past ones)
       const { data: allOpen } = (await supabase
         .from('schedules')
         .select('*, locations(id, name)')
         .eq('status', 'open')
+        .gte('start_time', new Date().toISOString())
         .order('start_time', { ascending: true })) as { data: ScheduleWithLocation[] }
 
       if (!allOpen) {
@@ -434,13 +479,14 @@ export default function RegisterPage({ params }: { params: Promise<{ scheduleId:
         const results: SubmitResult[] = []
         for (const scheduleId of Object.keys(selectedSchedules)) {
           const slot = selectedSchedules[scheduleId]
-          const { error: insertError } = await (supabase.from('registrations') as any).insert({
-            schedule_id: scheduleId,
-            player_id: authUser.id,
-            registered_by: authUser.id,
-            preferred_position: position,
-            payment_proof_url: paymentProofUrl,
-          })
+          const { data: insertedData, error: insertError } = await (supabase.from('registrations') as any)
+            .insert({
+              schedule_id: scheduleId,
+              player_id: authUser.id,
+              registered_by: authUser.id,
+              preferred_position: position,
+            })
+            .select('id')
 
           results.push({
             scheduleId,
@@ -451,6 +497,43 @@ export default function RegisterPage({ params }: { params: Promise<{ scheduleId:
                 ? 'Already registered'
                 : getUserFriendlyMessage(insertError),
           })
+
+          // Create user_payments record if registration succeeded
+          if (!insertError && insertedData?.[0]?.id) {
+            const requiredAmount = computeSoloAmount(
+              {
+                position_prices: slot.schedule.position_prices as Record<string, number>,
+                team_price: slot.schedule.team_price,
+              },
+              position
+            )
+            const { error: paymentError } = await (supabase.from('user_payments') as any)
+              .insert({
+                registration_id: insertedData[0].id,
+                payer_id: authUser.id,
+                schedule_id: scheduleId,
+                registration_type: 'solo',
+                required_amount: requiredAmount,
+                payment_status: 'pending',
+                payment_proof_url: paymentProofUrl,
+                payment_channel_id: selectedChannelId || null,
+              })
+
+            if (paymentError) {
+              console.error('[Registration] Failed to create user_payments:', paymentError)
+            }
+
+            // Trigger AI extraction if insert succeeded
+            // Fire and forget - don't block the user
+            fetch('/api/payment-proof/extract', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                user_payment_id: insertedData[0].id, // Will be updated to use actual user_payment id in extraction API
+                payment_proof_url: paymentProofUrl,
+              }),
+            }).catch(err => console.warn('[Registration] Extraction failed silently:', err))
+          }
         }
 
         setSubmitResults(results)
@@ -517,6 +600,7 @@ export default function RegisterPage({ params }: { params: Promise<{ scheduleId:
         schedule_id: primaryScheduleId,
         payment_proof_path: paymentProofPath,
         registration_mode: mode as 'group' | 'team',
+        payment_channel_id: selectedChannelId || null,
         players: groupPlayers.map(p => {
           const basePlayer = {
             preferred_position: p.preferred_position as PlayerPosition,
@@ -607,7 +691,36 @@ export default function RegisterPage({ params }: { params: Promise<{ scheduleId:
   const primaryScheduleId = Object.keys(selectedSchedules)[0]
   const primarySchedule = selectedSchedules[primaryScheduleId]?.schedule
 
-  if (skillError || !primarySchedule) {
+  if (skillError || scheduleError || !primarySchedule) {
+    let errorIcon = AlertCircle
+    let errorTitle = 'Unable to Register'
+    let errorMessage: React.ReactNode = 'An error occurred'
+
+    if (scheduleError === 'past') {
+      errorIcon = CalendarX
+      errorTitle = 'Registration Closed'
+      errorMessage = 'This game has already started'
+    } else if (scheduleError === 'full') {
+      errorIcon = Users
+      errorTitle = 'Schedule is Full'
+      errorMessage = 'No more slots available for this game'
+    } else if (scheduleError === 'closed') {
+      errorIcon = XCircle
+      errorTitle = 'Schedule Unavailable'
+      errorMessage = 'This schedule has been cancelled or completed'
+    } else if (skillError && primarySchedule) {
+      errorTitle = 'Unable to Register'
+      errorMessage = (
+        <>
+          Your current skill level ({SKILL_LEVEL_LABELS[user.skill_level!] || user.skill_level}) does not meet
+          the requirements for this game. Required:{' '}
+          {(primarySchedule as any).required_levels.map((l: string) => SKILL_LEVEL_LABELS[l]).join(', ')}
+        </>
+      )
+    }
+
+    const ErrorIcon = errorIcon
+
     return (
       <div className="min-h-screen bg-background">
         <div className="max-w-lg mx-auto px-4 py-8">
@@ -626,17 +739,12 @@ export default function RegisterPage({ params }: { params: Promise<{ scheduleId:
             className="space-y-4"
           >
             <h1 className="text-2xl font-bold">{primarySchedule ? formatScheduleLabel(primarySchedule) : 'Schedule'}</h1>
-            <Card className="p-6 border-destructive/50 bg-destructive/5">
-              <p className="text-sm font-medium text-destructive mb-2">
-                {skillError ? 'Unable to Register' : 'Schedule not found'}
-              </p>
-              {skillError && primarySchedule && (
-                <p className="text-sm text-muted-foreground">
-                  Your current skill level ({SKILL_LEVEL_LABELS[user.skill_level!] || user.skill_level}) does
-                  not meet the requirements for this game. Required:{' '}
-                  {(primarySchedule as any).required_levels.map((l: string) => SKILL_LEVEL_LABELS[l]).join(', ')}
-                </p>
-              )}
+            <Card className="p-6 border-destructive/50 bg-destructive/5 flex gap-4">
+              <ErrorIcon className="h-5 w-5 text-destructive flex-shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <p className="text-sm font-medium text-destructive mb-1">{errorTitle}</p>
+                <p className="text-sm text-muted-foreground">{errorMessage}</p>
+              </div>
             </Card>
           </motion.div>
         </div>
@@ -1378,7 +1486,19 @@ export default function RegisterPage({ params }: { params: Promise<{ scheduleId:
           custom={4}
           className="mb-8"
         >
-          <p className="text-sm font-medium mb-3">Payment Screenshot</p>
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-sm font-medium">Payment Screenshot</p>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setShowPaymentChannelsModal(true)}
+              className="gap-2"
+            >
+              <CreditCard size={16} />
+              View Payment Channels
+            </Button>
+          </div>
           <div className="space-y-3">
             {paymentFile ? (
               <Card className="p-3 bg-muted/50 flex items-center justify-between">
@@ -1454,6 +1574,15 @@ export default function RegisterPage({ params }: { params: Promise<{ scheduleId:
           </Button>
         </motion.div>
       </div>
+
+      {/* Payment Channels Modal */}
+      <PaymentChannelsModal
+        open={showPaymentChannelsModal}
+        onOpenChange={setShowPaymentChannelsModal}
+        onContinue={(channelId) => {
+          setSelectedChannelId(channelId)
+        }}
+      />
     </div>
   )
 }

@@ -10,12 +10,6 @@ vi.mock('@/lib/supabase/server', () => ({
 describe('GET /api/users/search', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL', 'https://test.supabase.co')
-    vi.stubEnv('NEXT_PUBLIC_SUPABASE_ANON_KEY', 'test-key')
-  })
-
-  afterEach(() => {
-    vi.unstubAllEnvs()
   })
 
   it('returns 400 when q is less than 2 characters', async () => {

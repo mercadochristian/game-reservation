@@ -2,7 +2,6 @@ import { z } from 'zod'
 
 export const scheduleSchema = z
   .object({
-    title: z.string().min(1, 'Title is required').max(255),
     start_time: z.string().min(1, 'Start time is required'),
     end_time: z.string().min(1, 'End time is required'),
     location_id: z.string().uuid('Location is required'),
@@ -17,6 +16,14 @@ export const scheduleSchema = z
       ])
     ),
     status: z.enum(['open', 'full', 'cancelled', 'completed']),
+    position_prices: z.object({
+      open_spiker: z.number().min(0).optional(),
+      opposite_spiker: z.number().min(0).optional(),
+      middle_blocker: z.number().min(0).optional(),
+      setter: z.number().min(0).optional(),
+      middle_setter: z.number().min(0).optional(),
+    }).optional(),
+    team_price: z.number().min(0).optional(),
   })
   .refine((data) => new Date(data.end_time) > new Date(data.start_time), {
     message: 'End time must be after start time',

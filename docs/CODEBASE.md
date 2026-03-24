@@ -17,7 +17,8 @@
 8. [Lib Utilities](#lib-utilities)
 9. [Validation Schemas](#validation-schemas)
 10. [Types](#types)
-11. [Feature Log](#feature-log)
+11. [Testing](#testing)
+12. [Feature Log](#feature-log)
 
 ---
 
@@ -517,6 +518,71 @@ Typeahead search for existing players (used in registration page to add group me
 
 ---
 
+### GET `/api/registrations/counts`
+**File:** `src/app/api/registrations/counts/route.ts`
+
+Returns total registration counts and per-position counts for one or more schedules. Powers the real-time position availability pills in `PublicCalendar`. Uses the service client to bypass RLS so all registrations (across all registrants) are visible.
+
+**Auth:** None required (public endpoint — no session check)
+
+**Query Params:**
+- `schedule_ids` (string, comma-separated UUIDs) — e.g. `?schedule_ids=uuid1,uuid2`
+
+**Output:**
+```ts
+{
+  counts: Record<string, number>           // scheduleId → total registrant count
+  positionCounts: Record<string, Record<string, number>>  // scheduleId → positionKey → count
+}
+```
+
+**Logic:**
+1. Parse and trim `schedule_ids` param; return 400 if missing
+2. If no valid IDs after split/filter, return `{ counts: {}, positionCounts: {} }`
+3. Query `registrations` selecting `schedule_id, preferred_position` where `schedule_id IN (...)`
+4. Aggregate totals into `counts` and position breakdowns into `positionCounts`
+5. Return combined object
+
+**Error codes:**
+- 400: Missing `schedule_ids` param
+- 500: Database error
+
+---
+
+### GET `/api/registrations/by-position`
+**File:** `src/app/api/registrations/by-position/route.ts`
+
+Returns the list of registered players for a specific position slot within a schedule. Consumed by `PositionModal` when a user clicks a position pill to view who has registered. Uses the service client to bypass RLS.
+
+**Auth:** None required (public endpoint — no session check)
+
+**Query Params:**
+- `schedule_id` (UUID) — the schedule to query
+- `position` (player_position enum value) — the position to filter by
+
+**Output:**
+```ts
+[
+  {
+    first_name: string | null
+    last_name: string | null
+  }
+]
+```
+
+**Logic:**
+1. Validate both `schedule_id` and `position` are present; return 400 if either is missing
+2. Query `registrations` joined to `users` (via `users!player_id`) selecting `first_name, last_name`
+3. Filter by `schedule_id` and `preferred_position`
+4. Map rows to `{ first_name, last_name }` objects
+5. Return array (empty if no matches)
+
+**Error codes:**
+- 400: Missing `schedule_id` or `position`
+- 500: Database error
+
+---
+
 ## Pages & Routes
 
 ### Home (`/`)
@@ -783,6 +849,107 @@ Details for a position slot in a schedule.
 
 ---
 
+### PageHeader (`src/components/ui/page-header.tsx`)
+Animated admin page header with breadcrumb trail, title, optional record count badge, optional description, and optional primary action button.
+
+**Props:**
+```ts
+{
+  breadcrumb: string           // e.g. "Locations"
+  title: string                // page heading
+  count?: number               // shown in an outline Badge beside the title
+  description?: string
+  action?: {
+    label: string
+    icon: LucideIcon
+    onClick: () => void
+  }
+}
+```
+
+**Features:**
+- Framer Motion fade-down entrance animation (`opacity: 0, y: -10` → visible)
+- Renders "Admin / {breadcrumb}" breadcrumb trail above the title
+- Action button is full-width on mobile, auto-width on `sm+`
+
+---
+
+### TableSkeleton (`src/components/ui/table-skeleton.tsx`)
+Animated loading placeholder that mirrors the column layout of an admin table, shown while data is being fetched.
+
+**Props:**
+```ts
+{
+  columns: SkeletonColumn[]    // column definitions (see below)
+  rows?: number                // default 3
+}
+```
+
+**`SkeletonColumn` shape:**
+```ts
+{
+  header: string
+  className?: string
+  skeletonWidth?: string  // Tailwind width class, e.g. "w-48" (default "w-24")
+  isPrimary?: boolean     // renders a two-line (title + subtitle) skeleton cell
+  isAction?: boolean      // renders a right-aligned button-shaped skeleton
+}
+```
+
+**Features:**
+- Renders real `<Table>` markup with live column headers so layout does not shift when data arrives
+- `isPrimary` cells show a taller skeleton with a secondary line below
+- `isAction` cells align right with button proportions
+- All skeleton divs use `animate-pulse` (Tailwind)
+
+---
+
+### ConfirmDeleteDialog (`src/components/confirm-delete-dialog.tsx`)
+Reusable delete-confirmation dialog used across all admin CRUD pages.
+
+**Props:**
+```ts
+{
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  title: string
+  targetName?: string            // bolded in the description
+  warningText?: string           // default "This action cannot be undone."
+  onConfirm: () => void
+  onCancel: () => void
+  isDeleting?: boolean           // disables buttons and shows "Deleting..."
+}
+```
+
+**Features:**
+- Uses `Dialog` primitive with `showCloseButton={false}` (forces explicit Cancel/Delete choice)
+- Cancel and Delete buttons are disabled while `isDeleting` is true
+- Delete button uses `destructive` variant
+
+---
+
+### FilterAccordion (`src/components/filter-accordion.tsx`)
+Collapsible animated filter panel used on admin list pages to reveal filter controls without cluttering the page.
+
+**Props:**
+```ts
+{
+  open: boolean
+  onToggle: () => void
+  label?: string               // default "Filters"
+  activeFilterCount?: number   // appended to label when > 0, e.g. "Filters (2)"
+  children: React.ReactNode
+}
+```
+
+**Features:**
+- Framer Motion `AnimatePresence` + `height: 0 → auto` collapse/expand animation
+- `ChevronDown` icon rotates 180° when open
+- `Filter` icon always shown in the toggle button
+- Active filter count shown in the button label when `activeFilterCount > 0`
+
+---
+
 ## UI Primitives
 
 All in `src/components/ui/`, built on `@base-ui/react` or `@radix-ui`.
@@ -916,6 +1083,123 @@ Utility for merging Tailwind classes. Uses `clsx` + `tailwind-merge`.
 ```ts
 cn('px-2', condition && 'bg-red-500', { 'text-lg': isLarge })
 ```
+
+---
+
+### `src/lib/hooks/useCrudDialog.ts`
+**Exports:** `useCrudDialog()`, `CrudDialogState`, `CrudDialogHandlers`, `UseCrudDialogReturn`
+
+Client-side hook encapsulating the state machine for create / edit / delete dialog flows used across admin CRUD pages. Does not make any API calls — those remain in the page component.
+
+**State fields:** `isOpen`, `editingId` (null = create mode), `deleteTarget` (`{ id, label } | null`)
+
+**Handlers:**
+- `onOpenCreate()` — opens dialog in create mode
+- `onOpenEdit(id)` — opens dialog pre-populated for editing
+- `onOpenDeleteConfirm(id, label)` — sets `deleteTarget` to trigger the `ConfirmDeleteDialog`
+- `onCloseDialog()` — closes main dialog and clears `editingId`
+- `onCancelDelete()` — clears `deleteTarget`
+- `reset()` — resets all state to initial
+
+---
+
+### `src/lib/hooks/usePagination.ts`
+**Export:** `usePagination<T>(items: T[], defaultPageSize?: number): UsePaginationReturn<T>`
+
+Generic client-side pagination hook. Accepts a full array of (typically pre-filtered) items and manages current page, page size, and sliced output. Default page size is 15.
+
+**Return shape:**
+```ts
+{
+  currentPage: number        // 1-indexed, clamped to valid range
+  pageSize: number
+  paginatedItems: T[]        // slice for the current page
+  totalPages: number
+  hasPreviousPage: boolean
+  hasNextPage: boolean
+  setCurrentPage(page): void
+  setPageSize(size): void    // resets to page 1
+  reset(): void
+}
+```
+
+---
+
+### `src/lib/utils/registration-positions.ts`
+**Exports:** `getRequiredPositions()`, `countPositions(players)`, `validateTeamPositions(players, required)`, `validateGroupPositions(players)`
+
+Pure utility functions for position counting and validation used by both the `POST /api/register/group` route and the registration page.
+
+- `getRequiredPositions()` — returns the canonical minimum: `{ setter: 1, middle_blocker: 2, open_spiker: 2, opposite_spiker: 1 }`
+- `countPositions(players)` — aggregates position counts; `middle_setter` is aliased to `setter`
+- `validateTeamPositions(players, required)` — returns `{ valid, missing? }` for team mode minimum check
+- `validateGroupPositions(players)` — returns `{ valid, issues? }` for group mode maximum check (S=1, OS=1, MB=2, OPS=2)
+
+---
+
+### `src/lib/utils/position-slots.ts`
+**Exports:** `POSITION_SLOTS`, `PositionKey`, `getPositionTotal()`, `getPositionAvailable()`, `getPositionBreakdown()`
+
+Defines the four tracked positions and their per-team slot multipliers. Used by `PublicCalendar` to compute how many slots exist and how many are still available.
+
+```ts
+POSITION_SLOTS = [
+  { key: 'open_spiker',     label: 'Open Spiker',     multiplier: 2 },
+  { key: 'opposite_spiker', label: 'Opposite Spiker',  multiplier: 1 },
+  { key: 'middle_blocker',  label: 'Middle Blocker',  multiplier: 2 },
+  { key: 'setter',          label: 'Setter',           multiplier: 1 },
+]
+```
+
+- `getPositionTotal(key, numTeams)` — `multiplier * numTeams`
+- `getPositionAvailable(key, numTeams, registered)` — `max(0, total - registered)`
+- `getPositionBreakdown(numTeams, positionCounts)` — full array of `{ key, label, total, registered, available, isFull }`
+
+---
+
+### `src/lib/middleware/profile-cache.ts`
+**Exports:** `readProfileCache(request)`, `writeProfileCache(response, data)`, `clearProfileCache(response)`, `ProfileData`
+
+Cookie-based profile data cache used by the middleware to avoid a DB round-trip on every request. Stores `{ role, profile_completed }` in the `x-profile` HTTP-only cookie, base64-encoded JSON, with a 5-minute TTL.
+
+- `readProfileCache` — decodes and parses the cookie; returns `ProfileData | null`
+- `writeProfileCache` — encodes and sets the cookie on a response
+- `clearProfileCache` — deletes the cookie
+
+---
+
+## Services
+
+### `src/lib/services/guest-user.ts`
+**Export:** `createGuestUser(serviceClient, regularClient, guestData, logContext?)`
+
+Encapsulates the create-or-reuse logic for guest players in the group/team registration flow. Extracted from `POST /api/register/group` to make the route testable.
+
+**Input:**
+```ts
+guestData: {
+  email: string
+  first_name: string
+  last_name: string
+  phone?: string
+}
+```
+
+**Output:**
+```ts
+{
+  user_id: string | null
+  error: string | null
+  reused: boolean    // true if email already existed in users table
+}
+```
+
+**Logic:**
+1. Look up `email` in `users` table (regular client, respects RLS)
+2. If found → return existing `user_id` with `reused: true`
+3. Otherwise → call `serviceClient.auth.admin.createUser()` with `email_confirm: true`
+4. Insert `public.users` row with `is_guest: true, profile_completed: false, role: 'player'`
+5. On any failure → log via `logError()` and return `{ user_id: null, error: <message> }`
 
 ---
 
@@ -1089,6 +1373,90 @@ const { data: schedule } = (await supabase
 
 ---
 
+## Testing
+
+### Framework & Configuration
+
+**Runner:** Vitest (`vitest.config.mts`)
+
+**Environment:** `node` (no DOM/browser simulation — all tests run server-side)
+
+**Test discovery:** `src/**/__tests__/**/*.test.ts`
+
+**Alias:** `@` → `src/` (mirrors `tsconfig.json` path alias)
+
+**Setup file:** `src/__tests__/setup.ts`
+
+Global mocks registered once before any test file runs:
+```ts
+vi.mock('@/lib/supabase/service')
+vi.mock('@/lib/supabase/server')
+vi.mock('@/lib/supabase/middleware')
+vi.mock('@/lib/logger')
+vi.mock('next/headers')
+```
+
+Tests configure these mocks per-case using `vi.mocked(...).mockReturnValue(...)`.
+
+### Coverage
+
+**Provider:** v8
+
+**Reporters:** `text` (terminal), `html` (output to `coverage/`)
+
+**Thresholds:**
+| Metric | Required |
+|---|---|
+| Lines | 90% |
+| Functions | 90% |
+| Branches | 85% |
+
+**Covered files:**
+- `src/lib/validations/**`
+- `src/lib/utils/timezone.ts`
+- `src/lib/utils/position-slots.ts`
+- `src/lib/utils/schedule-label.ts`
+- `src/lib/utils/registration-positions.ts`
+- `src/lib/services/guest-user.ts`
+- `src/lib/errors/messages.ts`
+- `src/lib/constants/labels.ts`
+- `src/lib/config/branding.ts`
+- `src/lib/hooks/useSupabaseQuery.ts`
+- `src/lib/hooks/useCrudDialog.ts`
+- `src/lib/hooks/usePagination.ts`
+- `src/lib/middleware/profile-cache.ts`
+- `src/middleware.ts`
+- `src/app/api/registrations/counts/route.ts`
+- `src/app/api/registrations/by-position/route.ts`
+- `src/app/api/profile/complete/route.ts`
+- `src/app/api/users/search/route.ts`
+- `src/app/api/register/group/route.ts`
+- `src/app/api/admin/register/route.ts`
+
+### Test Locations
+
+| Area | Test Path |
+|---|---|
+| Middleware | `src/__tests__/middleware.test.ts` |
+| Users search API | `src/app/api/users/search/__tests__/route.test.ts` |
+| Group register API | `src/app/api/register/group/__tests__/route.test.ts` |
+| Admin register API | `src/app/api/admin/register/__tests__/route.test.ts` |
+| Registrations counts API | `src/app/api/registrations/counts/__tests__/route.test.ts` |
+| Registrations by-position API | `src/app/api/registrations/by-position/__tests__/route.test.ts` |
+| Guest user service | `src/lib/services/__tests__/guest-user.test.ts` |
+| useCrudDialog hook | `src/lib/hooks/__tests__/useCrudDialog.test.ts` |
+| usePagination hook | `src/lib/hooks/__tests__/usePagination.test.ts` |
+| Registration positions utils | `src/lib/utils/__tests__/registration-positions.test.ts` |
+
+### Run Commands
+
+```bash
+npm run test           # run all tests once
+npm run test:coverage  # run with coverage report
+```
+
+---
+
 ## Feature Log
 
 Log all new features, pages, API routes, and significant changes here.
@@ -1102,5 +1470,11 @@ Log all new features, pages, API routes, and significant changes here.
 | 2026-03-18 | Timezone centralization | `src/lib/utils/timezone.ts` (new), `src/app/admin/schedules/page.tsx`, `src/app/register/[scheduleId]/page.tsx`, `src/components/qr-modal.tsx`, `src/components/public-calendar.tsx` | All `'Asia/Manila'` strings and inline date formatting replaced with shared helpers. `APP_TIMEZONE` is single source of truth. |
 | 2026-03-18 | Database performance indices (#39) | `supabase/migrations/20250318000000_add_database_indices.sql` | GIN trigram indices on users.first_name/last_name for ILIKE search; composite index on registrations(schedule_id, preferred_position); role index on users. Enables pg_trgm extension. |
 | 2026-03-18 | Soft delete for locations & schedules (#38) | `supabase/migrations/20250318000001_add_soft_delete.sql`, `supabase/migrations/20250318000002_soft_delete_views.sql` | Adds deleted_at TIMESTAMPTZ to locations and schedules. Updates RLS SELECT policies to filter active records (deleted_at IS NULL). Creates admin-only archive views (locations_archive, schedules_archive) and schedules_with_registration_count convenience view. |
+| 2026-03-19 | Registration counts & by-position API routes | `src/app/api/registrations/counts/route.ts`, `src/app/api/registrations/by-position/route.ts` | New public GET endpoints. `/counts` returns total + per-position counts for a list of schedule IDs (powers real-time position pills). `/by-position` returns registered player names for a schedule+position pair (powers PositionModal roster). Both use service client to bypass RLS. |
+| 2026-03-19 | Shared UI components (PageHeader, TableSkeleton, ConfirmDeleteDialog, FilterAccordion) | `src/components/ui/page-header.tsx`, `src/components/ui/table-skeleton.tsx`, `src/components/confirm-delete-dialog.tsx`, `src/components/filter-accordion.tsx` | Extracted repeated patterns from admin pages into reusable components: animated page heading with breadcrumb and action button; pulse-skeleton table loader; standardized delete confirmation dialog; animated collapsible filter panel. |
+| 2026-03-19 | Hooks: useCrudDialog, usePagination | `src/lib/hooks/useCrudDialog.ts`, `src/lib/hooks/usePagination.ts` | New client hooks. useCrudDialog encapsulates isOpen/editingId/deleteTarget state machine for CRUD pages. usePagination manages current page, page size, and item slicing for any list. |
+| 2026-03-19 | Utils: registration-positions, position-slots, profile-cache | `src/lib/utils/registration-positions.ts`, `src/lib/utils/position-slots.ts`, `src/lib/middleware/profile-cache.ts` | registration-positions: pure functions for group/team position counting and validation. position-slots: POSITION_SLOTS constant + helpers for slot totals and availability. profile-cache: cookie-based middleware cache (x-profile, 5-min TTL) to avoid per-request DB round-trips. |
+| 2026-03-19 | Service: guest-user | `src/lib/services/guest-user.ts` | Extracted guest user create-or-reuse logic from group registration route into a standalone service function. Accepts service + regular Supabase clients; returns { user_id, error, reused }. |
+| 2026-03-19 | Vitest test suite (Phase 1–3) | `vitest.config.mts`, `src/__tests__/setup.ts`, `src/__tests__/middleware.test.ts`, `src/app/api/**/__tests__/*.test.ts`, `src/lib/**/__tests__/*.test.ts` | Full test infrastructure: Vitest + v8 coverage, global mock setup for Supabase/logger/next/headers, thresholds (lines 90%, functions 90%, branches 85%). Tests cover middleware, all API routes, guest-user service, hooks, and registration-position utilities. |
 | | | | |
 

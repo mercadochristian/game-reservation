@@ -1,11 +1,8 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { middleware } from '../middleware'
 import { updateSession } from '@/lib/supabase/middleware'
-import { readProfileCache, writeProfileCache } from '@/lib/middleware/profile-cache'
 import { createMockRequest, createMockResponse } from '@/__tests__/helpers/next-mock'
 import { createMockServerClient } from '@/__tests__/helpers/supabase-mock'
-
-vi.mock('@/lib/middleware/profile-cache')
 
 describe('middleware(request)', () => {
   beforeEach(() => {
@@ -99,14 +96,14 @@ describe('middleware(request)', () => {
     it('redirects to /dashboard with no returnUrl', async () => {
       const mockResponse = createMockResponse()
       const mockClient = createMockServerClient()
+      mockClient.from('users').single.mockResolvedValue({
+        data: { role: 'admin', profile_completed: true },
+        error: null,
+      })
       vi.mocked(updateSession).mockResolvedValue({
         supabaseResponse: mockResponse as any,
         user: { id: 'user123' } as any,
         supabase: mockClient as any,
-      })
-      vi.mocked(readProfileCache).mockReturnValue({
-        role: 'admin',
-        profile_completed: true,
       })
 
       const request = createMockRequest('/auth')
@@ -122,14 +119,14 @@ describe('middleware(request)', () => {
     it('redirects to returnUrl when provided and not /auth', async () => {
       const mockResponse = createMockResponse()
       const mockClient = createMockServerClient()
+      mockClient.from('users').single.mockResolvedValue({
+        data: { role: 'admin', profile_completed: true },
+        error: null,
+      })
       vi.mocked(updateSession).mockResolvedValue({
         supabaseResponse: mockResponse as any,
         user: { id: 'user123' } as any,
         supabase: mockClient as any,
-      })
-      vi.mocked(readProfileCache).mockReturnValue({
-        role: 'admin',
-        profile_completed: true,
       })
 
       const request = createMockRequest('/auth?returnUrl=/player/dashboard')
@@ -144,14 +141,14 @@ describe('middleware(request)', () => {
     it('redirects to /dashboard when returnUrl is /auth/callback (anti-loop guard)', async () => {
       const mockResponse = createMockResponse()
       const mockClient = createMockServerClient()
+      mockClient.from('users').single.mockResolvedValue({
+        data: { role: 'admin', profile_completed: true },
+        error: null,
+      })
       vi.mocked(updateSession).mockResolvedValue({
         supabaseResponse: mockResponse as any,
         user: { id: 'user123' } as any,
         supabase: mockClient as any,
-      })
-      vi.mocked(readProfileCache).mockReturnValue({
-        role: 'admin',
-        profile_completed: true,
       })
 
       const request = createMockRequest('/auth?returnUrl=/auth/callback')
@@ -168,14 +165,14 @@ describe('middleware(request)', () => {
     it('passes through /create-profile without redirecting', async () => {
       const mockResponse = createMockResponse()
       const mockClient = createMockServerClient()
+      mockClient.from('users').single.mockResolvedValue({
+        data: { role: 'player', profile_completed: false },
+        error: null,
+      })
       vi.mocked(updateSession).mockResolvedValue({
         supabaseResponse: mockResponse as any,
         user: { id: 'user123' } as any,
         supabase: mockClient as any,
-      })
-      vi.mocked(readProfileCache).mockReturnValue({
-        role: 'player',
-        profile_completed: false,
       })
 
       const request = createMockRequest('/create-profile')
@@ -188,14 +185,14 @@ describe('middleware(request)', () => {
     it('passes through /api/profile/complete without redirecting', async () => {
       const mockResponse = createMockResponse()
       const mockClient = createMockServerClient()
+      mockClient.from('users').single.mockResolvedValue({
+        data: { role: 'player', profile_completed: false },
+        error: null,
+      })
       vi.mocked(updateSession).mockResolvedValue({
         supabaseResponse: mockResponse as any,
         user: { id: 'user123' } as any,
         supabase: mockClient as any,
-      })
-      vi.mocked(readProfileCache).mockReturnValue({
-        role: 'player',
-        profile_completed: false,
       })
 
       const request = createMockRequest('/api/profile/complete', { method: 'POST' })
@@ -208,14 +205,14 @@ describe('middleware(request)', () => {
     it('redirects to /create-profile?returnUrl=/player/dashboard', async () => {
       const mockResponse = createMockResponse()
       const mockClient = createMockServerClient()
+      mockClient.from('users').single.mockResolvedValue({
+        data: { role: 'player', profile_completed: false },
+        error: null,
+      })
       vi.mocked(updateSession).mockResolvedValue({
         supabaseResponse: mockResponse as any,
         user: { id: 'user123' } as any,
         supabase: mockClient as any,
-      })
-      vi.mocked(readProfileCache).mockReturnValue({
-        role: 'player',
-        profile_completed: false,
       })
 
       const request = createMockRequest('/player/dashboard')
@@ -232,14 +229,14 @@ describe('middleware(request)', () => {
     it('passes through / without redirecting', async () => {
       const mockResponse = createMockResponse()
       const mockClient = createMockServerClient()
+      mockClient.from('users').single.mockResolvedValue({
+        data: { role: 'player', profile_completed: true },
+        error: null,
+      })
       vi.mocked(updateSession).mockResolvedValue({
         supabaseResponse: mockResponse as any,
         user: { id: 'user123' } as any,
         supabase: mockClient as any,
-      })
-      vi.mocked(readProfileCache).mockReturnValue({
-        role: 'player',
-        profile_completed: true,
       })
 
       const request = createMockRequest('/')
@@ -254,14 +251,14 @@ describe('middleware(request)', () => {
     it('redirects player on /admin/dashboard to /dashboard', async () => {
       const mockResponse = createMockResponse()
       const mockClient = createMockServerClient()
+      mockClient.from('users').single.mockResolvedValue({
+        data: { role: 'player', profile_completed: true },
+        error: null,
+      })
       vi.mocked(updateSession).mockResolvedValue({
         supabaseResponse: mockResponse as any,
         user: { id: 'user123' } as any,
         supabase: mockClient as any,
-      })
-      vi.mocked(readProfileCache).mockReturnValue({
-        role: 'player',
-        profile_completed: true,
       })
 
       const request = createMockRequest('/admin/dashboard')
@@ -276,14 +273,14 @@ describe('middleware(request)', () => {
     it('redirects facilitator on /admin/reports to /dashboard', async () => {
       const mockResponse = createMockResponse()
       const mockClient = createMockServerClient()
+      mockClient.from('users').single.mockResolvedValue({
+        data: { role: 'facilitator', profile_completed: true },
+        error: null,
+      })
       vi.mocked(updateSession).mockResolvedValue({
         supabaseResponse: mockResponse as any,
         user: { id: 'user123' } as any,
         supabase: mockClient as any,
-      })
-      vi.mocked(readProfileCache).mockReturnValue({
-        role: 'facilitator',
-        profile_completed: true,
       })
 
       const request = createMockRequest('/admin/reports')
@@ -298,14 +295,14 @@ describe('middleware(request)', () => {
     it('passes through /player/profile for player role', async () => {
       const mockResponse = createMockResponse()
       const mockClient = createMockServerClient()
+      mockClient.from('users').single.mockResolvedValue({
+        data: { role: 'player', profile_completed: true },
+        error: null,
+      })
       vi.mocked(updateSession).mockResolvedValue({
         supabaseResponse: mockResponse as any,
         user: { id: 'user123' } as any,
         supabase: mockClient as any,
-      })
-      vi.mocked(readProfileCache).mockReturnValue({
-        role: 'player',
-        profile_completed: true,
       })
 
       const request = createMockRequest('/player/profile')
@@ -318,14 +315,14 @@ describe('middleware(request)', () => {
     it('passes through /admin/* for super_admin role', async () => {
       const mockResponse = createMockResponse()
       const mockClient = createMockServerClient()
+      mockClient.from('users').single.mockResolvedValue({
+        data: { role: 'super_admin', profile_completed: true },
+        error: null,
+      })
       vi.mocked(updateSession).mockResolvedValue({
         supabaseResponse: mockResponse as any,
         user: { id: 'user123' } as any,
         supabase: mockClient as any,
-      })
-      vi.mocked(readProfileCache).mockReturnValue({
-        role: 'super_admin',
-        profile_completed: true,
       })
 
       const request = createMockRequest('/admin/anything')
@@ -338,14 +335,14 @@ describe('middleware(request)', () => {
     it('passes through /admin/schedules for admin role', async () => {
       const mockResponse = createMockResponse()
       const mockClient = createMockServerClient()
+      mockClient.from('users').single.mockResolvedValue({
+        data: { role: 'admin', profile_completed: true },
+        error: null,
+      })
       vi.mocked(updateSession).mockResolvedValue({
         supabaseResponse: mockResponse as any,
         user: { id: 'user123' } as any,
         supabase: mockClient as any,
-      })
-      vi.mocked(readProfileCache).mockReturnValue({
-        role: 'admin',
-        profile_completed: true,
       })
 
       const request = createMockRequest('/admin/schedules')
@@ -358,14 +355,14 @@ describe('middleware(request)', () => {
     it('passes through /facilitator/* for facilitator role', async () => {
       const mockResponse = createMockResponse()
       const mockClient = createMockServerClient()
+      mockClient.from('users').single.mockResolvedValue({
+        data: { role: 'facilitator', profile_completed: true },
+        error: null,
+      })
       vi.mocked(updateSession).mockResolvedValue({
         supabaseResponse: mockResponse as any,
         user: { id: 'user123' } as any,
         supabase: mockClient as any,
-      })
-      vi.mocked(readProfileCache).mockReturnValue({
-        role: 'facilitator',
-        profile_completed: true,
       })
 
       const request = createMockRequest('/facilitator/checkin')
@@ -376,44 +373,21 @@ describe('middleware(request)', () => {
     })
   })
 
-  describe('profile cache', () => {
-    it('uses cached profile data and does not query database', async () => {
+  describe('database queries for profile', () => {
+    it('queries database to fetch profile data on every request', async () => {
       const mockResponse = createMockResponse()
       const mockClient = createMockServerClient()
+      mockClient.from('users').single.mockResolvedValue({
+        data: { role: 'admin', profile_completed: true },
+        error: null,
+      })
       vi.mocked(updateSession).mockResolvedValue({
         supabaseResponse: mockResponse as any,
         user: { id: 'user123' } as any,
         supabase: mockClient as any,
-      })
-      vi.mocked(readProfileCache).mockReturnValue({
-        role: 'admin',
-        profile_completed: true,
       })
 
       const request = createMockRequest('/admin/dashboard')
-
-      await middleware(request)
-
-      // Verify that .from() was NOT called on the client (no DB query)
-      expect(mockClient.from).not.toHaveBeenCalled()
-    })
-
-    it('queries database when cache is missed', async () => {
-      const mockResponse = createMockResponse()
-      const mockClient = createMockServerClient()
-      vi.mocked(updateSession).mockResolvedValue({
-        supabaseResponse: mockResponse as any,
-        user: { id: 'user123' } as any,
-        supabase: mockClient as any,
-      })
-      vi.mocked(readProfileCache).mockReturnValue(null) // Cache miss
-      mockClient.from('users').single.mockResolvedValue({
-        data: { role: 'player', profile_completed: false },
-        error: null,
-      })
-      vi.mocked(writeProfileCache).mockReturnValue(undefined)
-
-      const request = createMockRequest('/create-profile')
 
       await middleware(request)
 
@@ -421,60 +395,27 @@ describe('middleware(request)', () => {
       expect(mockClient.from).toHaveBeenCalledWith('users')
     })
 
-    it('writes profile to cache after database query', async () => {
-      const mockResponse = createMockResponse()
-      const mockClient = createMockServerClient()
-      vi.mocked(updateSession).mockResolvedValue({
-        supabaseResponse: mockResponse as any,
-        user: { id: 'user123' } as any,
-        supabase: mockClient as any,
-      })
-      vi.mocked(readProfileCache).mockReturnValue(null) // Cache miss
-      mockClient.from('users').single.mockResolvedValue({
-        data: { role: 'admin', profile_completed: true },
-        error: null,
-      })
-
-      const request = createMockRequest('/admin/dashboard')
-
-      await middleware(request)
-
-      // Verify cache was written
-      expect(writeProfileCache).toHaveBeenCalledWith(
-        mockResponse,
-        expect.objectContaining({
-          role: 'admin',
-          profile_completed: true,
-        })
-      )
-    })
-
     it('defaults to player role and profile_completed: false when profile query returns null', async () => {
       const mockResponse = createMockResponse()
       const mockClient = createMockServerClient()
-      vi.mocked(updateSession).mockResolvedValue({
-        supabaseResponse: mockResponse as any,
-        user: { id: 'user123' } as any,
-        supabase: mockClient as any,
-      })
-      vi.mocked(readProfileCache).mockReturnValue(null) // Cache miss
       mockClient.from('users').single.mockResolvedValue({
         data: null,
         error: null,
       })
+      vi.mocked(updateSession).mockResolvedValue({
+        supabaseResponse: mockResponse as any,
+        user: { id: 'user123' } as any,
+        supabase: mockClient as any,
+      })
 
-      const request = createMockRequest('/create-profile')
+      const request = createMockRequest('/player/dashboard')
 
-      await middleware(request)
+      const result = await middleware(request)
 
-      // Verify defaults were used
-      expect(writeProfileCache).toHaveBeenCalledWith(
-        mockResponse,
-        expect.objectContaining({
-          role: 'player',
-          profile_completed: false,
-        })
-      )
+      // Should redirect to /create-profile since profile_completed defaults to false
+      expect(result?.status).toBe(307)
+      const location = result?.headers.get('location')
+      expect(location).toMatch(/\/create-profile/)
     })
   })
 
@@ -482,14 +423,14 @@ describe('middleware(request)', () => {
     it('handles nested role paths like /admin/schedules/new', async () => {
       const mockResponse = createMockResponse()
       const mockClient = createMockServerClient()
+      mockClient.from('users').single.mockResolvedValue({
+        data: { role: 'admin', profile_completed: true },
+        error: null,
+      })
       vi.mocked(updateSession).mockResolvedValue({
         supabaseResponse: mockResponse as any,
         user: { id: 'user123' } as any,
         supabase: mockClient as any,
-      })
-      vi.mocked(readProfileCache).mockReturnValue({
-        role: 'admin',
-        profile_completed: true,
       })
 
       const request = createMockRequest('/admin/schedules/new')

@@ -325,6 +325,7 @@ export function PublicCalendar({ schedules }: PublicCalendarProps) {
                     const registrationCount = registrationCounts[schedule.id] ?? 0
                     const spotsRemaining = schedule.max_players - registrationCount
                     const isFull = spotsRemaining <= 0
+                    const isPast = new Date(schedule.start_time) < new Date()
 
                     const spotsBadgeVariant = isFull
                       ? 'destructive'
@@ -435,7 +436,7 @@ export function PublicCalendar({ schedules }: PublicCalendarProps) {
                                 >
                                   Show QR
                                 </Button>
-                              ) : (
+                              ) : isPast ? null : (
                                 <Button
                                   className="w-full"
                                   onClick={() => {

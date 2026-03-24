@@ -1,10 +1,6 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import { updateSession } from '@/lib/supabase/middleware'
-import {
-  readProfileCache,
-  writeProfileCache,
-  type ProfileData,
-} from '@/lib/middleware/profile-cache'
+import { logError } from '@/lib/logger'
 
 const PUBLIC_ROUTES = ['/auth', '/auth/callback', '/']
 
@@ -34,96 +30,95 @@ function redirectWithSession(
 }
 
 export async function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl
+  try {
+    const { pathname } = request.nextUrl
 
-  // Must call updateSession before any early return to keep session cookies fresh
-  const { supabaseResponse, user, supabase } = await updateSession(request)
+    // Must call updateSession before any early return to keep session cookies fresh
+    const { supabaseResponse, user, supabase } = await updateSession(request)
 
-  // S1: Static assets
-  if (pathname.startsWith('/_next') || pathname.startsWith('/favicon')) {
-    return supabaseResponse
-  }
+    // S1: Static assets
+    if (pathname.startsWith('/_next') || pathname.startsWith('/favicon')) {
+      return supabaseResponse
+    }
 
-  const isPublicRoute = PUBLIC_ROUTES.some(route =>
-    route === '/' ? pathname === '/' : pathname.startsWith(route),
-  )
-  const isProfileCheckExempt = PROFILE_CHECK_EXEMPT.some(route =>
-    pathname.startsWith(route),
-  )
+    const isPublicRoute = PUBLIC_ROUTES.some(route =>
+      route === '/' ? pathname === '/' : pathname.startsWith(route),
+    )
+    const isProfileCheckExempt = PROFILE_CHECK_EXEMPT.some(route =>
+      pathname.startsWith(route),
+    )
 
-  // S2/S3: Unauthenticated user
-  if (!user) {
-    if (isPublicRoute) return supabaseResponse
+    // S2/S3: Unauthenticated user
+    if (!user) {
+      if (isPublicRoute) return supabaseResponse
 
-    const loginUrl = new URL('/auth', request.url)
-    loginUrl.searchParams.set('returnUrl', pathname)
-    return redirectWithSession(loginUrl.toString(), request, supabaseResponse)
-  }
+      const loginUrl = new URL('/auth', request.url)
+      loginUrl.searchParams.set('returnUrl', pathname)
+      return redirectWithSession(loginUrl.toString(), request, supabaseResponse)
+    }
 
-  // Authenticated: try cache, fall back to DB
-  let profile = readProfileCache(request)
-  if (!profile) {
+    // Authenticated: always fetch fresh profile data from DB
     const { data } = await supabase
       .from('users')
       .select('role, profile_completed')
       .eq('id', user.id)
       .single() as { data: { role: string; profile_completed: boolean } | null }
-    profile = {
-      role: data?.role ?? 'player',
-      profile_completed: data?.profile_completed ?? false,
-    } satisfies ProfileData
-    writeProfileCache(supabaseResponse, profile)
-  }
 
-  const { role, profile_completed: profileCompleted } = profile
+    const role = data?.role ?? 'player'
+    const profileCompleted = data?.profile_completed ?? false
 
-  // S5/S6: Profile incomplete
-  if (!profileCompleted) {
-    if (isProfileCheckExempt) return supabaseResponse
+    // S5/S6: Profile incomplete
+    if (!profileCompleted) {
+      if (isProfileCheckExempt) return supabaseResponse
 
-    const dest = new URL('/create-profile', request.url)
-    dest.searchParams.set('returnUrl', pathname)
-    return redirectWithSession(dest.toString(), request, supabaseResponse)
-  }
+      const dest = new URL('/create-profile', request.url)
+      dest.searchParams.set('returnUrl', pathname)
+      return redirectWithSession(dest.toString(), request, supabaseResponse)
+    }
 
-  // Profile complete from here on
+    // Profile complete from here on
 
-  // S4: Authenticated, visiting /auth — redirect to intended destination
-  if (pathname.startsWith('/auth')) {
-    const rawReturnUrl =
-      request.nextUrl.searchParams.get('returnUrl') ?? '/dashboard'
-    const returnUrl = rawReturnUrl.startsWith('/auth')
-      ? '/dashboard'
-      : rawReturnUrl
-    return redirectWithSession(
-      new URL(returnUrl, request.url).toString(),
-      request,
-      supabaseResponse,
+    // S4: Authenticated, visiting /auth — redirect to intended destination
+    if (pathname.startsWith('/auth')) {
+      const rawReturnUrl =
+        request.nextUrl.searchParams.get('returnUrl') ?? '/dashboard'
+      const returnUrl = rawReturnUrl.startsWith('/auth')
+        ? '/dashboard'
+        : rawReturnUrl
+      return redirectWithSession(
+        new URL(returnUrl, request.url).toString(),
+        request,
+        supabaseResponse,
+      )
+    }
+
+    // S7: Public route (e.g. `/`) — pass through
+    if (isPublicRoute) return supabaseResponse
+
+    // S8: On a role-prefixed path that belongs to a different role
+    const allowedPrefix = ROLE_PATH_MAP[role]
+    const isOnARolePath = Object.values(ROLE_PATH_MAP).some(p =>
+      pathname.startsWith(p),
     )
+    const isOnWrongRolePath =
+      isOnARolePath &&
+      (!allowedPrefix || !pathname.startsWith(allowedPrefix))
+
+    if (isOnWrongRolePath) {
+      return redirectWithSession(
+        new URL('/dashboard', request.url).toString(),
+        request,
+        supabaseResponse,
+      )
+    }
+
+    // S9: Correct path — pass through
+    return supabaseResponse
+  } catch (err) {
+    // Log the error but don't break middleware — pass through to allow the request to continue
+    void logError('middleware.unhandled', err)
+    return NextResponse.next()
   }
-
-  // S7: Public route (e.g. `/`) — pass through
-  if (isPublicRoute) return supabaseResponse
-
-  // S8: On a role-prefixed path that belongs to a different role
-  const allowedPrefix = ROLE_PATH_MAP[role]
-  const isOnARolePath = Object.values(ROLE_PATH_MAP).some(p =>
-    pathname.startsWith(p),
-  )
-  const isOnWrongRolePath =
-    isOnARolePath &&
-    (!allowedPrefix || !pathname.startsWith(allowedPrefix))
-
-  if (isOnWrongRolePath) {
-    return redirectWithSession(
-      new URL('/dashboard', request.url).toString(),
-      request,
-      supabaseResponse,
-    )
-  }
-
-  // S9: Correct path — pass through
-  return supabaseResponse
 }
 
 export const config = {

@@ -25,6 +25,10 @@ The **Volleyball Game Reservation System** is a web platform that manages game r
 
 **Access:** Dashboard, Locations management, Schedules management
 
+**Admin page experience improvements:**
+- All admin list pages show an animated loading placeholder (skeleton rows) while data is being fetched, so the page layout does not jump when records appear
+- Filter controls on list pages are hidden by default inside a collapsible panel to keep the page clean; the panel header shows how many filters are currently active
+
 ---
 
 ### 👥 Facilitator
@@ -66,7 +70,8 @@ Admins create game sessions with:
 - **Status** — Open (accepting registrations), Full (at capacity), Cancelled, Completed
 
 Players see upcoming games in an interactive calendar view with:
-- Available spots per position (open spiker, setter, etc.)
+- Live counts of available spots per position (open spiker, setter, middle blocker, opposite spiker) — these update automatically as registrations come in
+- Clicking a position badge opens a details panel showing who has already registered for that position slot
 - Estimated teams that will form
 - Location and timing details
 
@@ -278,5 +283,7 @@ A record of implemented features. Updated as new features are deployed.
 | 2026-03-18 | Timezone Centralization | All date/time displays now consistently use Manila time (UTC+8) from a single shared utility, eliminating scattered timezone logic and reducing the risk of display bugs as the app grows. |
 | 2026-03-18 | Database Performance Improvements (#39) | Added database indices to speed up player name search, position filtering, and role-based queries as data grows. No change to visible functionality. |
 | 2026-03-18 | Safe Delete for Venues and Schedules (#38) | Deleting a location or game schedule now archives it rather than destroying it permanently. Past registration records, payment history, and attendance data are fully preserved. Admins can view and restore archived items. |
+| 2026-03-19 | Real-Time Position Availability | The public game calendar now shows live spot counts per position on each game card. Counts update automatically as players register. Clicking a position badge opens a panel listing the names of players who have already claimed that slot. |
+| 2026-03-19 | Admin Page UX Improvements | Admin list pages (locations, schedules, registrations) now display animated placeholder rows while data loads, preventing layout jumps. Filter controls are collapsed by default into a toggle panel that shows the number of active filters in its label. |
 | | | |
 

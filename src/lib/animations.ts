@@ -34,7 +34,7 @@ export const fadeInVariants: Variants = {
 export const slideInVariants: Variants = {
   hidden: { opacity: 0, x: -24 },
   visible: (custom: number = 0) => ({
-    opacity: 0,
+    opacity: 1,
     x: 0,
     transition: { duration: 0.3, delay: custom * 0.1 },
   }),

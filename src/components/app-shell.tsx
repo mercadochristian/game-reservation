@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
-import { LayoutDashboard, MapPin, CalendarDays, Users, CreditCard, LogOut, Menu, X, AlertTriangle, QrCode, type LucideIcon } from 'lucide-react'
+import { LayoutDashboard, MapPin, CalendarDays, Users, CreditCard, LogOut, Menu, X, AlertTriangle, QrCode, Landmark, type LucideIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { branding } from '@/lib/config/branding'
 import { createClient } from '@/lib/supabase/client'
@@ -20,14 +20,16 @@ const NAV_ITEMS: Record<Role, Array<{ label: string; href: string; icon: LucideI
     { label: 'Locations', href: '/admin/locations', icon: MapPin, active: true },
     { label: 'Schedules', href: '/admin/schedules', icon: CalendarDays, active: true },
     { label: 'Registrations', href: '/admin/registrations', icon: Users, active: true },
-    { label: 'Payments', href: '/admin/payments', icon: CreditCard, active: false },
+    { label: 'Payments', href: '/admin/payments', icon: CreditCard, active: true },
+    { label: 'Pay Channels', href: '/admin/payment-channels', icon: Landmark, active: true },
   ],
   super_admin: [
     { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, active: true },
     { label: 'Locations', href: '/admin/locations', icon: MapPin, active: true },
     { label: 'Schedules', href: '/admin/schedules', icon: CalendarDays, active: true },
     { label: 'Registrations', href: '/admin/registrations', icon: Users, active: true },
-    { label: 'Payments', href: '/admin/payments', icon: CreditCard, active: false },
+    { label: 'Payments', href: '/admin/payments', icon: CreditCard, active: true },
+    { label: 'Pay Channels', href: '/admin/payment-channels', icon: Landmark, active: true },
     { label: 'Error Logs', href: '/admin/logs', icon: AlertTriangle, active: true },
   ],
   facilitator: [

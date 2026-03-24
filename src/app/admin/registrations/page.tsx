@@ -1,10 +1,10 @@
 'use client'
 
-import { useEffect, useState, useCallback, useRef } from 'react'
+import { useEffect, useMemo, useState, useCallback, useRef } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { motion, AnimatePresence } from 'framer-motion'
-import { Plus, Calendar, Trash2, X, ChevronDown, Search } from 'lucide-react'
+import { motion } from 'framer-motion'
+import { Plus, Calendar, Trash2, X, Search } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
@@ -14,6 +14,9 @@ import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Pagination } from '@/components/ui/pagination'
+import { PageHeader } from '@/components/ui/page-header'
+import { TableSkeleton } from '@/components/ui/table-skeleton'
+import { FilterAccordion } from '@/components/filter-accordion'
 import { createClient } from '@/lib/supabase/client'
 import { adminRegistrationSchema } from '@/lib/validations/admin-registration'
 import { groupPlayerSchema } from '@/lib/validations/group-registration'
@@ -21,7 +24,7 @@ import type { RegistrationWithDetails, ScheduleWithSlots, PaymentStatus } from '
 import { ScheduleInfo } from '@/components/schedule-info'
 import { fadeUpVariants } from '@/lib/animations'
 import { POSITION_LABELS, SKILL_LEVEL_LABELS } from '@/lib/constants/labels'
-import { getUserFriendlyMessage } from '@/lib/errors/messages'
+import { useSupabaseQuery } from '@/lib/hooks/useSupabaseQuery'
 import { formatScheduleDateTime, formatScheduleTime } from '@/lib/utils/timezone'
 import { formatScheduleLabel } from '@/lib/utils/schedule-label'
 
@@ -51,15 +54,20 @@ export default function RegistrationsPage() {
   const [filterOpen, setFilterOpen] = useState(false)
 
   // --- Schedules state ---
-  const [schedules, setSchedules] = useState<ScheduleWithSlots[]>([])
+  const { data: rawSchedules, isLoading: loadingSchedules, execute: fetchSchedules } = useSupabaseQuery<any[]>({ context: 'load schedules' })
   const [selectedScheduleId, setSelectedScheduleId] = useState<string | null>(null)
-  const [loadingSchedules, setLoadingSchedules] = useState(true)
+  const [internalSchedules, setInternalSchedules] = useState<any[]>([])
 
   // --- Registrations state ---
+  const { data: loadedRegistrations, isLoading: loadingRegistrations, execute: fetchRegistrations } = useSupabaseQuery<RegistrationWithDetails[]>({ context: 'load registrations' })
   const [registrations, setRegistrations] = useState<RegistrationWithDetails[]>([])
-  const [loadingRegistrations, setLoadingRegistrations] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE)
+
+  // Sync hook data to local state for mutations
+  useEffect(() => {
+    if (loadedRegistrations) setRegistrations(loadedRegistrations)
+  }, [loadedRegistrations])
 
   // --- Register dialog ---
   const [registerDialogOpen, setRegisterDialogOpen] = useState(false)
@@ -77,81 +85,67 @@ export default function RegistrationsPage() {
   // --- Player detail dialog ---
   const [selectedPlayer, setSelectedPlayer] = useState<RegistrationWithDetails | null>(null)
 
+  // Sync hook data to local state for mutations
+  useEffect(() => {
+    if (rawSchedules) setInternalSchedules(rawSchedules)
+  }, [rawSchedules])
+
+  // Derived schedules with registration counts
+  const schedules = useMemo<ScheduleWithSlots[]>(() =>
+    (internalSchedules ?? []).map((s: any) => ({
+      ...s,
+      registration_count: s.registrations?.[0]?.count ?? 0,
+    })),
+  [internalSchedules])
+
   // Load schedules on mount and when filter changes
   useEffect(() => {
-    const loadSchedules = async () => {
-      setLoadingSchedules(true)
-      try {
-        const client = createClient()
-        let query = client
-          .from('schedules')
-          .select('id, title, start_time, end_time, max_players, status, locations!inner(id, name), registrations(count)')
+    fetchSchedules(() => {
+      const client = createClient()
+      let query = client
+        .from('schedules')
+        .select('id, title, start_time, end_time, max_players, status, locations!inner(id, name), registrations(count)')
 
-        // Filter by date if provided
-        if (filterDate) {
-          const startOfDay = new Date(filterDate + 'T00:00:00+08:00').toISOString()
-          const endOfDay = new Date(filterDate + 'T23:59:59+08:00').toISOString()
-          query = query.gte('start_time', startOfDay).lte('start_time', endOfDay)
-        }
-
-        query = query.order('start_time', { ascending: true })
-
-        const { data, error } = await query
-
-        if (error) {
-          console.error('[Registrations] Failed to load schedules:', error)
-          toast.error('Failed to load schedules', { description: getUserFriendlyMessage(error) })
-        } else {
-          const schedulesWithCounts: ScheduleWithSlots[] = (data || []).map((s: any) => ({
-            ...s,
-            registration_count: s.registrations?.[0]?.count ?? 0,
-          }))
-          setSchedules(schedulesWithCounts)
-        }
-      } finally {
-        setLoadingSchedules(false)
+      // Filter by date if provided
+      if (filterDate) {
+        const startOfDay = new Date(filterDate + 'T00:00:00+08:00').toISOString()
+        const endOfDay = new Date(filterDate + 'T23:59:59+08:00').toISOString()
+        query = query.gte('start_time', startOfDay).lte('start_time', endOfDay)
       }
-    }
 
-    loadSchedules()
-  }, [filterDate])
+      return query.order('start_time', { ascending: true })
+    })
+  }, [filterDate, fetchSchedules])
 
-  // Load registrations when schedule is selected
+  // Load registrations with payment status when schedule is selected
   useEffect(() => {
     if (!selectedScheduleId) {
-      setRegistrations([])
       return
     }
 
-    const loadRegistrations = async () => {
-      setLoadingRegistrations(true)
-      try {
-        const client = createClient()
-        const { data, error } = await client
-          .from('registrations')
-          .select(`
-            id, schedule_id, player_id, registered_by, team_preference,
-            payment_status, attended, preferred_position, created_at,
-            users!player_id(id, first_name, last_name, email, skill_level, is_guest),
-            team_members!registration_id(team_id, teams(id, name))
-          `)
-          .eq('schedule_id', selectedScheduleId)
-          .order('created_at', { ascending: true })
-
-        if (error) {
-          console.error('[Registrations] Failed to load registrations:', error)
-          toast.error('Failed to load registrations', { description: getUserFriendlyMessage(error) })
-        } else {
-          setRegistrations((data || []) as RegistrationWithDetails[])
-          setCurrentPage(1)
-        }
-      } finally {
-        setLoadingRegistrations(false)
-      }
-    }
-
-    loadRegistrations()
-  }, [selectedScheduleId])
+    fetchRegistrations(() => {
+      const client = createClient()
+      return client
+        .from('registrations')
+        .select(`
+          id, schedule_id, player_id, registered_by, team_preference,
+          attended, preferred_position, created_at,
+          users!player_id(id, first_name, last_name, email, skill_level, is_guest),
+          team_members!registration_id(team_id, teams(id, name)),
+          user_payments!registration_id(payment_status)
+        `)
+        .eq('schedule_id', selectedScheduleId)
+        .order('created_at', { ascending: true })
+    }).then((data: any) => {
+      // Flatten user_payments data for compatibility
+      const formattedRegs = (data || []).map((r: any) => ({
+        ...r,
+        payment_status: r.user_payments?.[0]?.payment_status || 'pending',
+      }))
+      setRegistrations(formattedRegs)
+      setCurrentPage(1)
+    })
+  }, [selectedScheduleId, fetchRegistrations])
 
   // Debounced player search
   const handlePlayerSearch = useCallback(async (query: string) => {
@@ -298,19 +292,25 @@ export default function RegistrationsPage() {
       toast.success(`${validPlayers.length} player${validPlayers.length > 1 ? 's' : ''} registered successfully`)
       handleRegisterDialogClose()
 
-      // Refetch registrations and schedules
+      // Refetch registrations with payment status and schedules
       const { data: regs } = await supabase
         .from('registrations')
         .select(`
           id, schedule_id, player_id, registered_by, team_preference,
-          payment_status, attended, preferred_position, created_at,
+          attended, preferred_position, created_at,
           users!player_id(id, first_name, last_name, email, skill_level, is_guest),
-          team_members!player_id(team_id, teams(id, name))
+          team_members!player_id(team_id, teams(id, name)),
+          user_payments!registration_id(payment_status)
         `)
         .eq('schedule_id', selectedScheduleId)
         .order('created_at', { ascending: true })
 
-      setRegistrations((regs || []) as RegistrationWithDetails[])
+      // Flatten user_payments data
+      const formattedRegs = (regs || []).map((r: any) => ({
+        ...r,
+        payment_status: r.user_payments?.[0]?.payment_status || 'pending',
+      }))
+      setRegistrations(formattedRegs as RegistrationWithDetails[])
 
       // Refetch schedules to update slot counts
       let query = supabase
@@ -325,7 +325,7 @@ export default function RegistrationsPage() {
           ...s,
           registration_count: s.registrations?.[0]?.count ?? 0,
         }))
-        setSchedules(schedulesWithCounts)
+        setInternalSchedules(schedulesWithCounts)
       }
     } catch (error) {
       console.error('[Registrations] Registration failed:', error)
@@ -349,74 +349,38 @@ export default function RegistrationsPage() {
   return (
     <>
       <div className="max-w-6xl mx-auto p-6 lg:p-8">
-        {/* Breadcrumb */}
-        <div className="text-sm text-muted-foreground mb-6">
-          <span>Admin</span>
-          <span className="mx-2">/</span>
-          <span className="text-foreground">Registrations</span>
-        </div>
-
-        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8">
-            <div>
-              <div className="flex items-center gap-2 mb-2">
-                <h1 className="text-3xl lg:text-4xl font-bold text-foreground">Registrations</h1>
-                <Badge variant="outline" className="text-xs">
-                  {registrations.length}
-                </Badge>
-              </div>
-              <p className="text-muted-foreground">View and manage player registrations</p>
-            </div>
-          </div>
-        </motion.div>
+        <PageHeader
+          breadcrumb="Registrations"
+          title="Registrations"
+          count={registrations.length}
+          description="View and manage player registrations"
+        />
 
         {/* Filter Accordion */}
-        <motion.div custom={0} initial="hidden" animate="visible" variants={fadeUpVariants} className="bg-card border-border border rounded-lg mb-6 overflow-hidden">
-          <button
-            onClick={() => setFilterOpen(!filterOpen)}
-            className="w-full flex items-center justify-between px-4 py-3 text-sm font-medium text-foreground hover:bg-muted/50 transition-colors cursor-pointer"
+        <motion.div custom={0} initial="hidden" animate="visible" variants={fadeUpVariants}>
+          <FilterAccordion
+            open={filterOpen}
+            onToggle={() => setFilterOpen(!filterOpen)}
+            label={filterDate ? `Showing: ${filterDate}` : 'Filter by Date'}
           >
-            <span className="flex items-center gap-2">
-              <Calendar size={16} />
-              {filterDate ? `Showing: ${filterDate}` : 'Filter by Date'}
-            </span>
-            <ChevronDown size={16} className={`transition-transform ${filterOpen ? 'rotate-180' : ''}`} />
-          </button>
-
-          <AnimatePresence>
-            {filterOpen && (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: 'auto', opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={{ duration: 0.2 }}
-                className="overflow-hidden"
-              >
-                <div className="px-4 pb-4 pt-2 flex items-end gap-3 border-t border-border">
-                  <div className="flex-1">
-                    <Label className="text-xs font-medium mb-1 block">Date</Label>
-                    <Input
-                      type="date"
-                      value={filterDate}
-                      onChange={(e) => setFilterDate(e.target.value)}
-                      className="h-9"
-                    />
-                  </div>
-                  {filterDate && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setFilterDate('')}
-                      className="gap-1"
-                    >
-                      <X size={14} />
-                      Clear
-                    </Button>
-                  )}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+            <div className="pt-2 flex items-end gap-3">
+              <div className="flex-1">
+                <Label className="text-xs font-medium mb-1 block">Date</Label>
+                <Input
+                  type="date"
+                  value={filterDate}
+                  onChange={(e) => setFilterDate(e.target.value)}
+                  className="h-9"
+                />
+              </div>
+              {filterDate && (
+                <Button variant="ghost" size="sm" onClick={() => setFilterDate('')} className="gap-1">
+                  <X size={14} />
+                  Clear
+                </Button>
+              )}
+            </div>
+          </FilterAccordion>
         </motion.div>
 
         {/* Schedules Section */}
@@ -488,41 +452,16 @@ export default function RegistrationsPage() {
 
             <div className="bg-card border-border border rounded-lg overflow-hidden">
               {loadingRegistrations ? (
-                <Table>
-                  <TableHeader>
-                    <TableRow className="border-border">
-                      <TableHead>Player</TableHead>
-                      <TableHead className="hidden sm:table-cell">Position</TableHead>
-                      <TableHead className="hidden md:table-cell">Team</TableHead>
-                      <TableHead>Payment</TableHead>
-                      <TableHead className="hidden md:table-cell">Registered</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {[...Array(5)].map((_, i) => (
-                      <TableRow key={i} className="border-border">
-                        <TableCell className="py-4">
-                          <div className="space-y-1">
-                            <div className="h-4 bg-muted rounded w-40 animate-pulse" />
-                            <div className="h-3 bg-muted/50 rounded w-32 animate-pulse" />
-                          </div>
-                        </TableCell>
-                        <TableCell className="hidden sm:table-cell">
-                          <div className="h-4 bg-muted rounded w-24 animate-pulse" />
-                        </TableCell>
-                        <TableCell className="hidden md:table-cell">
-                          <div className="h-4 bg-muted rounded w-20 animate-pulse" />
-                        </TableCell>
-                        <TableCell>
-                          <div className="h-4 bg-muted rounded w-16 animate-pulse" />
-                        </TableCell>
-                        <TableCell className="hidden md:table-cell">
-                          <div className="h-4 bg-muted rounded w-24 animate-pulse" />
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                <TableSkeleton
+                  columns={[
+                    { header: 'Player', isPrimary: true, skeletonWidth: 'w-40' },
+                    { header: 'Position', className: 'hidden sm:table-cell', skeletonWidth: 'w-24' },
+                    { header: 'Team', className: 'hidden md:table-cell', skeletonWidth: 'w-20' },
+                    { header: 'Payment', skeletonWidth: 'w-16' },
+                    { header: 'Registered', className: 'hidden md:table-cell', skeletonWidth: 'w-24' },
+                  ]}
+                  rows={5}
+                />
               ) : registrations.length === 0 ? (
                 <div className="p-12 text-center">
                   <Search size={48} className="mx-auto text-muted-foreground/40 mb-4" />
@@ -579,8 +518,8 @@ export default function RegistrationsPage() {
                           {reg.team_preference === 'teammate' ? 'With Teammates' : 'Shuffle'}
                         </TableCell>
                         <TableCell>
-                          <Badge variant={PAYMENT_BADGE_VARIANTS[reg.payment_status]} className="whitespace-nowrap">
-                            {reg.payment_status.charAt(0).toUpperCase() + reg.payment_status.slice(1)}
+                          <Badge variant={PAYMENT_BADGE_VARIANTS[(reg as any).payment_status || 'pending']} className="whitespace-nowrap">
+                            {((reg as any).payment_status || 'pending').charAt(0).toUpperCase() + ((reg as any).payment_status || 'pending').slice(1)}
                           </Badge>
                         </TableCell>
                         <TableCell className="hidden md:table-cell text-sm text-muted-foreground">

@@ -25,6 +25,7 @@ export const groupRegistrationSchema = z.object({
   payment_proof_path: z.string().min(1, 'Payment proof path is required'),
   registration_mode: z.enum(['group', 'team']),
   players: z.array(groupPlayerSchema).min(2, 'At least 2 players required (you + 1 additional)'),
+  payment_channel_id: z.string().uuid().nullable().optional(),
 })
 
 export type GroupRegistrationRequest = z.infer<typeof groupRegistrationSchema>

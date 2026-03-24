@@ -11,21 +11,31 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { PageHeader } from '@/components/ui/page-header'
+import { TableSkeleton } from '@/components/ui/table-skeleton'
+import { ConfirmDeleteDialog } from '@/components/confirm-delete-dialog'
 import { createClient } from '@/lib/supabase/client'
 import { locationSchema, LocationFormData } from '@/lib/validations/location'
 import { Location } from '@/types'
 import { fadeUpVariants } from '@/lib/animations'
 import { getUserFriendlyMessage } from '@/lib/errors/messages'
+import { useSupabaseQuery } from '@/lib/hooks/useSupabaseQuery'
+import { useCrudDialog } from '@/lib/hooks/useCrudDialog'
 
 export default function LocationsPage() {
   const supabase = createClient()
+  const { data: loadedLocations, isLoading: loading, execute: fetchLocations } = useSupabaseQuery<Location[]>({ context: 'load locations' })
   const [locations, setLocations] = useState<Location[]>([])
-  const [loading, setLoading] = useState(true)
-  const [dialogOpen, setDialogOpen] = useState(false)
-  const [editingId, setEditingId] = useState<string | null>(null)
-  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null)
+  const crudDialog = useCrudDialog()
+
+  // Sync hook data to local state for mutations
+  useEffect(() => {
+    if (loadedLocations) {
+      setLocations(loadedLocations)
+    }
+  }, [loadedLocations])
 
   const {
     register,
@@ -46,28 +56,17 @@ export default function LocationsPage() {
 
   // Load locations
   useEffect(() => {
-    const loadLocations = async () => {
-      setLoading(true)
-      const { data, error } = await (supabase.from('locations') as any)
+    fetchLocations(() =>
+      (supabase.from('locations') as any)
         .select('*')
         .order('created_at', { ascending: false })
-
-      if (error) {
-        console.error('[Locations] Failed to load locations:', error)
-        toast.error('Failed to load locations', { description: getUserFriendlyMessage(error) })
-      } else {
-        setLocations(data || [])
-      }
-      setLoading(false)
-    }
-
-    loadLocations()
-  }, [supabase])
+    )
+  }, [fetchLocations])
 
   // Handle create/edit
   const onSubmit = async (formData: LocationFormData) => {
     try {
-      if (editingId) {
+      if (crudDialog.editingId) {
         // Update - only include updatable fields
         const updateData = {
           name: formData.name,
@@ -76,12 +75,12 @@ export default function LocationsPage() {
           notes: formData.notes || null,
           is_active: formData.is_active,
         }
-        const { error } = await (supabase.from('locations') as any).update(updateData).eq('id', editingId)
+        const { error } = await (supabase.from('locations') as any).update(updateData).eq('id', crudDialog.editingId)
 
         if (error) throw error
         toast.success('Location updated')
         setLocations((prev) =>
-          prev.map((loc) => (loc.id === editingId ? { ...loc, ...updateData } : loc))
+          prev.map((loc) => (loc.id === crudDialog.editingId ? { ...loc, ...updateData } : loc))
         )
       } else {
         // Create
@@ -109,12 +108,11 @@ export default function LocationsPage() {
         }
       }
 
-      setDialogOpen(false)
       reset()
-      setEditingId(null)
+      crudDialog.onCloseDialog()
     } catch (error) {
       console.error('[Locations] Failed to save location:', error)
-      toast.error(editingId ? 'Failed to update location' : 'Failed to create location', {
+      toast.error(crudDialog.editingId ? 'Failed to update location' : 'Failed to create location', {
         description: getUserFriendlyMessage(error),
       })
     }
@@ -122,13 +120,13 @@ export default function LocationsPage() {
 
   // Handle edit
   const handleEdit = (location: Location) => {
-    setEditingId(location.id)
+    reset()
     setValue('name', location.name)
     setValue('address', location.address || '')
     setValue('google_map_url', location.google_map_url || '')
     setValue('notes', location.notes || '')
     setValue('is_active', location.is_active)
-    setDialogOpen(true)
+    crudDialog.onOpenEdit(location.id)
   }
 
   // Handle toggle active
@@ -147,13 +145,13 @@ export default function LocationsPage() {
 
   // Handle delete
   const handleDelete = async () => {
-    if (!deleteTarget) return
+    if (!crudDialog.deleteTarget) return
     try {
-      const { error } = await (supabase.from('locations') as any).delete().eq('id', deleteTarget.id)
+      const { error } = await (supabase.from('locations') as any).delete().eq('id', crudDialog.deleteTarget.id)
 
       if (error) throw error
-      setLocations((prev) => prev.filter((loc) => loc.id !== deleteTarget.id))
-      setDeleteTarget(null)
+      setLocations((prev) => prev.filter((loc) => loc.id !== crudDialog.deleteTarget?.id))
+      crudDialog.onCancelDelete()
       toast.success('Location deleted')
     } catch (error) {
       console.error('[Locations] Failed to delete location:', error)
@@ -163,53 +161,25 @@ export default function LocationsPage() {
 
   const handleOpenDialog = () => {
     reset()
-    setEditingId(null)
-    setDialogOpen(true)
+    crudDialog.onOpenCreate()
   }
 
   const handleCloseDialog = () => {
-    setDialogOpen(false)
     reset()
-    setEditingId(null)
+    crudDialog.onCloseDialog()
   }
 
+  const locationSkeletonColumns = [
+    { header: 'Name', isPrimary: true, skeletonWidth: 'w-32' },
+    { header: 'Address', className: 'hidden sm:table-cell', skeletonWidth: 'w-40' },
+    { header: 'Status', skeletonWidth: 'w-16' },
+    { header: 'Created', className: 'hidden md:table-cell', skeletonWidth: 'w-20' },
+    { header: 'Actions', className: 'text-right', isAction: true, skeletonWidth: 'w-24' },
+  ]
+
   const tableContent = loading ? (
-    <Table>
-      <TableHeader>
-        <TableRow className="border-border">
-          <TableHead>Name</TableHead>
-          <TableHead className="hidden sm:table-cell">Address</TableHead>
-          <TableHead>Status</TableHead>
-          <TableHead className="hidden md:table-cell">Created</TableHead>
-          <TableHead className="text-right">Actions</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {['skeleton-0', 'skeleton-1', 'skeleton-2'].map((key) => (
-          <TableRow key={key} className="border-border">
-            <TableCell className="py-4">
-              <div className="space-y-1">
-                <div className="h-4 bg-muted rounded w-32 animate-pulse" />
-                <div className="h-3 bg-muted/50 rounded w-24 animate-pulse" />
-              </div>
-            </TableCell>
-            <TableCell className="hidden sm:table-cell">
-              <div className="h-4 bg-muted rounded w-40 animate-pulse" />
-            </TableCell>
-            <TableCell>
-              <div className="h-4 bg-muted rounded w-16 animate-pulse" />
-            </TableCell>
-            <TableCell className="hidden md:table-cell">
-              <div className="h-4 bg-muted rounded w-20 animate-pulse" />
-            </TableCell>
-            <TableCell className="text-right">
-              <div className="h-8 bg-muted rounded w-24 ml-auto animate-pulse" />
-            </TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
-  ) : locations.length === 0 ? (
+    <TableSkeleton columns={locationSkeletonColumns} rows={3} />
+  ) : (locations ?? []).length === 0 ? (
     <div className="p-12 text-center">
       <div className="flex justify-center mb-4">
         <MapPin size={48} className="text-muted-foreground/40" />
@@ -232,7 +202,7 @@ export default function LocationsPage() {
         </TableRow>
       </TableHeader>
       <TableBody>
-        {locations.map((location) => (
+        {(locations ?? []).map((location) => (
           <TableRow key={location.id} className="border-border hover:bg-muted/50 transition-colors">
             <TableCell className="py-4">
               <div>
@@ -282,7 +252,7 @@ export default function LocationsPage() {
                 <Button
                   variant="ghost"
                   size="icon-sm"
-                  onClick={() => setDeleteTarget({ id: location.id, name: location.name })}
+                  onClick={() => crudDialog.onOpenDeleteConfirm(location.id, location.name)}
                   title="Delete"
                 >
                   <Trash2 size={18} />
@@ -298,30 +268,17 @@ export default function LocationsPage() {
   return (
     <>
       <div className="max-w-6xl mx-auto p-6 lg:p-8">
-        {/* Breadcrumb */}
-        <div className="text-sm text-muted-foreground mb-6">
-          <span>Admin</span>
-          <span className="mx-2">/</span>
-          <span className="text-foreground">Locations</span>
-        </div>
-
-        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8">
-            <div>
-              <div className="flex items-center gap-2 mb-2">
-                <h1 className="text-3xl lg:text-4xl font-bold text-foreground">Locations</h1>
-                <Badge variant="outline" className="text-xs">
-                  {locations.length}
-                </Badge>
-              </div>
-              <p className="text-muted-foreground">Manage gym and court locations</p>
-            </div>
-            <Button onClick={handleOpenDialog} className="gap-2 w-full sm:w-auto">
-              <Plus size={20} />
-              New Location
-            </Button>
-          </div>
-        </motion.div>
+        <PageHeader
+          breadcrumb="Locations"
+          title="Locations"
+          count={(locations ?? []).length}
+          description="Manage gym and court locations"
+          action={{
+            label: 'New Location',
+            icon: Plus,
+            onClick: handleOpenDialog,
+          }}
+        />
 
         {/* Table */}
         <motion.div custom={0} initial="hidden" animate="visible" variants={fadeUpVariants} className="bg-card border-border border rounded-lg overflow-hidden">
@@ -330,10 +287,10 @@ export default function LocationsPage() {
       </div>
 
       {/* Dialog for Create/Edit */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      <Dialog open={crudDialog.isOpen} onOpenChange={(open) => !open && handleCloseDialog()}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{editingId ? 'Edit Location' : 'Create Location'}</DialogTitle>
+            <DialogTitle>{crudDialog.editingId ? 'Edit Location' : 'Create Location'}</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div>
@@ -384,31 +341,24 @@ export default function LocationsPage() {
               <Button type="button" variant="outline" onClick={handleCloseDialog}>
                 Cancel
               </Button>
-              <Button type="submit">{editingId ? 'Update' : 'Create'}</Button>
+              <Button type="submit">{crudDialog.editingId ? 'Update' : 'Create'}</Button>
             </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
 
       {/* Dialog for Delete Confirmation */}
-      <Dialog open={deleteTarget !== null} onOpenChange={(open) => { if (!open) setDeleteTarget(null) }}>
-        <DialogContent showCloseButton={false}>
-          <DialogHeader>
-            <DialogTitle>Delete Location?</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to delete <span className="font-medium text-foreground">{deleteTarget?.name}</span>? This action cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setDeleteTarget(null)}>
-              Cancel
-            </Button>
-            <Button type="button" variant="destructive" onClick={handleDelete}>
-              Delete
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ConfirmDeleteDialog
+        open={crudDialog.deleteTarget !== null}
+        onOpenChange={(open) => {
+          if (!open) crudDialog.onCancelDelete()
+        }}
+        title="Delete Location?"
+        targetName={crudDialog.deleteTarget?.label}
+        warningText="This action cannot be undone."
+        onConfirm={handleDelete}
+        onCancel={() => crudDialog.onCancelDelete()}
+      />
     </>
   )
 }
