@@ -405,7 +405,7 @@ export default function SchedulesPage() {
 
       {/* Dialog for Create/Edit */}
       <Dialog open={crudDialog.isOpen} onOpenChange={(open) => { if (!open) handleCloseDialog() }}>
-        <DialogContent>
+        <DialogContent className={"h-[95%]"}>
           <DialogHeader>
             <DialogTitle>{crudDialog.editingId ? 'Edit Schedule' : 'Create Schedule'}</DialogTitle>
           </DialogHeader>

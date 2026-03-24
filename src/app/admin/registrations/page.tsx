@@ -104,7 +104,7 @@ export default function RegistrationsPage() {
       const client = createClient()
       let query = client
         .from('schedules')
-        .select('id, title, start_time, end_time, max_players, status, locations!inner(id, name), registrations(count)')
+        .select('id, start_time, end_time, max_players, status, locations!inner(id, name), registrations(count)')
 
       // Filter by date if provided
       if (filterDate) {
@@ -315,7 +315,7 @@ export default function RegistrationsPage() {
       // Refetch schedules to update slot counts
       let query = supabase
         .from('schedules')
-        .select('id, title, start_time, end_time, max_players, status, locations!inner(id, name), registrations(count)')
+        .select('id, start_time, end_time, max_players, status, locations!inner(id, name), registrations(count)')
         .gte('start_time', new Date().toISOString())
         .order('start_time', { ascending: true })
 
