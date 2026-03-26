@@ -24,6 +24,7 @@ interface PaymentWithExtraction {
   id: string
   player_id: string | null
   users: { first_name: string | null; last_name: string | null } | null
+  payer: { first_name: string | null; last_name: string | null } | null
   payment_status: 'pending' | 'review' | 'paid' | 'rejected'
   payment_proof_url: string | null
   extracted_amount: number | null
@@ -32,6 +33,7 @@ interface PaymentWithExtraction {
   extracted_sender: string | null
   extraction_confidence: 'high' | 'medium' | 'low' | 'failed' | null
   required_amount: number
+  registration_type: 'solo' | 'group' | 'team'
   created_at: string
 }
 
@@ -399,6 +401,9 @@ export function PaymentsClient({
                       <TableCell className="py-4">
                         <div className="font-medium text-foreground">
                           {reg.users?.first_name} {reg.users?.last_name}
+                          {reg.registration_type !== 'solo' && (
+                            <span className="ml-1 text-xs text-muted-foreground capitalize">({reg.registration_type})</span>
+                          )}
                         </div>
                       </TableCell>
                       <TableCell>

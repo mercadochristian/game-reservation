@@ -7,6 +7,7 @@ interface PaymentWithExtraction {
   id: string
   player_id: string | null
   users: { first_name: string | null; last_name: string | null } | null
+  payer: { first_name: string | null; last_name: string | null } | null
   payment_status: 'pending' | 'review' | 'paid' | 'rejected'
   payment_proof_url: string | null
   extracted_amount: number | null
@@ -15,6 +16,7 @@ interface PaymentWithExtraction {
   extracted_sender: string | null
   extraction_confidence: 'high' | 'medium' | 'low' | 'failed' | null
   required_amount: number
+  registration_type: 'solo' | 'group' | 'team'
   created_at: string
 }
 
@@ -64,9 +66,10 @@ export default async function PaymentsPage({
   if (selectedScheduleId) {
     const { data: paymentsData } = await (supabase.from('registration_payments') as any)
       .select(
-        `id, registration_id, payment_status, payment_proof_url, extracted_amount, extracted_reference,
+        `id, registration_id, payer_id, registration_type, payment_status, payment_proof_url, extracted_amount, extracted_reference,
          extracted_datetime, extracted_sender, extraction_confidence, created_at, required_amount,
-         registrations(id, player_id, users:player_id(id, first_name, last_name))`
+         registrations(id, player_id, users:player_id(id, first_name, last_name)),
+         payer:payer_id(first_name, last_name)`
       )
       .eq('schedule_id', selectedScheduleId)
       .order('created_at', { ascending: false })
@@ -74,8 +77,9 @@ export default async function PaymentsPage({
     const payments = paymentsData ?? []
     initialRegistrations = payments.map((p: any) => ({
       id: p.id,
-      player_id: p.registrations?.player_id,
-      users: p.registrations?.users,
+      player_id: p.registrations?.player_id ?? p.payer_id,
+      users: p.registrations?.users ?? p.payer,
+      payer: p.payer,
       payment_status: p.payment_status,
       payment_proof_url: p.payment_proof_url,
       extracted_amount: p.extracted_amount,
@@ -84,6 +88,7 @@ export default async function PaymentsPage({
       extracted_sender: p.extracted_sender,
       extraction_confidence: p.extraction_confidence,
       required_amount: p.required_amount,
+      registration_type: p.registration_type,
       created_at: p.created_at,
     }))
 
