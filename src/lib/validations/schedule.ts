@@ -17,13 +17,13 @@ export const scheduleSchema = z
     ),
     status: z.enum(['open', 'full', 'cancelled', 'completed']),
     position_prices: z.object({
-      open_spiker: z.number().min(0).optional(),
-      opposite_spiker: z.number().min(0).optional(),
-      middle_blocker: z.number().min(0).optional(),
-      setter: z.number().min(0).optional(),
-      middle_setter: z.number().min(0).optional(),
-    }).optional(),
-    team_price: z.number().min(0).optional(),
+      open_spiker: z.number().min(0, 'Price must be 0 or greater'),
+      opposite_spiker: z.number().min(0, 'Price must be 0 or greater'),
+      middle_blocker: z.number().min(0, 'Price must be 0 or greater'),
+      setter: z.number().min(0, 'Price must be 0 or greater'),
+      middle_setter: z.number().min(0, 'Price must be 0 or greater'),
+    }),
+    team_price: z.number().min(0, 'Team price must be 0 or greater'),
   })
   .refine((data) => new Date(data.end_time) > new Date(data.start_time), {
     message: 'End time must be after start time',

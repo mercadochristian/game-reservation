@@ -2,13 +2,20 @@ import { describe, it, expect } from 'vitest'
 import { scheduleSchema, teamRosterSchema } from '../schedule'
 
 const validSchedule = {
-  title: 'Friday Evening Volleyball',
   start_time: '2026-03-20T19:00:00Z',
   end_time: '2026-03-20T21:00:00Z',
   location_id: '550e8400-e29b-41d4-a716-446655440000',
   num_teams: 2,
   required_levels: ['intermediate', 'advanced'],
   status: 'open',
+  position_prices: {
+    open_spiker: 290,
+    opposite_spiker: 290,
+    middle_blocker: 260,
+    setter: 260,
+    middle_setter: 0,
+  },
+  team_price: 1600,
 }
 
 describe('scheduleSchema', () => {
@@ -64,31 +71,89 @@ describe('scheduleSchema', () => {
     })
   })
 
-  describe('title field validation', () => {
-    it('rejects empty title', () => {
+  describe('pricing field validation', () => {
+    it('rejects missing position_prices', () => {
       const result = scheduleSchema.safeParse({
         ...validSchedule,
-        title: '',
-      })
-      expect(result.success).toBe(false)
-      if (!result.success) {
-        const issue = result.error.issues.find(i => i.path.includes('title'))
-        expect(issue?.message).toContain('Title is required')
-      }
-    })
-
-    it('rejects title exceeding 255 characters', () => {
-      const result = scheduleSchema.safeParse({
-        ...validSchedule,
-        title: 'a'.repeat(256),
+        position_prices: undefined,
       })
       expect(result.success).toBe(false)
     })
 
-    it('accepts title of exactly 255 characters', () => {
+    it('rejects missing team_price', () => {
       const result = scheduleSchema.safeParse({
         ...validSchedule,
-        title: 'a'.repeat(255),
+        team_price: undefined,
+      })
+      expect(result.success).toBe(false)
+    })
+
+    it('accepts position prices of 0', () => {
+      const result = scheduleSchema.safeParse({
+        ...validSchedule,
+        position_prices: {
+          open_spiker: 0,
+          opposite_spiker: 0,
+          middle_blocker: 0,
+          setter: 0,
+          middle_setter: 0,
+        },
+      })
+      expect(result.success).toBe(true)
+    })
+
+    it('accepts team price of 0', () => {
+      const result = scheduleSchema.safeParse({
+        ...validSchedule,
+        team_price: 0,
+      })
+      expect(result.success).toBe(true)
+    })
+
+    it('rejects negative position prices', () => {
+      const result = scheduleSchema.safeParse({
+        ...validSchedule,
+        position_prices: {
+          ...validSchedule.position_prices,
+          open_spiker: -100,
+        },
+      })
+      expect(result.success).toBe(false)
+    })
+
+    it('rejects negative team price', () => {
+      const result = scheduleSchema.safeParse({
+        ...validSchedule,
+        team_price: -100,
+      })
+      expect(result.success).toBe(false)
+    })
+
+    it('accepts decimal position prices', () => {
+      const result = scheduleSchema.safeParse({
+        ...validSchedule,
+        position_prices: {
+          open_spiker: 290.50,
+          opposite_spiker: 290.75,
+          middle_blocker: 260.25,
+          setter: 260.99,
+          middle_setter: 0,
+        },
+      })
+      expect(result.success).toBe(true)
+    })
+
+    it('accepts large prices', () => {
+      const result = scheduleSchema.safeParse({
+        ...validSchedule,
+        position_prices: {
+          open_spiker: 10000,
+          opposite_spiker: 9999,
+          middle_blocker: 8888,
+          setter: 7777,
+          middle_setter: 0,
+        },
+        team_price: 50000,
       })
       expect(result.success).toBe(true)
     })
@@ -391,7 +456,7 @@ describe('teamRosterSchema', () => {
       expect(result.success).toBe(false)
     })
 
-    it('accepts all 5 valid position enums', () => {
+    it('rejects invalid lineup even when all 5 enum values are present', () => {
       const result = teamRosterSchema.safeParse([
         'open_spiker',
         'opposite_spiker',
@@ -400,7 +465,7 @@ describe('teamRosterSchema', () => {
         'middle_setter',
         'open_spiker',
       ])
-      expect(result.success).toBe(false) // Wrong counts, but tests that enum values are accepted
+      expect(result.success).toBe(false) // All valid enums, but no valid Combo A or B formed
     })
   })
 })

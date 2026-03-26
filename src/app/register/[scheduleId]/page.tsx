@@ -1478,12 +1478,157 @@ export default function RegisterPage({ params }: { params: Promise<{ scheduleId:
           </motion.div>
         )}
 
+        {/* Payment Summary */}
+        {(() => {
+          if (mode === 'solo') {
+            const costLines: Array<{ label: string; amount: number }> = []
+            let totalAmount = 0
+
+            Object.entries(selectedSchedules).forEach(([_, slot]) => {
+              const amount = computeSoloAmount(
+                {
+                  position_prices: slot.schedule.position_prices as Record<string, number>,
+                  team_price: slot.schedule.team_price,
+                },
+                position
+              )
+              const schedule = slot.schedule
+              const locationName = schedule.locations?.name || 'Unknown'
+              const positionLabel = position ? POSITION_LABELS[position] : 'Unknown'
+              costLines.push({
+                label: `${locationName} - ${positionLabel}`,
+                amount,
+              })
+              totalAmount += amount
+            })
+
+            if (costLines.length > 0) {
+              return (
+                <motion.div
+                  initial="hidden"
+                  animate="visible"
+                  variants={fadeUpVariants}
+                  custom={4}
+                  className="mb-8"
+                >
+                  <Card className="p-4 space-y-3 border-blue-500/30 bg-blue-500/5">
+                    <p className="text-sm font-medium text-foreground">Amount Due</p>
+                    <div className="space-y-2">
+                      {costLines.map((line, idx) => (
+                        <div key={idx} className="flex items-center justify-between text-sm">
+                          <span className="text-muted-foreground">{line.label}</span>
+                          <span className="font-medium">₱{line.amount.toFixed(2)}</span>
+                        </div>
+                      ))}
+                    </div>
+                    {costLines.length > 1 && (
+                      <>
+                        <div className="border-t border-blue-500/20 pt-2 flex items-center justify-between">
+                          <span className="font-medium text-foreground">Total</span>
+                          <span className="font-bold text-lg text-foreground">₱{totalAmount.toFixed(2)}</span>
+                        </div>
+                      </>
+                    )}
+                  </Card>
+                </motion.div>
+              )
+            }
+          } else if (mode === 'group') {
+            // Group registration summary
+            const costLines: Array<{ playerName: string; position: string; amount: number }> = []
+            let totalAmount = 0
+
+            const primaryScheduleId = Object.keys(selectedSchedules)[0]
+            const primarySlot = selectedSchedules[primaryScheduleId]
+
+            groupPlayers.forEach((player, idx) => {
+              const amount = computeSoloAmount(
+                {
+                  position_prices: primarySlot.schedule.position_prices as Record<string, number>,
+                  team_price: primarySlot.schedule.team_price,
+                },
+                player.preferred_position
+              )
+              const playerName = `${player.first_name} ${player.last_name}`
+              const positionLabel = player.preferred_position ? POSITION_LABELS[player.preferred_position] : 'Unknown'
+              costLines.push({
+                playerName,
+                position: positionLabel,
+                amount,
+              })
+              totalAmount += amount
+            })
+
+            if (costLines.length > 0) {
+              return (
+                <motion.div
+                  initial="hidden"
+                  animate="visible"
+                  variants={fadeUpVariants}
+                  custom={4}
+                  className="mb-8"
+                >
+                  <Card className="p-4 space-y-3 border-blue-500/30 bg-blue-500/5">
+                    <p className="text-sm font-medium text-foreground">Amount Due</p>
+                    <div className="space-y-2">
+                      {costLines.map((line, idx) => (
+                        <div key={idx} className="flex items-center justify-between text-sm">
+                          <div>
+                            <p className="text-muted-foreground">{line.playerName}</p>
+                            <p className="text-xs text-muted-foreground">{line.position}</p>
+                          </div>
+                          <span className="font-medium">₱{line.amount.toFixed(2)}</span>
+                        </div>
+                      ))}
+                    </div>
+                    {costLines.length > 1 && (
+                      <>
+                        <div className="border-t border-blue-500/20 pt-2 flex items-center justify-between">
+                          <span className="font-medium text-foreground">Total</span>
+                          <span className="font-bold text-lg text-foreground">₱{totalAmount.toFixed(2)}</span>
+                        </div>
+                      </>
+                    )}
+                  </Card>
+                </motion.div>
+              )
+            }
+          } else if (mode === 'team') {
+            // Team registration summary
+            const primaryScheduleId = Object.keys(selectedSchedules)[0]
+            const primarySlot = selectedSchedules[primaryScheduleId]
+            const teamPrice = primarySlot.schedule.team_price || 0
+
+            if (teamPrice > 0) {
+              return (
+                <motion.div
+                  initial="hidden"
+                  animate="visible"
+                  variants={fadeUpVariants}
+                  custom={4}
+                  className="mb-8"
+                >
+                  <Card className="p-4 space-y-3 border-blue-500/30 bg-blue-500/5">
+                    <p className="text-sm font-medium text-foreground">Amount Due</p>
+                    <div className="flex items-center justify-between">
+                      <span className="text-muted-foreground">Team Registration</span>
+                      <span className="font-bold text-lg text-foreground">₱{teamPrice.toFixed(2)}</span>
+                    </div>
+                  </Card>
+                </motion.div>
+              )
+            }
+          }
+
+          return null
+        })()}
+
         {/* Payment Screenshot */}
         <motion.div
           initial="hidden"
           animate="visible"
           variants={fadeUpVariants}
-          custom={4}
+          custom={5}
           className="mb-8"
         >
           <div className="flex items-center justify-between mb-3">
@@ -1536,7 +1681,7 @@ export default function RegisterPage({ params }: { params: Promise<{ scheduleId:
           initial="hidden"
           animate="visible"
           variants={fadeUpVariants}
-          custom={5}
+          custom={6}
           className="flex gap-2"
         >
           <Button

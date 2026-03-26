@@ -7,7 +7,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
 
 type QRCodeModalProps = {
   open: boolean
@@ -27,7 +26,7 @@ export function QRCodeModal({ open, onOpenChange, url }: QRCodeModalProps) {
             <img
               src={url}
               alt="QR Code"
-              className="max-w-sm max-h-96 border border-border rounded-lg bg-white p-2"
+              className="max-w-full max-h-96 border border-border rounded-lg bg-white p-2"
             />
             <p className="text-xs text-muted-foreground text-center">
               Click the image to save or scan with your mobile device

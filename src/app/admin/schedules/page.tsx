@@ -91,13 +91,13 @@ export default function SchedulesPage() {
       required_levels: [],
       status: 'open',
       position_prices: {
-        open_spiker: undefined,
-        opposite_spiker: undefined,
-        middle_blocker: undefined,
-        setter: undefined,
-        middle_setter: undefined,
+        open_spiker: 0,
+        opposite_spiker: 0,
+        middle_blocker: 0,
+        setter: 0,
+        middle_setter: 0,
       },
-      team_price: undefined,
+      team_price: 0,
     },
   })
 
@@ -144,8 +144,8 @@ export default function SchedulesPage() {
           num_teams: formData.num_teams,
           required_levels: formData.required_levels,
           status: formData.status,
-          position_prices: formData.position_prices || {},
-          team_price: formData.team_price || null,
+          position_prices: formData.position_prices,
+          team_price: formData.team_price,
         }
         const { error } = await (supabase.from('schedules') as any)
           .update(updateData)
@@ -173,8 +173,8 @@ export default function SchedulesPage() {
           status: formData.status,
           created_by: user.data.user.id,
           max_players: formData.num_teams * 6,
-          position_prices: formData.position_prices || {},
-          team_price: formData.team_price || null,
+          position_prices: formData.position_prices,
+          team_price: formData.team_price,
         }
         const { data, error } = await (supabase.from('schedules') as any)
           .insert([insertData])
@@ -206,8 +206,14 @@ export default function SchedulesPage() {
     setValue('num_teams', schedule.num_teams)
     setValue('required_levels', schedule.required_levels || [])
     setValue('status', schedule.status)
-    setValue('position_prices', (schedule.position_prices as any) || {})
-    setValue('team_price', schedule.team_price || undefined)
+    setValue('position_prices', (schedule.position_prices as any) || {
+      open_spiker: 0,
+      opposite_spiker: 0,
+      middle_blocker: 0,
+      setter: 0,
+      middle_setter: 0,
+    })
+    setValue('team_price', schedule.team_price ?? 0)
     crudDialog.onOpenEdit(schedule.id)
   }
 
@@ -491,70 +497,88 @@ export default function SchedulesPage() {
             </div>
 
             <div className="border-t pt-4 mt-4">
-              <Label className="text-sm font-semibold mb-3 block">Pricing</Label>
+              <Label className="text-sm font-semibold mb-3 block">Pricing *</Label>
 
               <div className="space-y-3 mb-4">
                 <div>
-                  <Label htmlFor="position_open_spiker" className="text-xs">Open Spiker</Label>
+                  <Label htmlFor="position_open_spiker" className="text-xs">Open Spiker *</Label>
                   <Input
                     id="position_open_spiker"
                     type="number"
                     min={0}
                     step={0.01}
                     placeholder="290"
-                    {...register('position_prices.open_spiker', { setValueAs: (v) => (v === '' ? undefined : Number(v)) })}
-                    className="h-8 text-sm"
+                    {...register('position_prices.open_spiker', { setValueAs: (v) => (v === '' ? 0 : Number(v)) })}
+                    className={`h-8 text-sm ${errors.position_prices?.open_spiker ? 'border-destructive' : ''}`}
                   />
+                  {errors.position_prices?.open_spiker && <p className="text-xs text-destructive mt-1">{errors.position_prices.open_spiker.message}</p>}
                 </div>
                 <div>
-                  <Label htmlFor="position_opposite_spiker" className="text-xs">Opposite Spiker</Label>
+                  <Label htmlFor="position_opposite_spiker" className="text-xs">Opposite Spiker *</Label>
                   <Input
                     id="position_opposite_spiker"
                     type="number"
                     min={0}
                     step={0.01}
                     placeholder="290"
-                    {...register('position_prices.opposite_spiker', { setValueAs: (v) => (v === '' ? undefined : Number(v)) })}
-                    className="h-8 text-sm"
+                    {...register('position_prices.opposite_spiker', { setValueAs: (v) => (v === '' ? 0 : Number(v)) })}
+                    className={`h-8 text-sm ${errors.position_prices?.opposite_spiker ? 'border-destructive' : ''}`}
                   />
+                  {errors.position_prices?.opposite_spiker && <p className="text-xs text-destructive mt-1">{errors.position_prices.opposite_spiker.message}</p>}
                 </div>
                 <div>
-                  <Label htmlFor="position_middle_blocker" className="text-xs">Middle Blocker</Label>
+                  <Label htmlFor="position_middle_blocker" className="text-xs">Middle Blocker *</Label>
                   <Input
                     id="position_middle_blocker"
                     type="number"
                     min={0}
                     step={0.01}
                     placeholder="260"
-                    {...register('position_prices.middle_blocker', { setValueAs: (v) => (v === '' ? undefined : Number(v)) })}
-                    className="h-8 text-sm"
+                    {...register('position_prices.middle_blocker', { setValueAs: (v) => (v === '' ? 0 : Number(v)) })}
+                    className={`h-8 text-sm ${errors.position_prices?.middle_blocker ? 'border-destructive' : ''}`}
                   />
+                  {errors.position_prices?.middle_blocker && <p className="text-xs text-destructive mt-1">{errors.position_prices.middle_blocker.message}</p>}
                 </div>
                 <div>
-                  <Label htmlFor="position_setter" className="text-xs">Setter</Label>
+                  <Label htmlFor="position_setter" className="text-xs">Setter *</Label>
                   <Input
                     id="position_setter"
                     type="number"
                     min={0}
                     step={0.01}
                     placeholder="260"
-                    {...register('position_prices.setter', { setValueAs: (v) => (v === '' ? undefined : Number(v)) })}
-                    className="h-8 text-sm"
+                    {...register('position_prices.setter', { setValueAs: (v) => (v === '' ? 0 : Number(v)) })}
+                    className={`h-8 text-sm ${errors.position_prices?.setter ? 'border-destructive' : ''}`}
                   />
+                  {errors.position_prices?.setter && <p className="text-xs text-destructive mt-1">{errors.position_prices.setter.message}</p>}
+                </div>
+                <div>
+                  <Label htmlFor="position_middle_setter" className="text-xs">Middle Setter *</Label>
+                  <Input
+                    id="position_middle_setter"
+                    type="number"
+                    min={0}
+                    step={0.01}
+                    placeholder="0"
+                    {...register('position_prices.middle_setter', { setValueAs: (v) => (v === '' ? 0 : Number(v)) })}
+                    className={`h-8 text-sm ${errors.position_prices?.middle_setter ? 'border-destructive' : ''}`}
+                  />
+                  {errors.position_prices?.middle_setter && <p className="text-xs text-destructive mt-1">{errors.position_prices.middle_setter.message}</p>}
                 </div>
               </div>
 
               <div>
-                <Label htmlFor="team_price" className="text-xs">Team Price (Total)</Label>
+                <Label htmlFor="team_price" className="text-xs">Team Price (Total) *</Label>
                 <Input
                   id="team_price"
                   type="number"
                   min={0}
                   step={0.01}
                   placeholder="1600"
-                  {...register('team_price', { setValueAs: (v) => (v === '' ? undefined : Number(v)) })}
-                  className="h-8 text-sm"
+                  {...register('team_price', { setValueAs: (v) => (v === '' ? 0 : Number(v)) })}
+                  className={`h-8 text-sm ${errors.team_price ? 'border-destructive' : ''}`}
                 />
+                {errors.team_price && <p className="text-xs text-destructive mt-1">{errors.team_price.message}</p>}
               </div>
             </div>
 
