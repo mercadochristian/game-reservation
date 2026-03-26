@@ -394,15 +394,14 @@ Check that lines, functions, and branches reach 100% for Phase 1 files.
 ✗ title empty
 ```
 
-**Team Roster Test Cases** (must match Combo A or Combo B):
+**Team Roster Test Cases** (must match required lineup):
 
 ```
-✓ Combo A: [open_spiker, open_spiker, opposite_spiker, middle_blocker, middle_blocker, setter]
-✓ Combo B: [open_spiker, open_spiker, opposite_spiker, opposite_spiker, middle_setter, middle_blocker]
+✓ Valid lineup: [open_spiker, open_spiker, opposite_spiker, middle_blocker, middle_blocker, setter]
+✓ Valid lineup in different order: [setter, open_spiker, middle_blocker, open_spiker, opposite_spiker, middle_blocker]
 ✗ < 6 players (array min error)
 ✗ 6 players but wrong counts (e.g., 3 setters) → refinement error
-✗ Mixed combo matching neither A nor B → refinement error
-✗ middle_setter outside Combo B context → fails refinement
+✗ Wrong position combination (e.g., 2 OS, 2 OPP, 1 MB, 1 S) → refinement error
 ```
 
 ---
@@ -716,8 +715,8 @@ Check that coverage reaches 90%/85% thresholds for Phase 3 files.
 | Step | Logic | Test Cases |
 |------|-------|-----------|
 | 0 | Validation + body parsing | Invalid JSON → 400; body fails `groupRegistrationSchema` → 400 with Zod errors |
-| 0b | Group mode position validation (`countPositions`, `validateGroupPositions`) | Group: 6+ players → 400; 3 players with 2 setters → 400 (max 1); valid positions → pass; `middle_setter` counts as setter |
-| 0c | Team mode position validation (`validateTeamPositions`) | Team: <6 players → 400; 6 players missing setter → 400 with `missing` array; `middle_setter` counts → passes; valid lineup → pass |
+| 0b | Group mode position validation (`countPositions`, `validateGroupPositions`) | Group: 6+ players → 400; 3 players with 2 setters → 400 (max 1); valid positions → pass |
+| 0c | Team mode position validation (`validateTeamPositions`) | Team: <6 players → 400; 6 players missing setter → 400 with `missing` array; valid lineup → pass |
 | 1 | Auth check | `auth.getUser()` returns null → 401 |
 | 1b | Player resolution (3 sub-cases) | Existing: lookup success → resolved; lookup error/null → `resolution.error`; Guest with existing email → reuse user; Guest new → create auth user + insert users row (both can error) |
 | 2 | Duplicate check | If any player already registered on schedule → 400 with results array |
@@ -738,7 +737,6 @@ describe('POST /api/register/group', () => {
     it('rejects group with 6+ players', () => { /* 400 */ })
     it('rejects group with 2 setters', () => { /* 400 with issues */ })
     it('accepts group with valid positions', () => { /* proceeds */ })
-    it('maps middle_setter to setter count', () => { /* test countPositions logic */ })
   })
 
   describe('Step 0c — Team Position Validation', () => {

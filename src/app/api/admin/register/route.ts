@@ -260,7 +260,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Step 6: Create user_payments record(s)
+    // Step 6: Create registration_payments record(s)
     if (validated.registration_mode === 'single') {
       // Solo mode: create one payment per registration
       for (const reg of insertedRegistrations || []) {
@@ -270,7 +270,7 @@ export async function POST(request: NextRequest) {
         )
 
         const { error: paymentError } = await (serviceClient
-          .from('user_payments') as any)
+          .from('registration_payments') as any)
           .insert({
             registration_id: reg.id,
             payer_id: authUser.id,
@@ -298,7 +298,7 @@ export async function POST(request: NextRequest) {
             )
 
       const { error: paymentError } = await (serviceClient
-        .from('user_payments') as any)
+        .from('registration_payments') as any)
         .insert({
           team_id: teamId,
           payer_id: authUser.id,

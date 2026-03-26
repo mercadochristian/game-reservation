@@ -58,9 +58,7 @@ function countPositions(players: GroupPlayer_[]): Record<string, number> {
   }
   for (const player of players) {
     const pos = player.preferred_position
-    if (pos && pos === 'middle_setter') {
-      counts['setter']++
-    } else if (pos && pos in counts) {
+    if (pos && pos in counts) {
       counts[pos]++
     }
   }
@@ -382,7 +380,7 @@ export function RegisterClient({
               },
               position
             )
-            const { error: paymentError } = await (supabase.from('user_payments') as any)
+            const { error: paymentError } = await (supabase.from('registration_payments') as any)
               .insert({
                 registration_id: insertedData[0].id,
                 payer_id: authUser.id,
@@ -395,7 +393,7 @@ export function RegisterClient({
               })
 
             if (paymentError) {
-              console.error('[Registration] Failed to create user_payments:', paymentError)
+              console.error('[Registration] Failed to create registration_payments:', paymentError)
             }
 
             fetch('/api/payment-proof/extract', {
@@ -1096,7 +1094,6 @@ export function RegisterClient({
                   { value: 'opposite_spiker', label: 'Opposite Spiker' },
                   { value: 'middle_blocker', label: 'Middle Blocker' },
                   { value: 'setter', label: 'Setter' },
-                  { value: 'middle_setter', label: 'Middle Setter' },
                 ]
 
                 return (

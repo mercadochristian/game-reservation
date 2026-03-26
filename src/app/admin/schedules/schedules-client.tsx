@@ -86,7 +86,6 @@ export function SchedulesClient({ initialSchedules, initialLocations }: Schedule
         opposite_spiker: 0,
         middle_blocker: 0,
         setter: 0,
-        middle_setter: 0,
       },
       team_price: 0,
     },
@@ -185,7 +184,6 @@ export function SchedulesClient({ initialSchedules, initialLocations }: Schedule
       opposite_spiker: 0,
       middle_blocker: 0,
       setter: 0,
-      middle_setter: 0,
     })
     setValue('team_price', schedule.team_price ?? 0)
     crudDialog.onOpenEdit(schedule.id)
@@ -514,19 +512,6 @@ export function SchedulesClient({ initialSchedules, initialLocations }: Schedule
                     className={`h-8 text-sm ${errors.position_prices?.setter ? 'border-destructive' : ''}`}
                   />
                   {errors.position_prices?.setter && <p className="text-xs text-destructive mt-1">{errors.position_prices.setter.message}</p>}
-                </div>
-                <div>
-                  <Label htmlFor="position_middle_setter" className="text-xs">Middle Setter *</Label>
-                  <Input
-                    id="position_middle_setter"
-                    type="number"
-                    min={0}
-                    step={0.01}
-                    placeholder="0"
-                    {...register('position_prices.middle_setter', { setValueAs: (v) => (v === '' ? 0 : Number(v)) })}
-                    className={`h-8 text-sm ${errors.position_prices?.middle_setter ? 'border-destructive' : ''}`}
-                  />
-                  {errors.position_prices?.middle_setter && <p className="text-xs text-destructive mt-1">{errors.position_prices.middle_setter.message}</p>}
                 </div>
               </div>
 

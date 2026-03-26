@@ -52,7 +52,7 @@ describe('groupPlayerSchema', () => {
     })
 
     it('accepts all valid position enums', () => {
-      const positions = ['open_spiker', 'opposite_spiker', 'middle_blocker', 'setter', 'middle_setter']
+      const positions = ['open_spiker', 'opposite_spiker', 'middle_blocker', 'setter']
       positions.forEach(pos => {
         const result = groupPlayerSchema.safeParse({
           type: 'existing',

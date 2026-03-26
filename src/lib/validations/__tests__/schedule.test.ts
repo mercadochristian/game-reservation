@@ -13,7 +13,6 @@ const validSchedule = {
     opposite_spiker: 290,
     middle_blocker: 260,
     setter: 260,
-    middle_setter: 0,
   },
   team_price: 1600,
 }
@@ -96,7 +95,6 @@ describe('scheduleSchema', () => {
           opposite_spiker: 0,
           middle_blocker: 0,
           setter: 0,
-          middle_setter: 0,
         },
       })
       expect(result.success).toBe(true)
@@ -137,7 +135,6 @@ describe('scheduleSchema', () => {
           opposite_spiker: 290.75,
           middle_blocker: 260.25,
           setter: 260.99,
-          middle_setter: 0,
         },
       })
       expect(result.success).toBe(true)
@@ -151,7 +148,6 @@ describe('scheduleSchema', () => {
           opposite_spiker: 9999,
           middle_blocker: 8888,
           setter: 7777,
-          middle_setter: 0,
         },
         team_price: 50000,
       })
@@ -318,7 +314,7 @@ describe('scheduleSchema', () => {
 
 describe('teamRosterSchema', () => {
   describe('valid inputs', () => {
-    it('accepts Combo A: 2 open_spiker, 1 opposite_spiker, 2 middle_blocker, 1 setter', () => {
+    it('accepts valid lineup: 2 open_spiker, 1 opposite_spiker, 2 middle_blocker, 1 setter', () => {
       const result = teamRosterSchema.safeParse([
         'open_spiker',
         'open_spiker',
@@ -330,19 +326,7 @@ describe('teamRosterSchema', () => {
       expect(result.success).toBe(true)
     })
 
-    it('accepts Combo B: 2 open_spiker, 2 opposite_spiker, 1 middle_setter, 1 middle_blocker', () => {
-      const result = teamRosterSchema.safeParse([
-        'open_spiker',
-        'open_spiker',
-        'opposite_spiker',
-        'opposite_spiker',
-        'middle_setter',
-        'middle_blocker',
-      ])
-      expect(result.success).toBe(true)
-    })
-
-    it('accepts Combo A in different order', () => {
+    it('accepts valid lineup in different order', () => {
       const result = teamRosterSchema.safeParse([
         'setter',
         'open_spiker',
@@ -394,19 +378,7 @@ describe('teamRosterSchema', () => {
       }
     })
 
-    it('rejects Combo A with middle_setter present', () => {
-      const result = teamRosterSchema.safeParse([
-        'open_spiker',
-        'open_spiker',
-        'opposite_spiker',
-        'middle_blocker',
-        'middle_blocker',
-        'middle_setter',
-      ])
-      expect(result.success).toBe(false)
-    })
-
-    it('rejects Combo B with setter present (instead of middle_setter)', () => {
+    it('rejects invalid lineup with wrong position counts', () => {
       const result = teamRosterSchema.safeParse([
         'open_spiker',
         'open_spiker',
@@ -456,16 +428,16 @@ describe('teamRosterSchema', () => {
       expect(result.success).toBe(false)
     })
 
-    it('rejects invalid lineup even when all 5 enum values are present', () => {
+    it('rejects invalid lineup when all 4 positions are present but with wrong counts', () => {
       const result = teamRosterSchema.safeParse([
         'open_spiker',
         'opposite_spiker',
         'middle_blocker',
         'setter',
-        'middle_setter',
+        'open_spiker',
         'open_spiker',
       ])
-      expect(result.success).toBe(false) // All valid enums, but no valid Combo A or B formed
+      expect(result.success).toBe(false)
     })
   })
 })

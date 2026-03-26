@@ -47,6 +47,7 @@ interface RegistrationsClientProps {
   filterDate: string
   filterLocationId: string
   locations: Location[]
+  lineupTeams: Array<{ id: string; name: string }>
 }
 
 export function RegistrationsClient({
@@ -56,6 +57,7 @@ export function RegistrationsClient({
   filterDate,
   filterLocationId,
   locations,
+  lineupTeams,
 }: RegistrationsClientProps) {
   const router = useRouter()
   const pathname = usePathname()
@@ -336,12 +338,22 @@ export function RegistrationsClient({
               <h2 className="text-lg font-semibold text-foreground">
                 Registrations for: <span className="text-primary">{formatScheduleLabel(selectedSchedule)}</span>
               </h2>
-              {!selectedScheduleIsPast && (
-                <Button onClick={handleRegisterDialogOpen} className="gap-2" size="sm">
-                  <Plus size={16} />
-                  Register a Player
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => router.push(`/admin/lineups/${selectedScheduleId}`)}
+                  className="gap-2"
+                >
+                  Set Lineup
                 </Button>
-              )}
+                {!selectedScheduleIsPast && (
+                  <Button onClick={handleRegisterDialogOpen} className="gap-2" size="sm">
+                    <Plus size={16} />
+                    Register a Player
+                  </Button>
+                )}
+              </div>
             </div>
 
             <div className="bg-card border-border border rounded-lg overflow-hidden">
@@ -398,7 +410,11 @@ export function RegistrationsClient({
                           {reg.preferred_position ? POSITION_LABELS[reg.preferred_position] : '—'}
                         </TableCell>
                         <TableCell className="hidden md:table-cell text-sm text-muted-foreground">
-                          {reg.team_preference === 'teammate' ? 'With Teammates' : 'Shuffle'}
+                          {(() => {
+                            const lineupTeam = lineupTeams.find((t: { id: string; name: string }) => t.id === (reg as any).lineup_team_id)
+                            const registrationTeam = reg.team_members?.[0]?.teams?.name
+                            return lineupTeam?.name ?? registrationTeam ?? 'Unassigned'
+                          })()}
                         </TableCell>
                         <TableCell>
                           <Badge variant={PAYMENT_BADGE_VARIANTS[(reg as any).payment_status || 'pending']} className="whitespace-nowrap">
@@ -654,7 +670,6 @@ export function RegistrationsClient({
                             <option value="open_spiker">Open Spiker</option>
                             <option value="opposite_spiker">Opposite Spiker</option>
                             <option value="middle_blocker">Middle Blocker</option>
-                            <option value="middle_setter">Middle Setter</option>
                           </select>
                         </div>
                       )}

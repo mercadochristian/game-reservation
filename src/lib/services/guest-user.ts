@@ -91,7 +91,7 @@ export async function createGuestUser(
       const errorMsg = 'Failed to add player. Please try again.'
       void logError(
         `${logContext?.operationName || 'guest_user'}.user_insert`,
-        insertError,
+        JSON.stringify(insertError),
         logContext?.userId,
         { email: guestData.email }
       )

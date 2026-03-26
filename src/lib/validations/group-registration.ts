@@ -5,7 +5,7 @@ import { PlayerPosition } from '@/types'
 const existingPlayerSchema = z.object({
   type: z.literal('existing'),
   user_id: z.string().uuid('User ID must be a valid UUID'),
-  preferred_position: z.enum(['open_spiker', 'opposite_spiker', 'middle_blocker', 'setter', 'middle_setter'] as const),
+  preferred_position: z.enum(['open_spiker', 'opposite_spiker', 'middle_blocker', 'setter'] as const),
 })
 
 const guestPlayerSchema = z.object({
@@ -14,7 +14,7 @@ const guestPlayerSchema = z.object({
   last_name: z.string().min(1, 'Last name is required').max(100),
   email: z.string().email('Invalid email address'),
   phone: z.string().optional(),
-  preferred_position: z.enum(['open_spiker', 'opposite_spiker', 'middle_blocker', 'setter', 'middle_setter'] as const),
+  preferred_position: z.enum(['open_spiker', 'opposite_spiker', 'middle_blocker', 'setter'] as const),
 })
 
 export const groupPlayerSchema = z.union([existingPlayerSchema, guestPlayerSchema])

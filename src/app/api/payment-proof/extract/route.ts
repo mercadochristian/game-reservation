@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
         confidence: 'failed',
       }
 
-      const tableName = isUserPayment ? 'user_payments' : 'registrations'
+      const tableName = isUserPayment ? 'registration_payments' : 'registrations'
       await (serviceClient.from(tableName) as any).update({
         extracted_amount: extractedData.amount,
         extracted_reference: extractedData.reference_number,
@@ -102,7 +102,7 @@ export async function POST(req: NextRequest) {
         confidence: 'high' as const,
       }
 
-      const mockTableName = isUserPayment ? 'user_payments' : 'registrations'
+      const mockTableName = isUserPayment ? 'registration_payments' : 'registrations'
       await (serviceClient.from(mockTableName) as any)
         .update({
           extracted_amount: mockExtracted.amount,
@@ -213,8 +213,8 @@ Rules:
       extractedData.confidence = 'failed'
     }
 
-    // Update user_payments with extracted data
-    const updateTableName = isUserPayment ? 'user_payments' : 'registrations'
+    // Update registration_payments with extracted data
+    const updateTableName = isUserPayment ? 'registration_payments' : 'registrations'
     const { error: updateError } = await (serviceClient
       .from(updateTableName) as any)
       .update({

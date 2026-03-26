@@ -8,7 +8,6 @@ describe('pricing utilities', () => {
       opposite_spiker: 290,
       middle_blocker: 260,
       setter: 260,
-      middle_setter: 0,
     },
     team_price: 1600,
   }
@@ -39,8 +38,9 @@ describe('pricing utilities', () => {
       expect(amount).toBe(0)
     })
 
-    it('returns 0 for position with price of 0', () => {
-      const amount = computeSoloAmount(mockPricing, 'middle_setter')
+    it('returns price of 0 when position_prices has 0 value', () => {
+      const zeroPrice = { ...mockPricing, position_prices: { ...mockPricing.position_prices, setter: 0 } }
+      const amount = computeSoloAmount(zeroPrice, 'setter')
       expect(amount).toBe(0)
     })
   })

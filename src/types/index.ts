@@ -12,7 +12,7 @@ export type TeamMember = Database['public']['Tables']['team_members']['Row']
 export type MvpAward = Database['public']['Tables']['mvp_awards']['Row']
 export type Location = Database['public']['Tables']['locations']['Row']
 export type PaymentChannel = Database['public']['Tables']['payment_channels']['Row']
-export type UserPayment = Database['public']['Tables']['user_payments']['Row']
+export type RegistrationPayment = Database['public']['Tables']['registration_payments']['Row']
 export type RoleWhitelist = Database['public']['Tables']['role_whitelist']['Row']
 export type Log = Database['public']['Tables']['logs']['Row']
 
@@ -29,6 +29,11 @@ export type ScheduleWithLocation = Schedule & {
 
 export type RegistrationWithDetails = Registration & {
   users: Pick<User, 'id' | 'first_name' | 'last_name' | 'email' | 'skill_level' | 'is_guest'>
+  team_members: Array<{ team_id: string; teams: Pick<Team, 'id' | 'name'> | null }>
+}
+
+export type RegistrationForLineup = Registration & {
+  users: Pick<User, 'id' | 'first_name' | 'last_name' | 'skill_level' | 'is_guest'>
   team_members: Array<{ team_id: string; teams: Pick<Team, 'id' | 'name'> | null }>
 }
 

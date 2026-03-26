@@ -62,7 +62,7 @@ export default async function PaymentsPage({
   let initialPendingCount = 0
 
   if (selectedScheduleId) {
-    const { data: paymentsData } = await (supabase.from('user_payments') as any)
+    const { data: paymentsData } = await (supabase.from('registration_payments') as any)
       .select(
         `id, registration_id, payment_status, payment_proof_url, extracted_amount, extracted_reference,
          extracted_datetime, extracted_sender, extraction_confidence, created_at, required_amount,

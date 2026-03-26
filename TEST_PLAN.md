@@ -60,14 +60,13 @@ This document tracks the remaining phases of the unit test plan for the volleyba
 | Test | Expected |
 |------|----------|
 | 5 valid positions | error: 'A team requires at least 6 players' |
-| Combo A: 2 OS, 1 OPP, 2 MB, 1 S | success |
-| Combo B: 2 OS, 2 OPP, 1 MS, 1 MB | success |
-| Combo B order shuffled | success |
-| Combo A missing 1 open_spiker | fail |
-| Combo A with extra setter | fail |
-| Combo B with extra middle_blocker | fail |
+| Valid lineup: 2 OS, 1 OPP, 2 MB, 1 S | success |
+| Valid lineup order shuffled | success |
+| Missing 1 open_spiker | fail |
+| With extra setter | fail |
+| With extra middle_blocker | fail |
 | All 6 players are open_spiker | fail |
-| Combo A lineup + middle_setter mixed in | fail |
+| Invalid lineup with wrong position counts | fail |
 | Invalid position string | Zod enum error |
 | Empty array | error: 'A team requires at least 6 players' |
 
@@ -211,8 +210,8 @@ Then update `route.ts` to import from `position-validation.ts`.
 
 ### `countPositions`
 - Empty array → all zeros
-- `middle_setter` maps to setter count
-- Both `setter` and `middle_setter` together → setter count = 2
+- Counts all 4 position types: setter, open_spiker, opposite_spiker, middle_blocker
+- Mixed positions → correct aggregation
 
 ### `validateTeamPositions`
 - Exact required count met → `{ valid: true }`

@@ -16,7 +16,7 @@ export function getRequiredPositions(): PositionRequirements {
 }
 
 /**
- * Count players by position, treating 'middle_setter' as a setter
+ * Count players by position
  * @param players Array of players to count
  * @returns Object with position counts
  */
@@ -30,9 +30,7 @@ export function countPositions(players: GroupPlayer[]): Record<string, number> {
 
   for (const player of players) {
     const pos = player.preferred_position
-    if (pos === 'middle_setter') {
-      counts['setter']++
-    } else if (pos in counts) {
+    if (pos in counts) {
       counts[pos]++
     }
   }

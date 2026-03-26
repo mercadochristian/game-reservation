@@ -103,7 +103,7 @@ export function PaymentsClient({
   const handleApprove = async (payment: PaymentWithExtraction) => {
     try {
       const user = await supabase.auth.getUser()
-      const { error } = await (supabase.from('user_payments') as any)
+      const { error } = await (supabase.from('registration_payments') as any)
         .update({ payment_status: 'paid' })
         .eq('id', payment.id)
 
@@ -149,7 +149,7 @@ export function PaymentsClient({
   const handleReject = async (payment: PaymentWithExtraction) => {
     try {
       const user = await supabase.auth.getUser()
-      const { error } = await (supabase.from('user_payments') as any)
+      const { error } = await (supabase.from('registration_payments') as any)
         .update({ payment_status: 'rejected' })
         .eq('id', payment.id)
 

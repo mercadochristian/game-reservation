@@ -43,7 +43,7 @@ export function GameFilter({ locations, filterDate, filterLocationId }: GameFilt
       activeFilterCount={activeFilterCount}
     >
       <div className="pt-3 flex flex-col sm:flex-row gap-3 items-end">
-        <div className="flex-1">
+        <div className="flex-1 w-full">
           <Label className="text-xs font-medium mb-1 block">Date</Label>
           <Input
             type="date"
@@ -52,7 +52,7 @@ export function GameFilter({ locations, filterDate, filterLocationId }: GameFilt
             className="h-9"
           />
         </div>
-        <div className="flex-1">
+        <div className="flex-1 w-full">
           <Label className="text-xs font-medium mb-1 block">Location</Label>
           <select
             value={filterLocationId}

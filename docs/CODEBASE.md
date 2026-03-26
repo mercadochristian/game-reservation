@@ -120,7 +120,7 @@ GET handler. Receives `?code=` from magic link email:
 | `schedule_status` | `open`, `full`, `cancelled`, `completed` |
 | `payment_status` | `pending`, `review`, `paid`, `rejected` |
 | `team_preference` | `shuffle`, `group`, `team` |
-| `player_position` | `open_spiker`, `opposite_spiker`, `middle_blocker`, `setter`, `middle_setter` |
+| `player_position` | `open_spiker`, `opposite_spiker`, `middle_blocker`, `setter` |
 
 ### Tables
 
@@ -180,6 +180,7 @@ GET handler. Receives `?code=` from magic link email:
 | `attended` | BOOLEAN | DEFAULT FALSE |
 | `qr_token` | UUID | UNIQUE, auto-generated on insert |
 | `preferred_position` | player_position | nullable |
+| `lineup_team_id` | UUID | nullable, FK → teams(id) ON DELETE SET NULL — assigned game-day team (post-lineup-builder) |
 | `created_at`, `updated_at` | TIMESTAMPTZ | DEFAULT NOW() |
 | **Unique constraint:** `(schedule_id, player_id)` |
 
@@ -189,6 +190,7 @@ GET handler. Receives `?code=` from magic link email:
 | `id` | UUID | PK |
 | `schedule_id` | UUID | FK → schedules(id) ON DELETE CASCADE |
 | `name` | TEXT | NOT NULL |
+| `team_type` | TEXT | DEFAULT 'registration', CHECK ('registration' \| 'lineup') — discriminates registration groups from game-day lineups |
 | `created_at` | TIMESTAMPTZ | DEFAULT NOW() |
 
 **`team_members`** — Players on teams
@@ -454,7 +456,7 @@ Batch registration for group (2+ players together) or team (complete lineup with
      - **2 Open Spikers (minimum)**
      - **1 Opposite Spiker (minimum)**
    - **No maximums** — can have unlimited of any position (e.g., 5 open spikers is valid)
-   - Count positions in submitted players (note: `middle_setter` counts as `setter`)
+   - Count positions in submitted players
    - Return 400 with `missing` array if any required position is below minimum
 
 3. **Player Resolution**
@@ -583,6 +585,61 @@ Returns the list of registered players for a specific position slot within a sch
 
 ---
 
+### POST `/api/admin/lineups`
+**File:** `src/app/api/admin/lineups/route.ts`
+
+Saves game-day lineup: creates lineup teams and assigns registrations to them.
+
+**Auth:** Requires valid session; role must be `admin`, `super_admin`, or `facilitator`
+
+**Input:**
+```ts
+{
+  schedule_id: uuid
+  teams: [
+    { name: string (1–60 chars) }
+  ] (min 1 team)
+  assignments: [
+    {
+      registration_id: uuid
+      team_index: number | null  // null = unassigned
+    }
+  ]
+}
+```
+
+**Validation:** Zod schema `saveLineupSchema` from `src/lib/validations/lineup.ts`
+
+**Output:**
+```ts
+{
+  success: true
+  message: "Lineup saved successfully"
+  teams_created: number
+}
+```
+
+**Logic:**
+1. Authenticate and verify role is admin/super_admin/facilitator
+2. Delete existing lineup teams: `DELETE FROM teams WHERE schedule_id = ? AND team_type = 'lineup'` (cascades `SET NULL` on `registrations.lineup_team_id`)
+3. Insert new lineup teams: `INSERT INTO teams (schedule_id, name, team_type) VALUES ...` with `team_type = 'lineup'`
+4. Bulk update registrations: for each assignment, set `lineup_team_id` to the corresponding lineup team ID (or NULL if unassigned)
+5. Log activity via `logError()` (using error log level for audit trail)
+6. Return success response
+
+**Lineup vs Registration Teams:**
+- **Registration teams:** Created during group/team registration, stored with `team_type = 'registration'`
+- **Lineup teams:** Created by this endpoint, stored with `team_type = 'lineup'`. Multiple lineup teams can exist per schedule; only the most recent set is active
+
+**Error codes:**
+- 400: Validation failure or invalid request
+- 401: Not authenticated
+- 403: User role not authorized
+- 404: Schedule not found
+- 500: Database error
+
+---
+
 ## Pages & Routes
 
 ### Home (`/`)
@@ -685,6 +742,80 @@ Full CRUD for schedules table.
 - **Status:** dropdown (open/full/cancelled/completed)
 
 **Validation:** Zod `scheduleSchema`
+
+---
+
+### Admin Lineups (`/admin/lineups/[scheduleId]`)
+**File:** `src/app/admin/lineups/[scheduleId]/page.tsx` (server) + `lineup-client.tsx` (client)
+
+Drag-and-drop lineup builder. Admins/facilitators organize registered players into game-day teams.
+
+**Auth:** Requires `admin`, `super_admin`, or `facilitator` role (verified in RSC and middleware)
+
+**Page Logic (RSC):**
+1. Auth check + role verification
+2. Fetch schedule with `num_teams`
+3. Fetch registrations with users + team_members (to identify registration groups)
+4. Fetch existing lineup teams (`team_type = 'lineup'`)
+5. Pass to `<LineupClient>`
+
+**Client Component State:**
+```ts
+type DraggableUnit = {
+  unitId: string              // registration_id (solo) or team_id (group)
+  type: 'solo' | 'group'      // solo = individual player; group = linked registration group
+  registrationIds: string[]   // all reg IDs in this unit
+  players: Array<...>         // player info (name, position, skill, guest flag)
+  groupName?: string          // registration group name
+}
+
+type LineupState = {
+  unassigned: DraggableUnit[]
+  teams: Array<{
+    name: string
+    units: DraggableUnit[]
+  }>
+}
+```
+
+**Features:**
+- **Unassigned pool:** Shows all players grouped by registration (groups drag atomically)
+- **Team columns:** N columns based on `schedule.num_teams`, default names "Team 1", "Team 2", etc.
+- **Inline rename:** Click team name to edit (persists in state until save)
+- **Drag & drop:** Uses `@dnd-kit/core`. Groups drag as a unit; individual players drag one at a time
+- **Save:** POST to `/api/admin/lineups` with team names and assignments → creates lineup teams, updates `registrations.lineup_team_id`
+
+**Initialization Logic:**
+- Registrations with `team_members` → grouped by `team_id` → one `DraggableUnit` of type `'group'`
+- Registrations without `team_members` → one `DraggableUnit` per registration of type `'solo'`
+- If `existingLineupTeams.length > 0` → load existing lineup layout from DB
+- Else → create N empty teams, all players go to unassigned
+
+**Drag Mechanics:**
+- Each unit is draggable; containers are `"unassigned"` and `"team-0"`, `"team-1"`, ...
+- On drop: find source/target containers, move entire unit atomically
+- DragOverlay shows preview card while dragging
+
+**Save Handler:**
+1. Build assignments array: `{ registration_id, team_index | null }`
+2. Validate with `saveLineupSchema`
+3. POST to `/api/admin/lineups`
+4. On success: toast + router.refresh() + router.back()
+5. On error: toast with error message
+
+---
+
+### Admin Registrations (`/admin/registrations`)
+**File:** `src/app/admin/registrations/page.tsx` (server) + `registrations-client.tsx` (client)
+
+Browse and manage game registrations by schedule.
+
+**Features:**
+- Schedule filter (date + location)
+- Registration table: Player, Position, Team (shows lineup team name if exists, else registration group name), Payment status, Registered date
+- "Set Lineup" button: navigates to `/admin/lineups/[scheduleId]` when a schedule is selected
+- "Register a Player" button: dialog for admin to add single/group/team registrations
+- Player detail dialog: shows registrant info + teammates if in a group
 
 ---
 
@@ -1131,7 +1262,7 @@ Generic client-side pagination hook. Accepts a full array of (typically pre-filt
 Pure utility functions for position counting and validation used by both the `POST /api/register/group` route and the registration page.
 
 - `getRequiredPositions()` — returns the canonical minimum: `{ setter: 1, middle_blocker: 2, open_spiker: 2, opposite_spiker: 1 }`
-- `countPositions(players)` — aggregates position counts; `middle_setter` is aliased to `setter`
+- `countPositions(players)` — aggregates position counts for the 4 available positions
 - `validateTeamPositions(players, required)` — returns `{ valid, missing? }` for team mode minimum check
 - `validateGroupPositions(players)` — returns `{ valid, issues? }` for group mode maximum check (S=1, OS=1, MB=2, OPS=2)
 
@@ -1476,5 +1607,6 @@ Log all new features, pages, API routes, and significant changes here.
 | 2026-03-19 | Utils: registration-positions, position-slots, profile-cache | `src/lib/utils/registration-positions.ts`, `src/lib/utils/position-slots.ts`, `src/lib/middleware/profile-cache.ts` | registration-positions: pure functions for group/team position counting and validation. position-slots: POSITION_SLOTS constant + helpers for slot totals and availability. profile-cache: cookie-based middleware cache (x-profile, 5-min TTL) to avoid per-request DB round-trips. |
 | 2026-03-19 | Service: guest-user | `src/lib/services/guest-user.ts` | Extracted guest user create-or-reuse logic from group registration route into a standalone service function. Accepts service + regular Supabase clients; returns { user_id, error, reused }. |
 | 2026-03-19 | Vitest test suite (Phase 1–3) | `vitest.config.mts`, `src/__tests__/setup.ts`, `src/__tests__/middleware.test.ts`, `src/app/api/**/__tests__/*.test.ts`, `src/lib/**/__tests__/*.test.ts` | Full test infrastructure: Vitest + v8 coverage, global mock setup for Supabase/logger/next/headers, thresholds (lines 90%, functions 90%, branches 85%). Tests cover middleware, all API routes, guest-user service, hooks, and registration-position utilities. |
+| 2026-03-26 | Lineup Builder feature | `supabase/migrations/20250326000000_add_lineup_support.sql`, `src/types/database.ts`, `src/types/index.ts`, `src/lib/validations/lineup.ts`, `src/app/api/admin/lineups/route.ts`, `src/app/admin/lineups/[scheduleId]/page.tsx`, `src/app/admin/lineups/[scheduleId]/lineup-client.tsx`, `src/app/admin/registrations/registrations-client.tsx`, `src/middleware.ts` | Drag-and-drop lineup builder: admins/facilitators organize registered players into game-day teams. Adds `team_type` (`registration` \| `lineup`) to teams table, `lineup_team_id` to registrations. New `/admin/lineups/[scheduleId]` page with DnD UI (@dnd-kit/core). Groups drag atomically; individual players drag separately. Save creates lineup teams + assigns registrations. Facilitators access via shared SHARED_PATHS middleware exemption. |
 | | | | |
 

@@ -54,28 +54,6 @@ describe('registration-positions', () => {
       })
     })
 
-    it('treats middle_setter as a setter', () => {
-      const players: GroupPlayer[] = [
-        {
-          type: 'guest',
-          first_name: 'John',
-          last_name: 'Doe',
-          email: 'john@example.com',
-          preferred_position: 'middle_setter',
-        } as any,
-        {
-          type: 'guest',
-          first_name: 'Jane',
-          last_name: 'Doe',
-          email: 'jane@example.com',
-          preferred_position: 'setter',
-        } as any,
-      ]
-
-      const counts = countPositions(players)
-      expect(counts.setter).toBe(2)
-    })
-
     it('handles empty array', () => {
       const counts = countPositions([])
       expect(counts).toEqual({
@@ -164,21 +142,6 @@ describe('registration-positions', () => {
       })
     })
 
-    it('allows middle_setter to count as setter', () => {
-      const players: GroupPlayer[] = [
-        { preferred_position: 'middle_setter' } as any,
-        { preferred_position: 'middle_blocker' } as any,
-        { preferred_position: 'middle_blocker' } as any,
-        { preferred_position: 'open_spiker' } as any,
-        { preferred_position: 'open_spiker' } as any,
-        { preferred_position: 'opposite_spiker' } as any,
-      ]
-
-      const required = getRequiredPositions()
-      const result = validateTeamPositions(players, required)
-
-      expect(result.valid).toBe(true)
-    })
   })
 
   describe('validateGroupPositions', () => {
@@ -261,17 +224,6 @@ describe('registration-positions', () => {
         max: 2,
         provided: 3,
       })
-    })
-
-    it('allows middle_setter to count as setter in group position validation', () => {
-      const players: GroupPlayer[] = [
-        { preferred_position: 'middle_setter' } as any,
-        { preferred_position: 'open_spiker' } as any,
-      ]
-
-      const result = validateGroupPositions(players)
-
-      expect(result.valid).toBe(true)
     })
 
     it('detects multiple position violations', () => {

@@ -346,7 +346,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Step 6: Create single user_payments record for the group/team
+    // Step 6: Create single registration_payments record for the group/team
     const requiredAmount =
       validated.registration_mode === 'team'
         ? computeTeamAmount(schedule)
@@ -358,7 +358,7 @@ export async function POST(request: NextRequest) {
           )
 
     const { data: userPayment, error: userPaymentError } = await (serviceClient
-      .from('user_payments') as any)
+      .from('registration_payments') as any)
       .insert({
         team_id: team.id,
         payer_id: authUser.id,
@@ -381,7 +381,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Step 7: Trigger AI extraction for user_payments (non-blocking)
+    // Step 7: Trigger AI extraction for registration_payments (non-blocking)
     fetch(new URL('/api/payment-proof/extract', process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

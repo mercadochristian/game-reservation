@@ -15,6 +15,9 @@ const ROLE_PATH_MAP: Record<string, string> = {
   player: '/player',
 }
 
+// Paths accessible to multiple roles (cross-role access)
+const SHARED_PATHS = ['/admin/lineups']
+
 // Copies Supabase session cookies onto any redirect response so session
 // refresh tokens are not lost when the middleware redirects.
 function redirectWithSession(
@@ -100,8 +103,10 @@ export async function middleware(request: NextRequest) {
     const isOnARolePath = Object.values(ROLE_PATH_MAP).some(p =>
       pathname.startsWith(p),
     )
+    const isSharedPath = SHARED_PATHS.some(p => pathname.startsWith(p))
     const isOnWrongRolePath =
       isOnARolePath &&
+      !isSharedPath &&
       (!allowedPrefix || !pathname.startsWith(allowedPrefix))
 
     if (isOnWrongRolePath) {

@@ -44,24 +44,36 @@ export default async function RegistrationsPage({
 
   // Fetch registrations if a schedule is selected
   let initialRegistrations: RegistrationWithDetails[] = []
+  let lineupTeams: Array<{ id: string; name: string }> = []
 
   if (selectedScheduleId) {
     const { data: regsData } = await (supabase.from('registrations') as any)
       .select(`
         id, schedule_id, player_id, registered_by, team_preference,
-        attended, preferred_position, created_at,
+        attended, preferred_position, lineup_team_id, created_at,
         users!player_id(id, first_name, last_name, email, skill_level, is_guest),
         team_members!registration_id(team_id, teams(id, name)),
-        user_payments!registration_id(payment_status)
+        registration_payments!registration_id(payment_status)
       `)
       .eq('schedule_id', selectedScheduleId)
       .order('created_at', { ascending: true })
 
-    // Flatten user_payments for compatibility
+    // Flatten registration_payments for compatibility
     initialRegistrations = (regsData ?? []).map((r: any) => ({
       ...r,
-      payment_status: r.user_payments?.[0]?.payment_status || 'pending',
+      payment_status: r.registration_payments?.[0]?.payment_status || 'pending',
     })) as RegistrationWithDetails[]
+
+    // Fetch existing lineup teams for the schedule
+    const { data: teamsData } = await (supabase.from('teams') as any)
+      .select('id, name')
+      .eq('schedule_id', selectedScheduleId)
+      .eq('team_type', 'lineup')
+
+    lineupTeams = (teamsData ?? []).map((t: any) => ({
+      id: t.id,
+      name: t.name,
+    }))
   }
 
   return (
@@ -72,6 +84,7 @@ export default async function RegistrationsPage({
       filterDate={filterDate}
       filterLocationId={filterLocationId}
       locations={locations}
+      lineupTeams={lineupTeams}
     />
   )
 }

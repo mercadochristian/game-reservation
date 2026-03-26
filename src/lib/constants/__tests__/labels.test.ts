@@ -44,8 +44,8 @@ describe('label constants', () => {
   })
 
   describe('POSITION_LABELS', () => {
-    it('has exactly 5 entries', () => {
-      expect(Object.keys(POSITION_LABELS)).toHaveLength(5)
+    it('has exactly 4 entries', () => {
+      expect(Object.keys(POSITION_LABELS)).toHaveLength(4)
     })
 
     it('covers all expected positions', () => {
@@ -54,7 +54,6 @@ describe('label constants', () => {
       expect(keys).toContain('opposite_spiker')
       expect(keys).toContain('middle_blocker')
       expect(keys).toContain('setter')
-      expect(keys).toContain('middle_setter')
     })
 
     it('maps each key to a non-empty display string', () => {

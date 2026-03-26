@@ -134,6 +134,7 @@ export type Database = {
           attended: boolean
           qr_token: string | null
           preferred_position: PlayerPosition | null
+          lineup_team_id: string | null
           created_at: string
           updated_at: string
         }
@@ -146,6 +147,7 @@ export type Database = {
           attended?: boolean
           qr_token?: string | null
           preferred_position?: PlayerPosition | null
+          lineup_team_id?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -158,6 +160,7 @@ export type Database = {
           attended?: boolean
           qr_token?: string | null
           preferred_position?: PlayerPosition | null
+          lineup_team_id?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -167,18 +170,21 @@ export type Database = {
           id: string
           schedule_id: string
           name: string
+          team_type: 'registration' | 'lineup'
           created_at: string
         }
         Insert: {
           id?: string
           schedule_id: string
           name: string
+          team_type?: 'registration' | 'lineup'
           created_at?: string
         }
         Update: {
           id?: string
           schedule_id?: string
           name?: string
+          team_type?: 'registration' | 'lineup'
           created_at?: string
         }
       }
@@ -301,7 +307,7 @@ export type Database = {
           updated_at?: string
         }
       }
-      user_payments: {
+      registration_payments: {
         Row: {
           id: string
           registration_id: string | null
@@ -431,4 +437,3 @@ export type PlayerPosition =
   | 'opposite_spiker'
   | 'middle_blocker'
   | 'setter'
-  | 'middle_setter'

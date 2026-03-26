@@ -77,7 +77,6 @@
   - [x] Test `countPositions` with valid/invalid arrays, edge cases
   - [x] Test `validateTeamPositions` with valid/invalid lineups
   - [x] Test `validateGroupPositions` with valid/invalid group sizes
-  - [x] Test `middle_setter` counting as setter
 
 #### Extract guest user creation
 - [x] Create `src/lib/services/guest-user.ts`
