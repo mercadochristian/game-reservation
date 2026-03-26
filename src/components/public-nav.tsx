@@ -23,7 +23,9 @@ export function PublicNav() {
       )
     }
 
-    return null;
+    return (<Link href="/auth" className="inline-flex items-center justify-center rounded-lg border border-transparent bg-primary text-primary-foreground text-sm font-medium whitespace-nowrap transition-all outline-none select-none cursor-pointer h-8 gap-1.5 px-2.5 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 hover:opacity-90 mr-2">
+          Log In
+        </Link>);
   }
 
 

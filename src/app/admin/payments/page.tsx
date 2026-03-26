@@ -1,23 +1,7 @@
-'use client'
-
-import { useEffect, useState } from 'react'
-import { motion } from 'framer-motion'
-import { Eye, Check, X, Image as ImageIcon } from 'lucide-react'
-import { toast } from 'sonner'
-
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { PageHeader } from '@/components/ui/page-header'
-import { TableSkeleton } from '@/components/ui/table-skeleton'
-import { Card } from '@/components/ui/card'
-import { createClient } from '@/lib/supabase/client'
-import { type ScheduleWithLocation } from '@/types'
-import { fadeUpVariants } from '@/lib/animations'
-import { getUserFriendlyMessage } from '@/lib/errors/messages'
-import { formatScheduleLabel } from '@/lib/utils/schedule-label'
-import { logActivity, logError } from '@/lib/logger'
+import { createServiceClient } from '@/lib/supabase/service'
+import { getStringParam } from '@/lib/utils/search-params'
+import type { ScheduleWithLocation, Location } from '@/types'
+import { PaymentsClient } from './payments-client'
 
 interface PaymentWithExtraction {
   id: string
@@ -34,434 +18,90 @@ interface PaymentWithExtraction {
   created_at: string
 }
 
-export default function PaymentsPage() {
-  const supabase = createClient()
-  const [schedules, setSchedules] = useState<ScheduleWithLocation[]>([])
-  const [selectedScheduleId, setSelectedScheduleId] = useState<string | null>(null)
-  const [registrations, setRegistrations] = useState<PaymentWithExtraction[]>([])
-  const [loading, setLoading] = useState(false)
-  const [totalCollected, setTotalCollected] = useState(0)
-  const [pendingCount, setPendingCount] = useState(0)
-  const [viewingProof, setViewingProof] = useState<{
-    registration_id: string
-    url: string
-  } | null>(null)
-  const [proofUrl, setProofUrl] = useState<string | null>(null)
-  const [proofLoading, setProofLoading] = useState(false)
+export default async function PaymentsPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>
+}) {
+  const params = await searchParams
+  const supabase = createServiceClient()
 
-  // Load schedules
-  useEffect(() => {
-    const fetchSchedules = async () => {
-      try {
-        const { data, error } = await (supabase.from('schedules') as any)
-          .select('*, locations(id, name)')
-          .order('start_time', { ascending: false })
+  const filterDate = getStringParam(params, 'date')
+  const filterLocationId = getStringParam(params, 'locationId')
 
-        if (error) throw error
-        setSchedules(data || [])
-        if (data && data.length > 0) {
-          setSelectedScheduleId(data[0].id)
-        }
-      } catch (error) {
-        console.error('[Payments] Failed to load schedules:', error)
-        toast.error('Failed to load schedules', { description: getUserFriendlyMessage(error) })
-      }
-    }
+  // Fetch active locations for the filter dropdown
+  const { data: locationsData } = await (supabase.from('locations') as any)
+    .select('id, name, address, is_active')
+    .eq('is_active', true)
+    .order('name', { ascending: true })
+  const locations: Location[] = locationsData ?? []
 
-    fetchSchedules()
-  }, [supabase])
+  // Fetch schedules (filtered by date and/or location if provided)
+  let schedulesQuery = (supabase.from('schedules') as any)
+    .select('*, locations(id, name)')
 
-  // Load user_payments for selected schedule
-  useEffect(() => {
-    if (!selectedScheduleId) return
-
-    const fetchPayments = async () => {
-      setLoading(true)
-      try {
-        const { data, error } = await (supabase.from('user_payments') as any)
-          .select(
-            `id, registration_id, payment_status, payment_proof_url, extracted_amount, extracted_reference,
-             extracted_datetime, extracted_sender, extraction_confidence, created_at, required_amount,
-             registrations(id, player_id, users:player_id(id, first_name, last_name))`
-          )
-          .eq('schedule_id', selectedScheduleId)
-          .order('created_at', { ascending: false })
-
-        if (error) throw error
-
-        const payments = data || []
-        // Flatten registration/user data for compatibility
-        const formattedRegs = payments.map((p: any) => ({
-          id: p.id,
-          player_id: p.registrations?.player_id,
-          users: p.registrations?.users,
-          payment_status: p.payment_status,
-          payment_proof_url: p.payment_proof_url,
-          extracted_amount: p.extracted_amount,
-          extracted_reference: p.extracted_reference,
-          extracted_datetime: p.extracted_datetime,
-          extracted_sender: p.extracted_sender,
-          extraction_confidence: p.extraction_confidence,
-          required_amount: p.required_amount,
-          created_at: p.created_at,
-        }))
-
-        setRegistrations(formattedRegs)
-
-        // Calculate totals
-        const paid = formattedRegs.filter((r: any) => r.payment_status === 'paid')
-        const total = paid.reduce((sum: number, r: any) => sum + (r.extracted_amount ?? 0), 0)
-        setTotalCollected(total)
-
-        const pending = formattedRegs.filter((r: any) => r.payment_status === 'pending').length
-        setPendingCount(pending)
-      } catch (error) {
-        console.error('[Payments] Failed to load payments:', error)
-        toast.error('Failed to load payments', { description: getUserFriendlyMessage(error) })
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchPayments()
-  }, [selectedScheduleId, supabase])
-
-  // Handle view proof
-  const handleViewProof = async (registration: PaymentWithExtraction) => {
-    setViewingProof({ registration_id: registration.id, url: '' })
-    setProofLoading(true)
-
-    try {
-      if (!registration.payment_proof_url) {
-        toast.error('No proof URL')
-        setViewingProof(null)
-        return
-      }
-
-      const { data, error } = await supabase.storage
-        .from('payment-proofs')
-        .createSignedUrl(registration.payment_proof_url, 3600)
-
-      if (error) throw error
-
-      setProofUrl(data.signedUrl)
-      setViewingProof({ registration_id: registration.id, url: data.signedUrl })
-    } catch (error) {
-      console.error('[Payments] Failed to get signed URL:', error)
-      toast.error('Failed to load proof image', { description: getUserFriendlyMessage(error) })
-      setViewingProof(null)
-    } finally {
-      setProofLoading(false)
-    }
+  if (filterDate) {
+    const startOfDay = new Date(filterDate + 'T00:00:00+08:00').toISOString()
+    const endOfDay = new Date(filterDate + 'T23:59:59+08:00').toISOString()
+    schedulesQuery = schedulesQuery.gte('start_time', startOfDay).lte('start_time', endOfDay)
+  }
+  if (filterLocationId) {
+    schedulesQuery = schedulesQuery.eq('location_id', filterLocationId)
   }
 
-  // Handle approve
-  const handleApprove = async (payment: PaymentWithExtraction) => {
-    try {
-      const user = await supabase.auth.getUser()
-      const { error } = await (supabase.from('user_payments') as any)
-        .update({ payment_status: 'paid' })
-        .eq('id', payment.id)
+  const { data: schedulesData } = await schedulesQuery.order('start_time', { ascending: false })
 
-      if (error) throw error
+  const schedules: ScheduleWithLocation[] = schedulesData ?? []
 
-      if (user.data.user?.id) {
-        await logActivity('payment.approve', user.data.user.id, {
-          user_payment_id: payment.id,
-          player_id: payment.player_id,
-          amount: payment.extracted_amount,
-          reference: payment.extracted_reference,
-        })
-      }
+  // Determine selected schedule: from URL param or auto-select first (only if no filters active)
+  let selectedScheduleId = getStringParam(params, 'scheduleId') || null
 
-      setRegistrations((prev) =>
-        prev.map((r) =>
-          r.id === payment.id ? { ...r, payment_status: 'paid' } : r
-        )
+  // Fetch payments for selected schedule
+  let initialRegistrations: PaymentWithExtraction[] = []
+  let initialTotalCollected = 0
+  let initialPendingCount = 0
+
+  if (selectedScheduleId) {
+    const { data: paymentsData } = await (supabase.from('user_payments') as any)
+      .select(
+        `id, registration_id, payment_status, payment_proof_url, extracted_amount, extracted_reference,
+         extracted_datetime, extracted_sender, extraction_confidence, created_at, required_amount,
+         registrations(id, player_id, users:player_id(id, first_name, last_name))`
       )
+      .eq('schedule_id', selectedScheduleId)
+      .order('created_at', { ascending: false })
 
-      toast.success('Payment approved')
-    } catch (error) {
-      const userId = (await supabase.auth.getUser()).data.user?.id
-      if (userId) {
-        await logError('payment.approve_failed', error, userId, {
-          user_payment_id: payment.id,
-        })
-      }
-      console.error('[Payments] Failed to approve payment:', error)
-      toast.error('Failed to approve payment', { description: getUserFriendlyMessage(error) })
-    }
+    const payments = paymentsData ?? []
+    initialRegistrations = payments.map((p: any) => ({
+      id: p.id,
+      player_id: p.registrations?.player_id,
+      users: p.registrations?.users,
+      payment_status: p.payment_status,
+      payment_proof_url: p.payment_proof_url,
+      extracted_amount: p.extracted_amount,
+      extracted_reference: p.extracted_reference,
+      extracted_datetime: p.extracted_datetime,
+      extracted_sender: p.extracted_sender,
+      extraction_confidence: p.extraction_confidence,
+      required_amount: p.required_amount,
+      created_at: p.created_at,
+    }))
+
+    const paid = initialRegistrations.filter((r) => r.payment_status === 'paid')
+    initialTotalCollected = paid.reduce((sum, r) => sum + (r.extracted_amount ?? 0), 0)
+    initialPendingCount = initialRegistrations.filter((r) => r.payment_status === 'pending').length
   }
-
-  // Handle reject
-  const handleReject = async (payment: PaymentWithExtraction) => {
-    try {
-      const user = await supabase.auth.getUser()
-      const { error } = await (supabase.from('user_payments') as any)
-        .update({ payment_status: 'rejected' })
-        .eq('id', payment.id)
-
-      if (error) throw error
-
-      if (user.data.user?.id) {
-        await logActivity('payment.reject', user.data.user.id, {
-          user_payment_id: payment.id,
-          player_id: payment.player_id,
-          reason: 'Admin rejected via payments page',
-        })
-      }
-
-      setRegistrations((prev) =>
-        prev.map((r) =>
-          r.id === payment.id ? { ...r, payment_status: 'rejected' } : r
-        )
-      )
-
-      toast.success('Payment rejected')
-    } catch (error) {
-      const userId = (await supabase.auth.getUser()).data.user?.id
-      if (userId) {
-        await logError('payment.reject_failed', error, userId, {
-          user_payment_id: payment.id,
-        })
-      }
-      console.error('[Payments] Failed to reject payment:', error)
-      toast.error('Failed to reject payment', { description: getUserFriendlyMessage(error) })
-    }
-  }
-
-  const confidenceColors: Record<string, string> = {
-    high: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
-    medium: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
-    low: 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200',
-    failed: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
-  }
-
-  const statusColors: Record<string, string> = {
-    pending: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
-    review: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
-    paid: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
-    rejected: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
-  }
-
-  const skeletonColumns = [
-    { header: 'Player', isPrimary: true, skeletonWidth: 'w-32' },
-    { header: 'Status', skeletonWidth: 'w-20' },
-    { header: 'Amount', skeletonWidth: 'w-20' },
-    { header: 'Reference', className: 'hidden sm:table-cell', skeletonWidth: 'w-24' },
-    { header: 'Confidence', className: 'hidden md:table-cell', skeletonWidth: 'w-20' },
-    { header: 'Actions', className: 'text-right', isAction: true, skeletonWidth: 'w-32' },
-  ]
 
   return (
-    <>
-      <div className="max-w-6xl mx-auto p-6 lg:p-8">
-        <PageHeader
-          breadcrumb="Payments"
-          title="Payment Review"
-          description="Verify and manage payment proofs"
-        />
-
-        {/* Schedule Selector */}
-        {schedules.length > 0 && (
-          <motion.div
-            custom={0}
-            initial="hidden"
-            animate="visible"
-            variants={fadeUpVariants}
-            className="mb-8"
-          >
-            <p className="text-sm font-medium mb-3">Select a Schedule</p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {schedules.map((schedule) => (
-                <Card
-                  key={schedule.id}
-                  onClick={() => setSelectedScheduleId(schedule.id)}
-                  className={`p-4 cursor-pointer transition-all ${
-                    selectedScheduleId === schedule.id
-                      ? 'border-accent bg-accent/5 ring-2 ring-accent'
-                      : 'border-border hover:border-accent/50'
-                  }`}
-                >
-                  <p className="font-medium text-foreground text-sm">{formatScheduleLabel(schedule)}</p>
-                  <p className="text-xs text-muted-foreground mt-1">{schedule.locations?.name || 'Unknown'}</p>
-                </Card>
-              ))}
-            </div>
-          </motion.div>
-        )}
-
-        {/* Summary Cards */}
-        {selectedScheduleId && (
-          <motion.div
-            custom={1}
-            initial="hidden"
-            animate="visible"
-            variants={fadeUpVariants}
-            className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8"
-          >
-            <Card className="p-6 bg-card">
-              <p className="text-sm text-muted-foreground mb-2">Total Collected (Paid)</p>
-              <p className="text-3xl font-bold text-foreground">₱{totalCollected.toFixed(2)}</p>
-            </Card>
-            <Card className="p-6 bg-card">
-              <p className="text-sm text-muted-foreground mb-2">Pending Review</p>
-              <p className="text-3xl font-bold text-foreground">{pendingCount}</p>
-            </Card>
-          </motion.div>
-        )}
-
-        {/* Registrations Table */}
-        {selectedScheduleId && (
-          <motion.div
-            custom={2}
-            initial="hidden"
-            animate="visible"
-            variants={fadeUpVariants}
-            className="bg-card border-border border rounded-lg overflow-hidden"
-          >
-            {loading ? (
-              <TableSkeleton columns={skeletonColumns} rows={5} />
-            ) : registrations.length === 0 ? (
-              <div className="p-12 text-center">
-                <ImageIcon size={48} className="text-muted-foreground/40 mx-auto mb-4" />
-                <p className="text-muted-foreground">No registrations for this schedule</p>
-              </div>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow className="border-border">
-                    <TableHead>Player</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Amount</TableHead>
-                    <TableHead className="hidden sm:table-cell">Reference</TableHead>
-                    <TableHead className="hidden md:table-cell">Confidence</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {registrations.map((reg) => (
-                    <TableRow key={reg.id} className="border-border hover:bg-muted/50 transition-colors">
-                      <TableCell className="py-4">
-                        <div className="font-medium text-foreground">
-                          {reg.users?.first_name} {reg.users?.last_name}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          className={statusColors[reg.payment_status] || statusColors.pending}
-                        >
-                          {reg.payment_status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="font-mono text-sm">
-                        {reg.extracted_amount ? `₱${reg.extracted_amount.toFixed(2)}` : '—'}
-                      </TableCell>
-                      <TableCell className="hidden sm:table-cell text-sm text-muted-foreground">
-                        {reg.extracted_reference || '—'}
-                      </TableCell>
-                      <TableCell className="hidden md:table-cell">
-                        {reg.extraction_confidence ? (
-                          <Badge className={confidenceColors[reg.extraction_confidence]}>
-                            {reg.extraction_confidence}
-                          </Badge>
-                        ) : (
-                          <span className="text-sm text-muted-foreground">—</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right py-4">
-                        <div className="flex justify-end gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon-sm"
-                            onClick={() => handleViewProof(reg)}
-                            title="View proof"
-                          >
-                            <Eye size={18} />
-                          </Button>
-                          {reg.payment_status === 'pending' && (
-                            <>
-                              <Button
-                                variant="ghost"
-                                size="icon-sm"
-                                onClick={() => handleApprove(reg)}
-                                title="Approve"
-                                className="text-green-600 hover:text-green-700 hover:bg-green-100 dark:hover:bg-green-900/20"
-                              >
-                                <Check size={18} />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon-sm"
-                                onClick={() => handleReject(reg)}
-                                title="Reject"
-                                className="text-red-600 hover:text-red-700 hover:bg-red-100 dark:hover:bg-red-900/20"
-                              >
-                                <X size={18} />
-                              </Button>
-                            </>
-                          )}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-          </motion.div>
-        )}
-      </div>
-
-      {/* Proof Image Modal */}
-      <Dialog open={!!viewingProof} onOpenChange={() => setViewingProof(null)}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Payment Proof</DialogTitle>
-          </DialogHeader>
-          {proofLoading ? (
-            <div className="flex items-center justify-center h-96 bg-muted/50 rounded">
-              <p className="text-muted-foreground">Loading image...</p>
-            </div>
-          ) : proofUrl ? (
-            <div className="space-y-4">
-              <img src={proofUrl} alt="Payment proof" className="w-full rounded border border-border" />
-              {viewingProof && registrations.find((r) => r.id === viewingProof.registration_id) && (
-                <div className="bg-muted/50 p-4 rounded border border-border space-y-2 text-sm">
-                  {(() => {
-                    const reg = registrations.find((r) => r.id === viewingProof!.registration_id)
-                    return (
-                      <>
-                        <div>
-                          <p className="text-muted-foreground">Extracted Amount</p>
-                          <p className="font-mono font-semibold">
-                            {reg?.extracted_amount ? `₱${reg.extracted_amount.toFixed(2)}` : 'Not extracted'}
-                          </p>
-                        </div>
-                        {reg?.extracted_reference && (
-                          <div>
-                            <p className="text-muted-foreground">Reference</p>
-                            <p className="font-mono font-semibold">{reg.extracted_reference}</p>
-                          </div>
-                        )}
-                        {reg?.extracted_sender && (
-                          <div>
-                            <p className="text-muted-foreground">Sender</p>
-                            <p className="font-semibold">{reg.extracted_sender}</p>
-                          </div>
-                        )}
-                      </>
-                    )
-                  })()}
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="flex items-center justify-center h-96 bg-muted/50 rounded">
-              <p className="text-muted-foreground">Failed to load image</p>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-    </>
+    <PaymentsClient
+      schedules={schedules}
+      selectedScheduleId={selectedScheduleId}
+      initialRegistrations={initialRegistrations}
+      initialTotalCollected={initialTotalCollected}
+      initialPendingCount={initialPendingCount}
+      filterDate={filterDate}
+      filterLocationId={filterLocationId}
+      locations={locations}
+    />
   )
 }
