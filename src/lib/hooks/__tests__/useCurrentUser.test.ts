@@ -14,9 +14,23 @@ describe('useCurrentUser', () => {
   const mockUser: User = {
     id: 'user-123',
     email: 'john@example.com',
+    first_name: 'John',
+    last_name: 'Doe',
     role: 'player',
+    skill_level: 'intermediate',
+    avatar_url: null,
+    birthday_month: 5,
+    birthday_day: 15,
+    birthday_year: 1990,
+    gender: null,
+    emergency_contact_name: null,
+    emergency_contact_relationship: null,
+    emergency_contact_number: null,
+    player_contact_number: null,
     profile_completed: true,
+    is_guest: false,
     created_at: '2026-01-01T00:00:00Z',
+    updated_at: '2026-01-01T00:00:00Z',
   }
 
   beforeEach(() => {

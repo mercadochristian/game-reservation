@@ -26,7 +26,6 @@ type ScheduleSlot = {
 
 type SubmitResult = {
   scheduleId: string
-  title: string
   success: boolean
   error?: string
 }
@@ -490,7 +489,6 @@ export default function RegisterPage({ params }: { params: Promise<{ scheduleId:
 
           results.push({
             scheduleId,
-            title: formatScheduleLabel(slot.schedule),
             success: !insertError,
             error:
               insertError?.code === '23505'
@@ -810,7 +808,6 @@ export default function RegisterPage({ params }: { params: Promise<{ scheduleId:
                     <AlertCircle className="h-5 w-5 text-destructive flex-shrink-0 mt-0.5" />
                   )}
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium">{result.title}</p>
                     {result.error && (
                       <p className="text-xs text-muted-foreground">{result.error}</p>
                     )}

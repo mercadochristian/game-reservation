@@ -5,9 +5,11 @@ import type { ScheduleWithLocation } from '@/types'
 describe('formatScheduleLabel', () => {
   const mockSchedule: ScheduleWithLocation = {
     id: '123',
+    title: '', // Title field removed from DB, using empty string as temporary workaround
     start_time: '2026-03-20T19:00:00Z', // Friday, March 20, 2026 at 7:00 PM UTC (3:00 AM+8 Saturday)
     end_time: '2026-03-20T21:00:00Z', // 9:00 PM UTC (5:00 AM+8 Saturday)
     location_id: 'loc-1',
+    max_players: 18,
     num_teams: 2,
     required_levels: [],
     status: 'open',
@@ -15,14 +17,10 @@ describe('formatScheduleLabel', () => {
     team_price: 0,
     created_at: '2026-03-01T00:00:00Z',
     created_by: 'admin-1',
+    updated_at: '2026-03-01T00:00:00Z',
     locations: {
       id: 'loc-1',
       name: 'Makati Sports Complex',
-      address: '123 Ayala Ave',
-      google_map_url: '',
-      is_active: true,
-      created_at: '2026-01-01T00:00:00Z',
-      created_by: 'admin-1',
     },
   }
 
@@ -38,14 +36,8 @@ describe('formatScheduleLabel', () => {
     expect(label).toContain('Makati Sports Complex')
   })
 
-  it('falls back to "Unknown Location" when locations is null', () => {
-    const schedule: ScheduleWithLocation = { ...mockSchedule, locations: null }
-    const label = formatScheduleLabel(schedule)
-    expect(label).toContain('Unknown Location')
-  })
-
-  it('falls back to "Unknown Location" when locations is undefined', () => {
-    const schedule: ScheduleWithLocation = { ...mockSchedule, locations: undefined as any }
+  it('falls back to "Unknown Location" when locations.name is null', () => {
+    const schedule: ScheduleWithLocation = { ...mockSchedule, locations: { id: 'loc-1', name: null as any } }
     const label = formatScheduleLabel(schedule)
     expect(label).toContain('Unknown Location')
   })
