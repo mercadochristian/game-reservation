@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { Eye, Check, X, Image as ImageIcon } from 'lucide-react'
+import { Eye, Check, X, Image as ImageIcon, RefreshCw } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
@@ -67,8 +67,49 @@ export function PaymentsClient({
   } | null>(null)
   const [proofUrl, setProofUrl] = useState<string | null>(null)
   const [proofLoading, setProofLoading] = useState(false)
+  const [isRefreshing, setIsRefreshing] = useState(false)
+  const [reextracting, setReextracting] = useState<string | null>(null)
 
   const selectedScheduleId = initialScheduleId
+
+  // Handle refresh
+  const handleRefresh = async () => {
+    setIsRefreshing(true)
+    router.refresh()
+  }
+
+  // Handle re-extraction
+  const handleReextract = async (registration: PaymentWithExtraction) => {
+    if (!registration.payment_proof_url) {
+      toast.error('No payment proof URL')
+      return
+    }
+
+    setReextracting(registration.id)
+    try {
+      const response = await fetch('/api/payment-proof/extract', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_payment_id: registration.id,
+          payment_proof_url: registration.payment_proof_url,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error(`Extraction failed: ${response.status}`)
+      }
+
+      toast.success('Re-extraction started')
+      // Refresh the page to show updated extraction data
+      router.refresh()
+    } catch (error) {
+      console.error('[Payments] Re-extraction failed:', error)
+      toast.error('Re-extraction failed', { description: getUserFriendlyMessage(error) })
+    } finally {
+      setReextracting(null)
+    }
+  }
   
   // Handle view proof
   const handleViewProof = async (registration: PaymentWithExtraction) => {
@@ -133,6 +174,7 @@ export function PaymentsClient({
       setPendingCount(updatedRegs.filter((r) => r.payment_status === 'pending').length)
 
       toast.success('Payment approved')
+      router.refresh()
     } catch (error) {
       const userId = (await supabase.auth.getUser()).data.user?.id
       if (userId) {
@@ -176,6 +218,7 @@ export function PaymentsClient({
       setPendingCount(updatedRegs.filter((r) => r.payment_status === 'pending').length)
 
       toast.success('Payment rejected')
+      router.refresh()
     } catch (error) {
       const userId = (await supabase.auth.getUser()).data.user?.id
       if (userId) {
@@ -214,11 +257,23 @@ export function PaymentsClient({
   return (
     <>
       <div className="max-w-6xl mx-auto p-6 lg:p-8">
-        <PageHeader
-          breadcrumb="Payments"
-          title="Payment Review"
-          description="Verify and manage payment proofs"
-        />
+        <div className="flex items-center justify-between mb-8">
+          <PageHeader
+            breadcrumb="Payments"
+            title="Payment Review"
+            description="Verify and manage payment proofs"
+          />
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            title="Refresh payment list"
+            className="ml-4"
+          >
+            <RefreshCw size={18} className={isRefreshing ? 'animate-spin' : ''} />
+          </Button>
+        </div>
 
         {/* Filter Accordion */}
         <motion.div
@@ -378,6 +433,18 @@ export function PaymentsClient({
                           >
                             <Eye size={18} />
                           </Button>
+                          {reg.payment_proof_url && (reg.extraction_confidence === 'failed' || !reg.extraction_confidence) && (
+                            <Button
+                              variant="ghost"
+                              size="icon-sm"
+                              onClick={() => handleReextract(reg)}
+                              disabled={reextracting === reg.id}
+                              title="Re-extract payment data"
+                              className="text-orange-600 hover:text-orange-700 hover:bg-orange-100 dark:hover:bg-orange-900/20"
+                            >
+                              <RefreshCw size={18} className={reextracting === reg.id ? 'animate-spin' : ''} />
+                            </Button>
+                          )}
                           {reg.payment_status === 'pending' && (
                             <>
                               <Button

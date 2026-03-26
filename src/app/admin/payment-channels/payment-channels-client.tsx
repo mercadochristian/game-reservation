@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { motion } from 'framer-motion'
@@ -29,6 +30,7 @@ interface PaymentChannelsClientProps {
 }
 
 export function PaymentChannelsClient({ initialChannels }: PaymentChannelsClientProps) {
+  const router = useRouter()
   const supabase = createClient()
   const [channels, setChannels] = useState<PaymentChannel[]>(initialChannels)
   const crudDialog = useCrudDialog()
@@ -139,6 +141,7 @@ export function PaymentChannelsClient({ initialChannels }: PaymentChannelsClient
         setChannels((prev) =>
           prev.map((ch) => (ch.id === crudDialog.editingId ? { ...ch, ...updateData } : ch))
         )
+        router.refresh()
       } else {
         // Create
         if (!user.data.user) {
@@ -169,6 +172,7 @@ export function PaymentChannelsClient({ initialChannels }: PaymentChannelsClient
 
           setChannels((prev) => [data[0], ...prev])
           toast.success('Payment channel created')
+          router.refresh()
         }
       }
 
@@ -232,6 +236,7 @@ export function PaymentChannelsClient({ initialChannels }: PaymentChannelsClient
 
       setChannels((prev) => prev.map((ch) => (ch.id === id ? { ...ch, is_active: !currentStatus } : ch)))
       toast.success(currentStatus ? 'Channel deactivated' : 'Channel activated')
+      router.refresh()
     } catch (error) {
       const userId = (await supabase.auth.getUser()).data.user?.id
       if (userId) {
@@ -264,6 +269,7 @@ export function PaymentChannelsClient({ initialChannels }: PaymentChannelsClient
       setChannels((prev) => prev.filter((ch) => ch.id !== crudDialog.deleteTarget?.id))
       crudDialog.onCancelDelete()
       toast.success('Payment channel deleted')
+      router.refresh()
     } catch (error) {
       const userId = (await supabase.auth.getUser()).data.user?.id
       if (userId) {

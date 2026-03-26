@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { motion } from 'framer-motion'
@@ -56,6 +57,7 @@ interface SchedulesClientProps {
 }
 
 export function SchedulesClient({ initialSchedules, initialLocations }: SchedulesClientProps) {
+  const router = useRouter()
   const supabase = createClient()
   const [schedules, setSchedules] = useState<ScheduleWithLocation[]>(initialSchedules)
   const [locations] = useState<Location[]>(initialLocations)
@@ -129,6 +131,7 @@ export function SchedulesClient({ initialSchedules, initialLocations }: Schedule
         setSchedules((prev) =>
           prev.map((s) => (s.id === crudDialog.editingId ? { ...s, ...updateData } : s))
         )
+        router.refresh()
       } else {
         // Create
         const user = await supabase.auth.getUser()
@@ -158,6 +161,7 @@ export function SchedulesClient({ initialSchedules, initialLocations }: Schedule
           setSchedules((prev) => [data[0], ...prev])
           pagination.setCurrentPage(1)
           toast.success('Schedule created')
+          router.refresh()
         }
       }
 
@@ -202,6 +206,7 @@ export function SchedulesClient({ initialSchedules, initialLocations }: Schedule
       pagination.setCurrentPage(1)
       crudDialog.onCancelDelete()
       toast.success('Schedule deleted')
+      router.refresh()
     } catch (error) {
       console.error('[Schedules] Failed to delete schedule:', error)
       toast.error('Failed to delete schedule', { description: getUserFriendlyMessage(error) })

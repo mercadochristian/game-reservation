@@ -41,7 +41,30 @@ export async function createGuestUser(
       .single() as { data: { id: string } | null; error: any }
 
     if (existingUser) {
-      // Reuse existing user (could be a real user or another guest)
+      // Reuse existing user and update profile fields
+      const { error: updateError } = await (serviceClient.from('users') as any).update({
+        first_name: guestData.first_name,
+        last_name: guestData.last_name,
+        player_contact_number: guestData.phone || null,
+        is_guest: true,
+        role: 'player',
+      }).eq('id', existingUser.id)
+
+      if (updateError) {
+        const errorMsg = 'Failed to update player profile. Please try again.'
+        void logError(
+          `${logContext?.operationName || 'guest_user'}.profile_update`,
+          updateError,
+          logContext?.userId,
+          { email: guestData.email }
+        )
+        return {
+          user_id: null,
+          error: errorMsg,
+          reused: false,
+        }
+      }
+
       return {
         user_id: existingUser.id,
         error: null,
@@ -52,18 +75,76 @@ export async function createGuestUser(
     // Create stub auth user
     const { data: authData, error: authError } = await serviceClient.auth.admin.createUser({
       email: guestData.email,
-      email_confirm: true, // Skip email confirmation (guest already has valid email)
+      email_confirm: false, // Skip email confirmation (guest already has valid email)
       user_metadata: {
         first_name: guestData.first_name,
         last_name: guestData.last_name,
       },
     })
 
-    if (authError || !authData.user) {
+    if (authError) {
+      // If email already exists in auth, try to reuse the existing user by looking it up
+      if (authError.message?.includes('already registered') || authError.code === 'email_exists') {
+        // Email exists in auth but not in public.users (race condition from partial first save)
+        // Query auth users to find the user_id
+        const { data: authUsers } = await serviceClient.auth.admin.listUsers()
+        const matchingAuthUser = authUsers?.users?.find(u => u.email === guestData.email)
+
+        if (matchingAuthUser) {
+          // Now try to insert/update the public.users record with this auth user's ID
+          const { error: upsertError } = await (serviceClient.from('users') as any).upsert({
+            id: matchingAuthUser.id,
+            email: guestData.email,
+            first_name: guestData.first_name,
+            last_name: guestData.last_name,
+            player_contact_number: guestData.phone || null,
+            profile_completed: false,
+            is_guest: true,
+            role: 'player',
+          }, { onConflict: 'email', ignoreDuplicates: false })
+
+          if (upsertError) {
+            const errorMsg = 'Failed to add player. Please try again.'
+            void logError(
+              `${logContext?.operationName || 'guest_user'}.user_insert_fallback`,
+              upsertError,
+              logContext?.userId,
+              { email: guestData.email }
+            )
+            return {
+              user_id: null,
+              error: errorMsg,
+              reused: false,
+            }
+          }
+
+          return {
+            user_id: matchingAuthUser.id,
+            error: null,
+            reused: true,
+          }
+        }
+      }
+
+      // Auth creation failed for other reasons
       const errorMsg = 'Failed to create account. Please try again.'
       void logError(
         `${logContext?.operationName || 'guest_user'}.auth_create`,
-        authError || new Error('Unknown auth error'),
+        authError,
+        logContext?.userId
+      )
+      return {
+        user_id: null,
+        error: errorMsg,
+        reused: false,
+      }
+    }
+
+    if (!authData.user) {
+      const errorMsg = 'Failed to create account. Please try again.'
+      void logError(
+        `${logContext?.operationName || 'guest_user'}.auth_create`,
+        new Error('Unknown auth error'),
         logContext?.userId
       )
       return {
@@ -76,7 +157,7 @@ export async function createGuestUser(
     const newUserId = authData.user.id
 
     // Insert public.users record
-    const { error: insertError } = await (serviceClient.from('users') as any).insert({
+    const { error: insertError } = await (serviceClient.from('users') as any).upsert({
       id: newUserId,
       email: guestData.email,
       first_name: guestData.first_name,
@@ -85,13 +166,13 @@ export async function createGuestUser(
       profile_completed: false,
       is_guest: true,
       role: 'player',
-    })
+    }, { onConflict: 'email', ignoreDuplicates: false })
 
     if (insertError) {
       const errorMsg = 'Failed to add player. Please try again.'
       void logError(
         `${logContext?.operationName || 'guest_user'}.user_insert`,
-        JSON.stringify(insertError),
+        insertError,
         logContext?.userId,
         { email: guestData.email }
       )

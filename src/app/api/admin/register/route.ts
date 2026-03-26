@@ -297,10 +297,16 @@ export async function POST(request: NextRequest) {
                 .map(r => r.player.preferred_position)
             )
 
+      // Use the first inserted registration as the reference for team payment
+      if (!insertedRegistrations || insertedRegistrations.length === 0) {
+        throw new Error('No registrations were created for team payment')
+      }
+
       const { error: paymentError } = await (serviceClient
         .from('registration_payments') as any)
         .insert({
           team_id: teamId,
+          registration_id: insertedRegistrations[0].id,
           payer_id: authUser.id,
           schedule_id: validated.schedule_id,
           registration_type: validated.registration_mode,

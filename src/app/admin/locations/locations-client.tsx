@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { motion } from 'framer-motion'
@@ -27,6 +28,7 @@ interface LocationsClientProps {
 }
 
 export function LocationsClient({ initialLocations }: LocationsClientProps) {
+  const router = useRouter()
   const supabase = createClient()
   const [locations, setLocations] = useState<Location[]>(initialLocations)
   const crudDialog = useCrudDialog()
@@ -67,6 +69,7 @@ export function LocationsClient({ initialLocations }: LocationsClientProps) {
         setLocations((prev) =>
           prev.map((loc) => (loc.id === crudDialog.editingId ? { ...loc, ...updateData } : loc))
         )
+        router.refresh()
       } else {
         // Create
         const user = await supabase.auth.getUser()
@@ -90,6 +93,7 @@ export function LocationsClient({ initialLocations }: LocationsClientProps) {
         if (data?.[0]) {
           setLocations((prev) => [data[0], ...prev])
           toast.success('Location created')
+          router.refresh()
         }
       }
 
@@ -122,6 +126,7 @@ export function LocationsClient({ initialLocations }: LocationsClientProps) {
       if (error) throw error
       setLocations((prev) => prev.map((loc) => (loc.id === id ? { ...loc, is_active: !currentStatus } : loc)))
       toast.success(currentStatus ? 'Location deactivated' : 'Location activated')
+      router.refresh()
     } catch (error) {
       console.error('[Locations] Failed to toggle location status:', error)
       toast.error('Failed to update location status', { description: getUserFriendlyMessage(error) })
@@ -138,6 +143,7 @@ export function LocationsClient({ initialLocations }: LocationsClientProps) {
       setLocations((prev) => prev.filter((loc) => loc.id !== crudDialog.deleteTarget?.id))
       crudDialog.onCancelDelete()
       toast.success('Location deleted')
+      router.refresh()
     } catch (error) {
       console.error('[Locations] Failed to delete location:', error)
       toast.error('Failed to delete location', { description: getUserFriendlyMessage(error) })
