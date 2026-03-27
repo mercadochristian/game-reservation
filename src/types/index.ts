@@ -33,7 +33,7 @@ export type RegistrationWithDetails = Registration & {
 }
 
 export type RegistrationForLineup = Registration & {
-  users: Pick<User, 'id' | 'first_name' | 'last_name' | 'skill_level' | 'is_guest'>
+  users: Pick<User, 'id' | 'first_name' | 'last_name' | 'skill_level' | 'is_guest' | 'gender'>
   team_members: Array<{ team_id: string; teams: Pick<Team, 'id' | 'name'> | null }>
 }
 

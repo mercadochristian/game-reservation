@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useCallback, useEffect } from 'react'
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import {
   DndContext,
@@ -19,11 +19,12 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { PageHeader } from '@/components/ui/page-header'
 import { toast } from 'sonner'
-import { ArrowLeft, Users } from 'lucide-react'
+import { ArrowLeft, Users, FileDown } from 'lucide-react'
 import { motion } from 'framer-motion'
 import type { RegistrationForLineup, ScheduleWithLocation } from '@/types'
 import { formatScheduleLabel } from '@/lib/utils/schedule-label'
 import { saveLineupSchema } from '@/lib/validations/lineup'
+import { LineupSheet } from './lineup-sheet'
 
 type DraggableUnit = {
   unitId: string
@@ -444,6 +445,7 @@ export function LineupClient({
   const [draggedUnit, setDraggedUnit] = useState<DragItem>(null)
   const [saving, setSaving] = useState(false)
   const [dragOverContainer, setDragOverContainer] = useState<string | number | null>(null)
+  const lineupSheetRef = useRef<{ downloadPng: () => Promise<void> }>(null)
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
@@ -606,6 +608,17 @@ export function LineupClient({
                 <div className="text-sm text-muted-foreground">
                   {totalPlayers} players registered
                 </div>
+                {existingLineupTeams.length > 0 && (
+                  <Button
+                    onClick={() => lineupSheetRef.current?.downloadPng()}
+                    variant="outline"
+                    size="sm"
+                    className="gap-2"
+                  >
+                    <FileDown size={16} />
+                    Download Lineup Sheet
+                  </Button>
+                )}
                 <Button
                   onClick={handleSave}
                   disabled={saving}
@@ -679,6 +692,17 @@ export function LineupClient({
             </motion.div>
           ) : null}
         </DragOverlay>
+      </div>
+
+      {/* Lineup Sheet (rendered but invisible, used for image generation) */}
+      <div className="absolute opacity-0 pointer-events-none top-0 left-0 w-full">
+        <LineupSheet
+          ref={lineupSheetRef}
+          schedule={schedule}
+          registrations={registrations}
+          lineupTeams={existingLineupTeams}
+          scheduleId={scheduleId}
+        />
       </div>
     </DndContext>
   )

@@ -33,7 +33,7 @@ type SubmitResult = {
 
 type GroupPlayer_ =
   | { id: string; type: 'existing'; user_id: string; first_name: string; last_name: string; preferred_position: PlayerPosition | null }
-  | { id: string; type: 'guest'; first_name: string; last_name: string; email: string; phone?: string; skill_level: string | null; preferred_position: PlayerPosition | null }
+  | { id: string; type: 'guest'; first_name: string; last_name: string; email: string; gender: string | null; phone?: string; skill_level: string | null; preferred_position: PlayerPosition | null }
 
 type SearchResult = {
   id: string
@@ -124,11 +124,12 @@ export function RegisterClient({
   const [searchResults, setSearchResults] = useState<SearchResult[]>([])
   const [searching, setSearching] = useState(false)
   const [showAddPlayerForm, setShowAddPlayerForm] = useState(false)
-  const [newPlayerForm, setNewPlayerForm] = useState<{ type: 'existing' | 'guest'; first_name: string; last_name: string; email: string; phone: string; skill_level: string | null; preferred_position: PlayerPosition | null }>({
-    type: 'guest',
+  const [newPlayerForm, setNewPlayerForm] = useState<{ type: 'existing' | 'guest'; first_name: string; last_name: string; email: string; gender: string | null; phone: string; skill_level: string | null; preferred_position: PlayerPosition | null }>({
+    type: 'existing',
     first_name: '',
     last_name: '',
     email: '',
+    gender: null,
     phone: '',
     skill_level: null,
     preferred_position: null,
@@ -279,6 +280,7 @@ export function RegisterClient({
         first_name: newPlayerForm.first_name,
         last_name: newPlayerForm.last_name,
         email: newPlayerForm.email,
+        gender: newPlayerForm.gender,
         phone: newPlayerForm.phone || undefined,
         skill_level: newPlayerForm.skill_level,
         preferred_position: null,
@@ -286,10 +288,11 @@ export function RegisterClient({
     ])
 
     setNewPlayerForm({
-      type: 'guest',
+      type: 'existing',
       first_name: '',
       last_name: '',
       email: '',
+      gender: null,
       phone: '',
       skill_level: null,
       preferred_position: null,
@@ -476,6 +479,7 @@ export function RegisterClient({
               first_name: p.first_name,
               last_name: p.last_name,
               email: p.email,
+              gender: p.gender,
               phone: p.phone,
               ...basePlayer,
             }
@@ -1048,10 +1052,10 @@ export function RegisterClient({
                           className="w-full px-3 py-2 text-sm border rounded bg-background"
                         />
                         <input
-                          type="tel"
-                          placeholder="Phone (optional)"
-                          value={newPlayerForm.phone}
-                          onChange={e => setNewPlayerForm(p => ({ ...p, phone: e.target.value }))}
+                          type="text"
+                          placeholder="Gender"
+                          value={newPlayerForm.gender || ''}
+                          onChange={e => setNewPlayerForm(p => ({ ...p, gender: e.target.value || null }))}
                           className="w-full px-3 py-2 text-sm border rounded bg-background"
                         />
                         <select
@@ -1066,6 +1070,13 @@ export function RegisterClient({
                           <option value="intermediate_plus">Intermediate+</option>
                           <option value="advanced">Advanced</option>
                         </select>
+                        <input
+                          type="tel"
+                          placeholder="Phone (optional)"
+                          value={newPlayerForm.phone}
+                          onChange={e => setNewPlayerForm(p => ({ ...p, phone: e.target.value }))}
+                          className="w-full px-3 py-2 text-sm border rounded bg-background"
+                        />
                         <Button className="w-full" size="sm" onClick={handleAddGuestPlayer}>
                           Add Guest Player
                         </Button>
@@ -1234,10 +1245,10 @@ export function RegisterClient({
                           className="w-full px-3 py-2 text-sm border rounded bg-background"
                         />
                         <input
-                          type="tel"
-                          placeholder="Phone (optional)"
-                          value={newPlayerForm.phone}
-                          onChange={e => setNewPlayerForm(p => ({ ...p, phone: e.target.value }))}
+                          type="text"
+                          placeholder="Gender"
+                          value={newPlayerForm.gender || ''}
+                          onChange={e => setNewPlayerForm(p => ({ ...p, gender: e.target.value || null }))}
                           className="w-full px-3 py-2 text-sm border rounded bg-background"
                         />
                         <select
@@ -1252,6 +1263,13 @@ export function RegisterClient({
                           <option value="intermediate_plus">Intermediate+</option>
                           <option value="advanced">Advanced</option>
                         </select>
+                        <input
+                          type="tel"
+                          placeholder="Phone (optional)"
+                          value={newPlayerForm.phone}
+                          onChange={e => setNewPlayerForm(p => ({ ...p, phone: e.target.value }))}
+                          className="w-full px-3 py-2 text-sm border rounded bg-background"
+                        />
                         <Button className="w-full" size="sm" onClick={handleAddGuestPlayer}>
                           Add Guest Member
                         </Button>

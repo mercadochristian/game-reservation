@@ -56,7 +56,7 @@ export default async function LineupPage({ params }: PageProps) {
     .from('registrations') as any)
     .select(`
       id, schedule_id, player_id, team_preference, preferred_position, lineup_team_id,
-      users!player_id(id, first_name, last_name, skill_level, is_guest),
+      users!player_id(id, first_name, last_name, skill_level, is_guest, gender),
       team_members!registration_id(team_id, teams(id, name))
     `)
     .eq('schedule_id', scheduleId)
