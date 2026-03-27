@@ -24,7 +24,7 @@ export default async function RegistrationsPage({
 
   // Fetch schedules (filtered by date and/or location if provided)
   let schedulesQuery = (supabase.from('schedules') as any)
-    .select('id, start_time, end_time, max_players, status, locations!inner(id, name), registrations(count)')
+    .select('id, start_time, end_time, max_players, status, locations!inner(id, name, address, google_map_url), registrations(count)')
 
   if (filterDate) {
     const startOfDay = new Date(filterDate + 'T00:00:00+08:00').toISOString()

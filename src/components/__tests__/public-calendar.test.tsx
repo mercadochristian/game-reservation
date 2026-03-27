@@ -96,7 +96,7 @@ function makeSchedule(overrides: Partial<ScheduleWithLocation> = {}): ScheduleWi
     created_by: 'admin-1',
     created_at: '2026-01-01T00:00:00Z',
     updated_at: '2026-01-01T00:00:00Z',
-    locations: { id: 'loc-1', name: 'Main Court' },
+    locations: { id: 'loc-1', name: 'Main Court', address: null, google_map_url: null },
     ...overrides,
   }
 }

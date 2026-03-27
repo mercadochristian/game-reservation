@@ -157,7 +157,7 @@ export function SchedulesClient({ initialSchedules, initialLocations }: Schedule
         }
         const { data, error } = await (supabase.from('schedules') as any)
           .insert([insertData])
-          .select('*, locations(id, name)')
+          .select('*, locations(id, name, address, google_map_url)')
 
         if (error) throw error
         if (data?.[0]) {

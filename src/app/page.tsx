@@ -9,7 +9,7 @@ async function getSchedules(): Promise<ScheduleWithLocation[]> {
 
   const { data: schedules } = await supabase
     .from('schedules')
-    .select('*, locations(id, name)')
+    .select('*, locations(id, name, address, google_map_url)')
     .in('status', ['open', 'full', 'completed'])
     .order('start_time', { ascending: true })
 

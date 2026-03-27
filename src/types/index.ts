@@ -24,7 +24,7 @@ export type TeamPreference = Database['public']['Enums']['team_preference']
 
 // Convenience types
 export type ScheduleWithLocation = Schedule & {
-  locations: Pick<Location, 'id' | 'name'>
+  locations: Pick<Location, 'id' | 'name' | 'address' | 'google_map_url'>
 }
 
 export type RegistrationWithDetails = Registration & {

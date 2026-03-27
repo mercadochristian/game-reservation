@@ -41,7 +41,7 @@ export default async function LineupPage({ params }: PageProps) {
   // Fetch schedule
   const { data: scheduleData } = await (serviceClient
     .from('schedules') as any)
-    .select('id, num_teams, start_time, end_time, locations!inner(id, name)')
+    .select('id, num_teams, start_time, end_time, locations!inner(id, name, address, google_map_url)')
     .eq('id', scheduleId)
     .single()
 

@@ -21,6 +21,8 @@ describe('formatScheduleLabel', () => {
     locations: {
       id: 'loc-1',
       name: 'Makati Sports Complex',
+      address: null,
+      google_map_url: null,
     },
   }
 
@@ -37,7 +39,7 @@ describe('formatScheduleLabel', () => {
   })
 
   it('falls back to "Unknown Location" when locations.name is null', () => {
-    const schedule: ScheduleWithLocation = { ...mockSchedule, locations: { id: 'loc-1', name: null as any } }
+    const schedule: ScheduleWithLocation = { ...mockSchedule, locations: { id: 'loc-1', name: null as any, address: null, google_map_url: null } }
     const label = formatScheduleLabel(schedule)
     expect(label).toContain('Unknown Location')
   })

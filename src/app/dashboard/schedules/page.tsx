@@ -7,7 +7,7 @@ export default async function SchedulesPage() {
 
   const [schedulesResult, locationsResult] = await Promise.all([
     (supabase.from('schedules') as any)
-      .select('*, locations(id, name)')
+      .select('*, locations(id, name, address, google_map_url)')
       .order('start_time', { ascending: false }),
     (supabase.from('locations') as any)
       .select('id, name')

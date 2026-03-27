@@ -39,7 +39,7 @@ export default async function RegisterPage({
   // Fetch primary schedule with registration count
   const { data: sched } = (await (supabase
     .from('schedules')
-    .select('*, locations(id, name), registrations(count)')
+    .select('*, locations(id, name, address, google_map_url), registrations(count)')
     .eq('id', scheduleId)
     .single()) as { data: any })
 

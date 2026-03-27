@@ -21,7 +21,7 @@ const mockSchedule: ScheduleWithLocation = {
   updated_at: '2026-01-01T00:00:00Z',
   position_prices: { setter: 100, spiker: 100, libero: 100 },
   team_price: null,
-  locations: { id: 'loc-1', name: 'Downtown Gym' },
+  locations: { id: 'loc-1', name: 'Downtown Gym', address: null, google_map_url: null },
 }
 
 describe('ScheduleInfo', () => {

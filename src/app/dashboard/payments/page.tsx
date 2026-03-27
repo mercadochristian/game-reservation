@@ -40,7 +40,7 @@ export default async function PaymentsPage({
 
   // Fetch schedules (filtered by date and/or location if provided)
   let schedulesQuery = (supabase.from('schedules') as any)
-    .select('*, locations(id, name)')
+    .select('*, locations(id, name, address, google_map_url)')
 
   if (filterDate) {
     const startOfDay = new Date(filterDate + 'T00:00:00+08:00').toISOString()
