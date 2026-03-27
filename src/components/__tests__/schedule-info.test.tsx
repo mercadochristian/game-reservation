@@ -8,13 +8,19 @@ import { ScheduleInfo } from '../schedule-info'
 // A fixed UTC time: 2026-03-20T06:30:00Z → Asia/Manila = Fri Mar 20, 2:30 PM
 const mockSchedule: ScheduleWithLocation = {
   id: 'sched-1',
+  title: 'Weekly Volleyball Game',
   location_id: 'loc-1',
   start_time: '2026-03-20T06:30:00+00:00',
   end_time: '2026-03-20T10:00:00+00:00',
   max_players: 20,
+  num_teams: 2,
+  required_levels: ['developmental', 'intermediate'],
   status: 'open',
+  created_by: 'admin-1',
   created_at: '2026-01-01T00:00:00Z',
   updated_at: '2026-01-01T00:00:00Z',
+  position_prices: { setter: 100, spiker: 100, libero: 100 },
+  team_price: null,
   locations: { id: 'loc-1', name: 'Downtown Gym' },
 }
 

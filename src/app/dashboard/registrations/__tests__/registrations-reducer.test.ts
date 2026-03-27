@@ -7,9 +7,13 @@ function makeRegistration(overrides: Partial<RegistrationWithDetails> = {}): Reg
   return {
     id: 'reg-1',
     schedule_id: 'sched-1',
-    user_id: 'user-1',
+    registered_by: 'user-1',
+    player_id: 'user-1',
     preferred_position: 'setter',
     team_preference: 'shuffle',
+    attended: false,
+    qr_token: null,
+    lineup_team_id: null,
     created_at: '2026-01-01T00:00:00Z',
     updated_at: '2026-01-01T00:00:00Z',
     users: {
