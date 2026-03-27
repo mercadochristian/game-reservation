@@ -1,6 +1,7 @@
 'use client'
 
 import { Suspense, useState } from 'react'
+import { useHasAnimated } from '@/lib/hooks/useHasAnimated'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useRouter } from 'next/navigation'
@@ -75,6 +76,7 @@ function SectionHeader({ number, icon, title }: SectionHeaderProps) {
 }
 
 export default function CreateProfilePage() {
+  const hasAnimated = useHasAnimated()
   const [isLoading, setIsLoading] = useState(false)
   const [selectedGenderPreset, setSelectedGenderPreset] = useState<string | null>(null)
   const [selectedSkillLevel, setSelectedSkillLevel] = useState<string | null>(null)
@@ -161,13 +163,7 @@ export default function CreateProfilePage() {
         return
       }
 
-      const { role } = await response.json()
-      const ROLE_DASHBOARD: Record<string, string> = {
-        admin: '/admin',
-        facilitator: '/facilitator',
-        player: '/player',
-      }
-      router.push(ROLE_DASHBOARD[role] ?? '/player')
+      router.push('/dashboard')
     } catch (error) {
       console.error('Error submitting form:', error)
       toast.error('Something went wrong. Please try again.')
@@ -244,7 +240,7 @@ export default function CreateProfilePage() {
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
             {/* Name Section */}
-            <motion.div custom={0} initial="hidden" animate="visible" variants={fadeUpVariants}>
+            <motion.div custom={0} initial={hasAnimated.current ? false : "hidden"} animate="visible" variants={fadeUpVariants}>
             <Card className="border-border bg-card/50 p-6">
               <SectionHeader number={1} icon={<User className="h-5 w-5" />} title="Name" />
               <div className="space-y-4">
@@ -283,7 +279,7 @@ export default function CreateProfilePage() {
             </motion.div>
 
             {/* Birthday Section */}
-            <motion.div custom={1} initial="hidden" animate="visible" variants={fadeUpVariants}>
+            <motion.div custom={1} initial={hasAnimated.current ? false : "hidden"} animate="visible" variants={fadeUpVariants}>
             <Card className="border-border bg-card/50 p-6">
               <SectionHeader number={2} icon={<Calendar className="h-5 w-5" />} title="Date of Birth" />
               <div className="space-y-4">
@@ -356,7 +352,7 @@ export default function CreateProfilePage() {
             </motion.div>
 
             {/* Gender Section */}
-            <motion.div custom={2} initial="hidden" animate="visible" variants={fadeUpVariants}>
+            <motion.div custom={2} initial={hasAnimated.current ? false : "hidden"} animate="visible" variants={fadeUpVariants}>
             <Card className="border-border bg-card/50 p-6">
               <SectionHeader number={3} icon={<User className="h-5 w-5" />} title="Gender" />
               <div className="space-y-4">
@@ -398,7 +394,7 @@ export default function CreateProfilePage() {
             </motion.div>
 
             {/* Player Contact Section */}
-            <motion.div custom={3} initial="hidden" animate="visible" variants={fadeUpVariants}>
+            <motion.div custom={3} initial={hasAnimated.current ? false : "hidden"} animate="visible" variants={fadeUpVariants}>
             <Card className="border-border bg-card/50 p-6">
               <SectionHeader number={4} icon={<Shield className="h-5 w-5" />} title="Your Contact Number" />
               <div className="space-y-4">
@@ -432,7 +428,7 @@ export default function CreateProfilePage() {
             </motion.div>
 
             {/* Emergency Contact Section */}
-            <motion.div custom={4} initial="hidden" animate="visible" variants={fadeUpVariants}>
+            <motion.div custom={4} initial={hasAnimated.current ? false : "hidden"} animate="visible" variants={fadeUpVariants}>
             <Card className="border-border bg-card/50 p-6">
               <SectionHeader number={5} icon={<Shield className="h-5 w-5" />} title="Emergency Contact" />
               <div className="space-y-4">
@@ -498,7 +494,7 @@ export default function CreateProfilePage() {
             </motion.div>
 
             {/* Skill Level Section */}
-            <motion.div custom={5} initial="hidden" animate="visible" variants={fadeUpVariants}>
+            <motion.div custom={5} initial={hasAnimated.current ? false : "hidden"} animate="visible" variants={fadeUpVariants}>
             <Card className="border-border bg-card/50 p-6">
               <SectionHeader number={6} icon={<Star className="h-5 w-5" />} title="Skill Level" />
               <div className="space-y-4">

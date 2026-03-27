@@ -1,6 +1,6 @@
 'use client'
 
-import { AnimatePresence, motion } from 'framer-motion'
+import { memo } from 'react'
 import { ChevronDown, Filter } from 'lucide-react'
 
 interface FilterAccordionProps {
@@ -11,7 +11,7 @@ interface FilterAccordionProps {
   children: React.ReactNode
 }
 
-export function FilterAccordion({
+export const FilterAccordion = memo(function FilterAccordion({
   open,
   onToggle,
   label = 'Filters',
@@ -33,21 +33,16 @@ export function FilterAccordion({
         <ChevronDown size={16} className={`transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
 
-      <AnimatePresence>
-        {open && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="overflow-hidden"
-          >
-            <div className="px-4 pb-4 border-t border-border">
-              {children}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <div
+        className="grid transition-[grid-template-rows] duration-200 ease-out"
+        style={{ gridTemplateRows: open ? '1fr' : '0fr' }}
+      >
+        <div className="overflow-hidden">
+          <div className={`px-4 pb-4 border-t border-border transition-opacity duration-200 ${open ? 'opacity-100' : 'opacity-0'}`}>
+            {children}
+          </div>
+        </div>
+      </div>
     </div>
   )
-}
+})

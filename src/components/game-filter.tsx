@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { memo, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { X } from 'lucide-react'
 import { FilterAccordion } from '@/components/filter-accordion'
@@ -15,7 +15,7 @@ interface GameFilterProps {
   filterLocationId: string
 }
 
-export function GameFilter({ locations, filterDate, filterLocationId }: GameFilterProps) {
+export const GameFilter = memo(function GameFilter({ locations, filterDate, filterLocationId }: GameFilterProps) {
   const [open, setOpen] = useState(true)
   const router = useRouter()
   const pathname = usePathname()
@@ -79,4 +79,4 @@ export function GameFilter({ locations, filterDate, filterLocationId }: GameFilt
       </div>
     </FilterAccordion>
   )
-}
+})

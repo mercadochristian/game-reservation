@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, Suspense } from 'react'
+import { useHasAnimated } from '@/lib/hooks/useHasAnimated'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Mail, Loader2 } from 'lucide-react'
 import { motion } from 'framer-motion'
@@ -25,6 +26,7 @@ function getAuthErrorMessage(message: string): string {
 }
 
 function AuthPageContent() {
+  const hasAnimated = useHasAnimated()
   const [isLoading, setIsLoading] = useState(false)
   const [isSignUp, setIsSignUp] = useState(false)
   const [email, setEmail] = useState('')
@@ -113,7 +115,7 @@ function AuthPageContent() {
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4 py-8 bg-background">
-      <motion.div initial="hidden" animate="visible" variants={fadeUpVariants}>
+      <motion.div initial={hasAnimated.current ? false : "hidden"} animate="visible" variants={fadeUpVariants}>
         <Card className="w-full max-w-md bg-card border-border shadow-2xl">
           <div className="p-8 sm:p-10">
             {/* Brand Header */}

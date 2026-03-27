@@ -53,7 +53,9 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    return NextResponse.json({ counts, positionCounts })
+    return NextResponse.json({ counts, positionCounts }, {
+      headers: { 'Cache-Control': 'private, max-age=30, stale-while-revalidate=60' },
+    })
   } catch (err) {
     console.error('[GET /api/registrations/counts] Exception:', err)
     return NextResponse.json(

@@ -35,18 +35,21 @@ export function PositionModal({
   useEffect(() => {
     if (!open || !schedule || !position) return
 
+    const controller = new AbortController()
     setLoading(true)
-    fetch(`/api/registrations/by-position?schedule_id=${schedule.id}&position=${position}`)
+    fetch(`/api/registrations/by-position?schedule_id=${schedule.id}&position=${position}`, { signal: controller.signal })
       .then((res) => res.json())
       .then((data: Array<{ first_name: string | null; last_name: string | null }>) => {
         setPlayers(Array.isArray(data) ? data : [])
         setLoading(false)
       })
       .catch((err) => {
+        if (err instanceof DOMException && err.name === 'AbortError') return
         console.error('[PositionModal] Failed to fetch registered players:', err)
         setPlayers([])
         setLoading(false)
       })
+    return () => controller.abort()
   }, [open, schedule, position])
 
   const handleOpenChange = (newOpen: boolean) => {

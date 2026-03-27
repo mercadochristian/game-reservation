@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import { ScheduleWithLocation } from '@/types'
 import { formatScheduleLabel } from '@/lib/utils/schedule-label'
 import { formatScheduleDateWithWeekday, formatScheduleTime } from '@/lib/utils/timezone'
@@ -8,7 +9,7 @@ interface ScheduleInfoProps {
   className?: string
 }
 
-export function ScheduleInfo({ schedule, compact = false, className }: ScheduleInfoProps) {
+export const ScheduleInfo = memo(function ScheduleInfo({ schedule, compact = false, className }: ScheduleInfoProps) {
   if (compact) {
     return (
       <span className={`text-sm text-muted-foreground ${className ?? ''}`}>
@@ -31,4 +32,4 @@ export function ScheduleInfo({ schedule, compact = false, className }: ScheduleI
       </div>
     </div>
   )
-}
+})

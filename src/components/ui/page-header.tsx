@@ -23,7 +23,7 @@ export function PageHeader({ breadcrumb, title, count, description, action }: Pa
   return (
     <>
       <div className="text-sm text-muted-foreground mb-6">
-        <span>Admin</span>
+        <span>Dashboard</span>
         <span className="mx-2">/</span>
         <span className="text-foreground">{breadcrumb}</span>
       </div>

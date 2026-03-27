@@ -10,7 +10,7 @@ export default defineConfig({
   test: {
     setupFiles: ['src/__tests__/setup.ts'],
     environment: 'node',
-    include: ['src/**/__tests__/**/*.test.ts'],
+    include: ['src/**/__tests__/**/*.test.{ts,tsx}'],
     coverage: {
       provider: 'v8',
       include: [
@@ -28,6 +28,9 @@ export default defineConfig({
         'src/lib/hooks/useCrudDialog.ts',
         'src/lib/hooks/usePagination.ts',
         'src/lib/hooks/useCurrentUser.ts',
+        'src/components/app-shell.tsx',
+        'src/components/public-calendar.tsx',
+        'src/components/position-modal.tsx',
         'src/lib/middleware/profile-cache.ts',
         'src/middleware.ts',
         'src/app/api/registrations/counts/route.ts',

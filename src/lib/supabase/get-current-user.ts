@@ -1,3 +1,4 @@
+import { cache } from 'react'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import type { User } from '@/types'
@@ -7,8 +8,9 @@ import type { User } from '@/types'
  * Uses the server client (cookie-based auth) for identity verification, then
  * fetches the full users row via the service client.
  * Designed for use in React Server Components.
+ * Wrapped in React.cache() to deduplicate calls within the same server request.
  */
-export async function getCurrentUser(): Promise<User | null> {
+export const getCurrentUser = cache(async function getCurrentUser(): Promise<User | null> {
   const serverClient = await createClient()
   const {
     data: { user: authUser },
@@ -23,4 +25,4 @@ export async function getCurrentUser(): Promise<User | null> {
     .maybeSingle()
 
   return data ?? null
-}
+})

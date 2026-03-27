@@ -9,11 +9,11 @@ import type { Variants } from 'framer-motion'
  *   <motion.div custom={1} initial="hidden" animate="visible" variants={fadeUpVariants}>
  */
 export const fadeUpVariants: Variants = {
-  hidden: { opacity: 0, y: 20 },
+  hidden: { opacity: 0, y: 12 },
   visible: (custom: number = 0) => ({
     opacity: 1,
     y: 0,
-    transition: { duration: 0.4, delay: custom * 0.1 },
+    transition: { duration: 0.25, delay: custom * 0.06 },
   }),
 }
 
@@ -24,7 +24,7 @@ export const fadeInVariants: Variants = {
   hidden: { opacity: 0 },
   visible: (custom: number = 0) => ({
     opacity: 1,
-    transition: { duration: 0.3, delay: custom * 0.1 },
+    transition: { duration: 0.2, delay: custom * 0.06 },
   }),
 }
 

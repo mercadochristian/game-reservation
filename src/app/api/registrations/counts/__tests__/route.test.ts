@@ -217,4 +217,53 @@ describe('GET /api/registrations/counts', () => {
 
     expect(response.status).toBe(200)
   })
+
+  // -------------------------------------------------------------------------
+  // Cache-Control header — Phase 3.3 performance improvement
+  // -------------------------------------------------------------------------
+
+  describe('Cache-Control header on successful response', () => {
+    it('includes Cache-Control: private, max-age=30, stale-while-revalidate=60 on 200', async () => {
+      const mockClient = createMockServiceClient()
+      vi.mocked(createServiceClient).mockReturnValue(mockClient as any)
+      const qb = mockClient.from('registrations')
+      ;(qb as any).then = vi.fn((onFulfilled: any) =>
+        Promise.resolve({ data: [], error: null }).then(onFulfilled)
+      )
+
+      const request = createMockRequest('/api/registrations/counts?schedule_ids=sch1')
+
+      const response = await GET(request)
+
+      expect(response.status).toBe(200)
+      expect(response.headers.get('Cache-Control')).toBe(
+        'private, max-age=30, stale-while-revalidate=60'
+      )
+    })
+
+    it('does not include Cache-Control on 500 error responses', async () => {
+      const mockClient = createMockServiceClient()
+      vi.mocked(createServiceClient).mockReturnValue(mockClient as any)
+      const qb = mockClient.from('registrations')
+      ;(qb as any).then = vi.fn((onFulfilled: any) =>
+        Promise.resolve({ data: null, error: { message: 'DB error' } }).then(onFulfilled)
+      )
+
+      const request = createMockRequest('/api/registrations/counts?schedule_ids=sch1')
+
+      const response = await GET(request)
+
+      expect(response.status).toBe(500)
+      expect(response.headers.get('Cache-Control')).toBeNull()
+    })
+
+    it('does not include Cache-Control on 400 error responses', async () => {
+      const request = createMockRequest('/api/registrations/counts')
+
+      const response = await GET(request)
+
+      expect(response.status).toBe(400)
+      expect(response.headers.get('Cache-Control')).toBeNull()
+    })
+  })
 })

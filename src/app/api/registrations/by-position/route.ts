@@ -35,7 +35,9 @@ export async function GET(request: NextRequest) {
       last_name: r.users?.last_name ?? null,
     }))
 
-    return NextResponse.json(players)
+    return NextResponse.json(players, {
+      headers: { 'Cache-Control': 'private, max-age=30, stale-while-revalidate=60' },
+    })
   } catch (err) {
     console.error('[GET /api/registrations/by-position] Exception:', err)
     return NextResponse.json(

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
-import { logActivity, logError, logWarn } from '@/lib/logger'
+import { logActivity, logError } from '@/lib/logger'
 
 interface ExtractedData {
   amount: number | null
@@ -15,18 +15,16 @@ interface ExtractedData {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const { registration_id, user_payment_id, payment_proof_url } = body
+    const { user_payment_id, payment_proof_url } = body
 
-    if (!payment_proof_url || (!registration_id && !user_payment_id)) {
+    if (!payment_proof_url || !user_payment_id) {
       return NextResponse.json(
-        { error: 'Missing user_payment_id (or registration_id) or payment_proof_url' },
+        { error: 'Missing user_payment_id or payment_proof_url' },
         { status: 400 }
       )
     }
 
-    // Prefer user_payment_id, fall back to registration_id for backwards compatibility
-    const paymentId = user_payment_id || registration_id
-    const isUserPayment = !!user_payment_id
+    const paymentId = user_payment_id
 
     // Verify the registration exists and belongs to the user (optional, for security)
     const serverClient = await createClient()
@@ -35,8 +33,6 @@ export async function POST(req: NextRequest) {
     if (!authUser?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-
-    const userId = authUser.user.id
 
     // Download the image from Supabase Storage using service client
     const serviceClient = createServiceClient()
@@ -55,8 +51,7 @@ export async function POST(req: NextRequest) {
         confidence: 'failed',
       }
 
-      const tableName = isUserPayment ? 'registration_payments' : 'registrations'
-      await (serviceClient.from(tableName) as any).update({
+      await (serviceClient.from('registration_payments') as any).update({
         extracted_amount: extractedData.amount,
         extracted_reference: extractedData.reference_number,
         extracted_datetime: extractedData.payment_datetime,
@@ -102,8 +97,7 @@ export async function POST(req: NextRequest) {
         confidence: 'high' as const,
       }
 
-      const mockTableName = isUserPayment ? 'registration_payments' : 'registrations'
-      await (serviceClient.from(mockTableName) as any)
+      const { error: mockUpdateError } = await (serviceClient.from('registration_payments') as any)
         .update({
           extracted_amount: mockExtracted.amount,
           extracted_reference: mockExtracted.reference_number,
@@ -117,11 +111,21 @@ export async function POST(req: NextRequest) {
         })
         .eq('id', paymentId)
 
-      await logActivity('payment_proof.extract_mock', authUser.user.id, {
-        payment_id: paymentId,
-        amount: mockExtracted.amount,
-        mode: 'mock',
-      })
+      if (mockUpdateError) {
+        console.error('[Payment Extraction] Mock update error:', mockUpdateError)
+        await logError(
+          'payment_proof.extract_mock_update_failed',
+          mockUpdateError,
+          authUser.user.id,
+          { payment_id: paymentId }
+        )
+      } else {
+        await logActivity('payment_proof.extract_mock', authUser.user.id, {
+          payment_id: paymentId,
+          amount: mockExtracted.amount,
+          mode: 'mock',
+        })
+      }
 
       return NextResponse.json({
         success: true,
@@ -214,9 +218,8 @@ Rules:
     }
 
     // Update registration_payments with extracted data
-    const updateTableName = isUserPayment ? 'registration_payments' : 'registrations'
     const { error: updateError } = await (serviceClient
-      .from(updateTableName) as any)
+      .from('registration_payments') as any)
       .update({
         extracted_amount: extractedData.amount,
         extracted_reference: extractedData.reference_number,

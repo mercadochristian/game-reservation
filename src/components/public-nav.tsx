@@ -1,21 +1,42 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { branding } from '@/lib/config/branding'
 import { LoginModal } from '@/components/login-modal'
-import { useCurrentUser } from '@/lib/hooks/useCurrentUser'
+import { createClient } from '@/lib/supabase/client'
+import type { User } from '@/types'
 
 export function PublicNav() {
-  const { user, isLoading } = useCurrentUser()
+  const [user, setUser] = useState<User | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
   const [loginModalOpen, setLoginModalOpen] = useState(false)
+
+  useEffect(() => {
+    const supabase = createClient()
+    async function fetchUser() {
+      const { data: { user: authUser } } = await supabase.auth.getUser()
+      if (!authUser) {
+        setIsLoading(false)
+        return
+      }
+      const { data } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', authUser.id)
+        .maybeSingle()
+      setUser(data)
+      setIsLoading(false)
+    }
+    fetchUser()
+  }, [])
 
   const renderDashboardLink = () => {
     if (isLoading) {
       return <div className="w-24 h-8 bg-muted rounded animate-pulse" />
     }
 
-    if (user && (user.role === 'admin' || user.role === 'super_admin')) {
+    if (user) {
       return (
         <Link href="/dashboard" className="inline-flex items-center justify-center rounded-lg border border-transparent bg-primary text-primary-foreground text-sm font-medium whitespace-nowrap transition-all outline-none select-none cursor-pointer h-8 gap-1.5 px-2.5 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 hover:opacity-90 mr-2">
           Dashboard

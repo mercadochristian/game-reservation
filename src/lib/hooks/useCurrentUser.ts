@@ -1,32 +1,11 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
-import type { User } from '@/types'
+import { useUser } from '@/lib/context/user-context'
 
 export function useCurrentUser() {
-  const [user, setUser] = useState<User | null | undefined>(undefined)
-
-  useEffect(() => {
-    const supabase = createClient()
-    supabase.auth.getUser().then(({ data: { user: authUser } }) => {
-      if (!authUser) {
-        setUser(null)
-        return
-      }
-      supabase
-        .from('users')
-        .select('*')
-        .eq('id', authUser.id)
-        .maybeSingle()
-        .then(({ data }) => {
-          setUser(data ?? null)
-        })
-    })
-  }, [])
-
+  const { user } = useUser()
   return {
-    user,
-    isLoading: user === undefined,
+    user: user ?? undefined,
+    isLoading: false,
   }
 }

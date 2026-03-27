@@ -1,143 +1,47 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { memo, useCallback, useMemo, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
-import { LayoutDashboard, MapPin, CalendarDays, Users, CreditCard, LogOut, Menu, X, AlertTriangle, QrCode, Landmark, type LucideIcon } from 'lucide-react'
+import { UserCircle, MapPin, CalendarDays, Users, CreditCard, LogOut, Menu, X, AlertTriangle, QrCode, Landmark, type LucideIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { branding } from '@/lib/config/branding'
 import { createClient } from '@/lib/supabase/client'
-import { getUserFriendlyMessage } from '@/lib/errors/messages'
+import { useUser } from '@/lib/context/user-context'
 import { SKILL_LEVEL_LABELS } from '@/lib/constants/labels'
 
 type Role = 'admin' | 'facilitator' | 'player' | 'super_admin'
 
-const NAV_ITEMS: Record<Role, Array<{ label: string; href: string; icon: LucideIcon; active: boolean }>> = {
-  admin: [
-    { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, active: true },
-    { label: 'Locations', href: '/admin/locations', icon: MapPin, active: true },
-    { label: 'Schedules', href: '/admin/schedules', icon: CalendarDays, active: true },
-    { label: 'Registrations', href: '/admin/registrations', icon: Users, active: true },
-    { label: 'Payments', href: '/admin/payments', icon: CreditCard, active: true },
-    { label: 'Pay Channels', href: '/admin/payment-channels', icon: Landmark, active: true },
-  ],
-  super_admin: [
-    { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, active: true },
-    { label: 'Locations', href: '/admin/locations', icon: MapPin, active: true },
-    { label: 'Schedules', href: '/admin/schedules', icon: CalendarDays, active: true },
-    { label: 'Registrations', href: '/admin/registrations', icon: Users, active: true },
-    { label: 'Payments', href: '/admin/payments', icon: CreditCard, active: true },
-    { label: 'Pay Channels', href: '/admin/payment-channels', icon: Landmark, active: true },
-    { label: 'Error Logs', href: '/admin/logs', icon: AlertTriangle, active: true },
-  ],
-  facilitator: [
-    { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, active: true },
-    { label: 'QR Scanner', href: '/facilitator/scanner', icon: QrCode, active: true },
-    { label: 'Team Management', href: '/facilitator/teams', icon: Users, active: false },
-    { label: 'Award MVP', href: '/facilitator/mvp', icon: Users, active: false },
-  ],
-  player: [
-    { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, active: true },
-    { label: 'Register', href: '/player/register', icon: CalendarDays, active: true },
-    { label: 'My Registrations', href: '/player/registrations', icon: CalendarDays, active: false },
-    { label: 'My Profile', href: '/player/profile', icon: Users, active: false },
-  ],
+interface NavItem {
+  label: string
+  href: string
+  icon: LucideIcon
+  active: boolean
+  roles: Role[],
+  isComingSoon?: boolean
 }
 
-interface AppShellProps {
-  children: React.ReactNode
-  role?: Role
-}
+const NAV_ITEMS: NavItem[] = [
+  { label: 'Profile',          href: '/dashboard',                    icon: UserCircle,    active: true,  roles: ['admin', 'super_admin', 'facilitator', 'player'] },
+  { label: 'Users',            href: '/dashboard/users',              icon: Users,         active: true,  roles: ['admin', 'super_admin'] },
+  { label: 'Registrations',    href: '/dashboard/registrations',      icon: Users,         active: true,  roles: ['admin', 'super_admin'] },
+  { label: 'Payments',         href: '/dashboard/payments',           icon: CreditCard,    active: true,  roles: ['admin', 'super_admin'] },
+  { label: 'Schedules',        href: '/dashboard/schedules',          icon: CalendarDays,  active: true,  roles: ['admin', 'super_admin'] },
+  { label: 'Locations',        href: '/dashboard/locations',          icon: MapPin,        active: true,  roles: ['admin', 'super_admin'] },
+  { label: 'Pay Channels',     href: '/dashboard/payment-channels',   icon: Landmark,      active: true,  roles: ['admin', 'super_admin'] },
+  { label: 'Error Logs',       href: '/dashboard/logs',               icon: AlertTriangle, active: true,  roles: ['super_admin']},
+  { label: 'QR Scanner',       href: '/dashboard/scanner',            icon: QrCode,        active: false,  roles: ['facilitator'] },
+  { label: 'Team Management',  href: '/dashboard/teams',              icon: Users,         active: false, roles: ['facilitator'] },
+  { label: 'Award MVP',        href: '/dashboard/mvp',                icon: Users,         active: false, roles: ['facilitator'] },
+  { label: 'Register',         href: '/dashboard/register',           icon: CalendarDays,  active: false,  roles: ['player'] },
+  { label: 'My Registrations', href: '/dashboard/my-registrations',   icon: CalendarDays,  active: false, roles: ['player'] },
+]
 
-export function AppShell({ children, role: providedRole }: AppShellProps) {
-  const pathname = usePathname()
-  const router = useRouter()
-  const supabase = createClient()
-  const [drawerOpen, setDrawerOpen] = useState(false)
-  const [resolvedRole, setResolvedRole] = useState<Role | null>(providedRole ?? null)
-  const [userProfile, setUserProfile] = useState<{
-    first_name: string | null
-    last_name: string | null
-    skill_level: string | null
-  } | null>(null)
-
-  useEffect(() => {
-    if (providedRole) return
-
-    const fetchRole = async () => {
-      try {
-        const { data: authUser } = await supabase.auth.getUser()
-        if (!authUser.user) {
-          router.push('/auth')
-          return
-        }
-
-        const { data: profile, error: profileError } = await supabase
-          .from('users')
-          .select('role, first_name, last_name, skill_level')
-          .eq('id', authUser.user.id)
-          .single() as {
-          data: { role: Role; first_name: string | null; last_name: string | null; skill_level: string | null } | null
-          error: unknown
-        }
-
-        if (profileError) {
-          console.error('[AppShell] Failed to fetch user role:', profileError)
-          router.push('/auth')
-          return
-        }
-
-        const userRole: Role = profile?.role ?? 'player'
-        setResolvedRole(userRole)
-        if (profile) {
-          setUserProfile({
-            first_name: profile.first_name,
-            last_name: profile.last_name,
-            skill_level: profile.skill_level,
-          })
-        }
-      } catch (error) {
-        console.error('[AppShell] Unexpected error fetching role:', getUserFriendlyMessage(error), error)
-        router.push('/auth')
-      }
-    }
-
-    fetchRole()
-  }, [providedRole, supabase, router])
-
-  const role = providedRole ?? resolvedRole
-  if (!role) return null
-
-  const navItems = NAV_ITEMS[role]
-
-  const handleSignOut = async () => {
-    await supabase.auth.signOut()
-    router.push('/auth')
-  }
-
-  // Derive display values for user info
-  const displayName = userProfile
-    ? [userProfile.first_name, userProfile.last_name].filter(Boolean).join(' ') || null
-    : null
-
-  const ROLE_LABELS: Record<Role, string> = {
-    admin: 'Admin',
-    super_admin: 'Super Admin',
-    facilitator: 'Facilitator',
-    player: 'Player',
-  }
-
-  const displaySubtitle = (() => {
-    if (!userProfile) return null
-    if (role === 'player' && userProfile.skill_level) {
-      return SKILL_LEVEL_LABELS[userProfile.skill_level] ?? null
-    }
-    return ROLE_LABELS[role!] ?? null
-  })()
-
-  const NavItems = () => (
+// Extracted & memoized — avoids re-render when parent state (drawer, profile) changes
+export const NavItems = memo(function NavItems({ navItems, pathname }: { navItems: NavItem[]; pathname: string }) {
+  return (
     <>
       {navItems.map((item) => {
         const Icon = item.icon
@@ -171,6 +75,53 @@ export function AppShell({ children, role: providedRole }: AppShellProps) {
       })}
     </>
   )
+})
+
+interface AppShellProps {
+  children: React.ReactNode
+}
+
+export function AppShell({ children }: AppShellProps) {
+  const pathname = usePathname()
+  const router = useRouter()
+  const supabase = createClient()
+  const { user } = useUser()
+  const [drawerOpen, setDrawerOpen] = useState(false)
+
+  const role = user?.role ?? null
+
+  const handleSignOut = useCallback(async () => {
+    await supabase.auth.signOut()
+    router.push('/auth')
+  }, [supabase, router])
+
+  const displayName = useMemo(
+    () => user
+      ? [user.first_name, user.last_name].filter(Boolean).join(' ') || null
+      : null,
+    [user]
+  )
+
+  const displaySubtitle = useMemo(() => {
+    if (!user) return null
+    const ROLE_LABELS: Record<Role, string> = {
+      admin: 'Admin',
+      super_admin: 'Super Admin',
+      facilitator: 'Facilitator',
+      player: 'Player',
+    }
+    if (role === 'player' && user.skill_level) {
+      return SKILL_LEVEL_LABELS[user.skill_level] ?? null
+    }
+    return ROLE_LABELS[role!] ?? null
+  }, [user, role])
+
+  const navItems = useMemo(
+    () => role ? NAV_ITEMS.filter(item => item.roles.includes(role)) : [],
+    [role]
+  )
+
+  if (!role) return null
 
   return (
     <div className="min-h-screen bg-background flex flex-col lg:flex-row">
@@ -250,7 +201,7 @@ export function AppShell({ children, role: providedRole }: AppShellProps) {
 
                 {/* Drawer Nav */}
                 <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
-                  <NavItems />
+                  <NavItems navItems={navItems} pathname={pathname} />
                 </nav>
 
                 {/* Drawer Sign Out */}
@@ -303,7 +254,7 @@ export function AppShell({ children, role: providedRole }: AppShellProps) {
 
         {/* Nav Items */}
         <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
-          <NavItems />
+          <NavItems navItems={navItems} pathname={pathname} />
         </nav>
 
         {/* Sign Out */}

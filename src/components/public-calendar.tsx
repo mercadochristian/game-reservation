@@ -1,6 +1,7 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useReducer, useState } from 'react'
+import { useHasAnimated } from '@/lib/hooks/useHasAnimated'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { ChevronLeft, ChevronRight, CalendarX } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -22,6 +23,78 @@ import {
 } from '@/lib/utils/timezone'
 import { POSITION_SLOTS, getPositionAvailable, getPositionTotal } from '@/lib/utils/position-slots'
 
+// --- Calendar state reducer ---
+interface CalendarState {
+  user: User | null | undefined
+  registrationCounts: Record<string, number>
+  positionCounts: Record<string, Record<string, number>>
+  countsLoading: boolean
+  userRegistrations: Record<string, Registration>
+  loginModalOpen: boolean
+  qrModalOpen: boolean
+  positionModalOpen: boolean
+  activeSchedule: ScheduleWithLocation | null
+  activeRegistration: Registration | null
+  modalSchedule: ScheduleWithLocation | null
+  modalPosition: string | null
+  loginScheduleId: string | undefined
+}
+
+const initialCalendarState: CalendarState = {
+  user: undefined,
+  registrationCounts: {},
+  positionCounts: {},
+  countsLoading: true,
+  userRegistrations: {},
+  loginModalOpen: false,
+  qrModalOpen: false,
+  positionModalOpen: false,
+  activeSchedule: null,
+  activeRegistration: null,
+  modalSchedule: null,
+  modalPosition: null,
+  loginScheduleId: undefined,
+}
+
+type CalendarAction =
+  | { type: 'SET_USER'; user: User | null }
+  | { type: 'SET_COUNTS'; counts: Record<string, number>; positionCounts: Record<string, Record<string, number>> }
+  | { type: 'SET_COUNTS_LOADING'; loading: boolean }
+  | { type: 'SET_USER_REGISTRATIONS'; registrations: Record<string, Registration> }
+  | { type: 'OPEN_LOGIN'; scheduleId: string }
+  | { type: 'CLOSE_LOGIN' }
+  | { type: 'OPEN_QR'; schedule: ScheduleWithLocation; registration: Registration }
+  | { type: 'CLOSE_QR' }
+  | { type: 'OPEN_POSITION'; schedule: ScheduleWithLocation; position: string }
+  | { type: 'CLOSE_POSITION' }
+
+function calendarReducer(state: CalendarState, action: CalendarAction): CalendarState {
+  switch (action.type) {
+    case 'SET_USER':
+      return { ...state, user: action.user }
+    case 'SET_COUNTS':
+      return { ...state, registrationCounts: action.counts, positionCounts: action.positionCounts, countsLoading: false }
+    case 'SET_COUNTS_LOADING':
+      return { ...state, countsLoading: action.loading }
+    case 'SET_USER_REGISTRATIONS':
+      return { ...state, userRegistrations: action.registrations }
+    case 'OPEN_LOGIN':
+      return { ...state, loginModalOpen: true, loginScheduleId: action.scheduleId }
+    case 'CLOSE_LOGIN':
+      return { ...state, loginModalOpen: false }
+    case 'OPEN_QR':
+      return { ...state, qrModalOpen: true, activeSchedule: action.schedule, activeRegistration: action.registration }
+    case 'CLOSE_QR':
+      return { ...state, qrModalOpen: false }
+    case 'OPEN_POSITION':
+      return { ...state, positionModalOpen: true, modalSchedule: action.schedule, modalPosition: action.position }
+    case 'CLOSE_POSITION':
+      return { ...state, positionModalOpen: false }
+    default:
+      return state
+  }
+}
+
 interface PublicCalendarProps {
   schedules: ScheduleWithLocation[]
 }
@@ -29,27 +102,15 @@ interface PublicCalendarProps {
 export function PublicCalendar({ schedules }: PublicCalendarProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const hasAnimated = useHasAnimated()
 
-  // Calendar state
+  // Calendar state (kept separate — these are navigation-only)
   const [currentMonth, setCurrentMonth] = useState<Date>(() => getNowInManila())
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
 
-  // Auth & data state
-  const [user, setUser] = useState<User | null | undefined>(undefined)
-  const [registrationCounts, setRegistrationCounts] = useState<Record<string, number>>({})
-  const [positionCounts, setPositionCounts] = useState<Record<string, Record<string, number>>>({})
-  const [countsLoading, setCountsLoading] = useState(true)
-  const [userRegistrations, setUserRegistrations] = useState<Record<string, Registration>>({})
-
-  // Modal state
-  const [loginModalOpen, setLoginModalOpen] = useState(false)
-  const [qrModalOpen, setQrModalOpen] = useState(false)
-  const [positionModalOpen, setPositionModalOpen] = useState(false)
-  const [activeSchedule, setActiveSchedule] = useState<ScheduleWithLocation | null>(null)
-  const [activeRegistration, setActiveRegistration] = useState<Registration | null>(null)
-  const [modalSchedule, setModalSchedule] = useState<ScheduleWithLocation | null>(null)
-  const [modalPosition, setModalPosition] = useState<string | null>(null)
-  const [loginScheduleId, setLoginScheduleId] = useState<string | undefined>()
+  // Auth, data, and modal state (consolidated via useReducer)
+  const [calState, calDispatch] = useReducer(calendarReducer, initialCalendarState)
+  const { user, registrationCounts, positionCounts, countsLoading, userRegistrations, loginModalOpen, qrModalOpen, positionModalOpen, activeSchedule, activeRegistration, modalSchedule, modalPosition, loginScheduleId } = calState
 
   // Group schedules by Manila date string
   const schedulesByDate = useMemo(() => {
@@ -70,71 +131,79 @@ export function PublicCalendar({ schedules }: PublicCalendarProps) {
     }
   }, [searchParams])
 
-  // Auth check on mount & fetch user registrations
-  useEffect(() => {
-    const supabase = createClient()
-    supabase.auth.getUser().then(({ data, error: authError }) => {
-      if (authError) {
-        console.error('[PublicCalendar] Auth check failed:', authError)
-        setUser(null)
-        return
-      }
-
-      setUser((data.user as any) ?? null)
-
-      // If user is logged in, fetch their registrations for current schedules
-      if (data.user) {
-        const scheduleIds = schedules.map((s) => s.id)
-        if (scheduleIds.length > 0) {
-          ;(supabase.from('registrations') as any)
-            .select('*')
-            .eq('player_id', data.user.id)
-            .in('schedule_id', scheduleIds)
-            .then(({ data: regs, error: regsError }: { data: any; error: any }) => {
-              if (regsError) {
-                console.error('[PublicCalendar] Failed to fetch user registrations:', regsError)
-                // Non-fatal — user simply won't see their registered state
-                return
-              }
-              const map: Record<string, Registration> = {}
-              for (const reg of regs ?? []) {
-                map[reg.schedule_id] = reg
-              }
-              setUserRegistrations(map)
-            })
-        }
-      }
-    })
-  }, [schedules])
-
   // Fetch registration counts and position counts via service-client API (bypasses RLS)
-  const fetchCounts = useCallback(async () => {
+  const fetchCounts = useCallback(async (signal?: AbortSignal) => {
     if (schedules.length === 0) {
-      setCountsLoading(false)
+      calDispatch({ type: 'SET_COUNTS_LOADING', loading: false })
       return
     }
 
     const scheduleIds = schedules.map((s) => s.id).join(',')
 
     try {
-      const res = await fetch(`/api/registrations/counts?schedule_ids=${scheduleIds}`)
+      const res = await fetch(`/api/registrations/counts?schedule_ids=${scheduleIds}`, { signal })
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const { counts, positionCounts: posCounts } = await res.json()
-      setRegistrationCounts(counts ?? {})
-      setPositionCounts(posCounts ?? {})
+      calDispatch({ type: 'SET_COUNTS', counts: counts ?? {}, positionCounts: posCounts ?? {} })
     } catch (err) {
+      if (err instanceof DOMException && err.name === 'AbortError') return
       console.error('[PublicCalendar] Failed to fetch registration counts:', err)
       toast.error('Could not load registration counts')
-    } finally {
-      setCountsLoading(false)
+      calDispatch({ type: 'SET_COUNTS_LOADING', loading: false })
     }
   }, [schedules])
 
-  // Fetch counts on mount and when schedules change
+  // Parallel fetch: auth check + registration counts on mount
   useEffect(() => {
-    setCountsLoading(true)
-    void fetchCounts()
-  }, [fetchCounts])
+    let cancelled = false
+    const controller = new AbortController()
+    const supabase = createClient()
+
+    calDispatch({ type: 'SET_COUNTS_LOADING', loading: true })
+
+    const authPromise = supabase.auth.getUser().then(({ data, error: authError }) => {
+      if (cancelled) return
+      if (authError) {
+        console.error('[PublicCalendar] Auth check failed:', authError)
+        calDispatch({ type: 'SET_USER', user: null })
+        return
+      }
+
+      calDispatch({ type: 'SET_USER', user: (data.user as any) ?? null })
+
+      // If user is logged in, fetch their registrations for current schedules
+      if (data.user) {
+        const scheduleIds = schedules.map((s) => s.id)
+        if (scheduleIds.length > 0) {
+          return (supabase.from('registrations') as any)
+            .select('*')
+            .eq('player_id', data.user.id)
+            .in('schedule_id', scheduleIds)
+            .then(({ data: regs, error: regsError }: { data: any; error: any }) => {
+              if (cancelled) return
+              if (regsError) {
+                console.error('[PublicCalendar] Failed to fetch user registrations:', regsError)
+                return
+              }
+              const map: Record<string, Registration> = {}
+              for (const reg of regs ?? []) {
+                map[reg.schedule_id] = reg
+              }
+              calDispatch({ type: 'SET_USER_REGISTRATIONS', registrations: map })
+            })
+        }
+      }
+    })
+
+    const countsPromise = fetchCounts(controller.signal)
+
+    void Promise.all([authPromise, countsPromise])
+
+    return () => {
+      cancelled = true
+      controller.abort()
+    }
+  }, [schedules, fetchCounts])
 
   // Subscribe to real-time registration changes and refetch via API
   useEffect(() => {
@@ -337,7 +406,7 @@ export function PublicCalendar({ schedules }: PublicCalendarProps) {
                       <motion.div
                         key={schedule.id}
                         custom={index}
-                        initial="hidden"
+                        initial={hasAnimated.current ? false : "hidden"}
                         animate="visible"
                         variants={fadeUpVariants}
                       >
@@ -383,9 +452,7 @@ export function PublicCalendar({ schedules }: PublicCalendarProps) {
                                     <button
                                       key={pos.key}
                                       onClick={() => {
-                                        setModalSchedule(schedule)
-                                        setModalPosition(pos.key)
-                                        setPositionModalOpen(true)
+                                        calDispatch({ type: 'OPEN_POSITION', schedule, position: pos.key })
                                       }}
                                       className="cursor-pointer transition-opacity hover:opacity-80 rounded"
                                     >
@@ -429,9 +496,7 @@ export function PublicCalendar({ schedules }: PublicCalendarProps) {
                                   className="w-full"
                                   variant="secondary"
                                   onClick={() => {
-                                    setActiveSchedule(schedule)
-                                    setActiveRegistration(userRegistrations[schedule.id])
-                                    setQrModalOpen(true)
+                                    calDispatch({ type: 'OPEN_QR', schedule, registration: userRegistrations[schedule.id] })
                                   }}
                                 >
                                   Show QR
@@ -441,8 +506,7 @@ export function PublicCalendar({ schedules }: PublicCalendarProps) {
                                   className="w-full"
                                   onClick={() => {
                                     if (!user) {
-                                      setLoginScheduleId(schedule.id)
-                                      setLoginModalOpen(true)
+                                      calDispatch({ type: 'OPEN_LOGIN', scheduleId: schedule.id })
                                     } else {
                                       router.push(`/register/${schedule.id}?date=${selectedDate}`)
                                     }
@@ -469,18 +533,18 @@ export function PublicCalendar({ schedules }: PublicCalendarProps) {
       {/* Modals */}
       <LoginModal
         open={loginModalOpen}
-        onOpenChange={setLoginModalOpen}
+        onOpenChange={(open) => { if (!open) calDispatch({ type: 'CLOSE_LOGIN' }) }}
         scheduleId={loginScheduleId}
       />
       <QRModal
         open={qrModalOpen}
-        onOpenChange={setQrModalOpen}
+        onOpenChange={(open) => { if (!open) calDispatch({ type: 'CLOSE_QR' }) }}
         schedule={activeSchedule}
         registration={activeRegistration}
       />
       <PositionModal
         open={positionModalOpen}
-        onOpenChange={setPositionModalOpen}
+        onOpenChange={(open) => { if (!open) calDispatch({ type: 'CLOSE_POSITION' }) }}
         schedule={modalSchedule}
         position={modalPosition}
         totalSlots={

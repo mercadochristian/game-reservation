@@ -2,21 +2,31 @@ import { type NextRequest, NextResponse } from 'next/server'
 import { updateSession } from '@/lib/supabase/middleware'
 import { logError } from '@/lib/logger'
 
-const PUBLIC_ROUTES = ['/auth', '/auth/callback', '/']
+const PUBLIC_ROUTES = ['/auth', '/auth/callback', '/', '/api/registrations/counts', '/api/registrations/by-position']
 
 // Exempt from profile-completion redirect: the API that completes the profile
 // and the page itself (prevents a redirect loop).
 const PROFILE_CHECK_EXEMPT = ['/api/profile/complete', '/create-profile']
 
-const ROLE_PATH_MAP: Record<string, string> = {
-  admin: '/admin',
-  super_admin: '/admin',
-  facilitator: '/facilitator',
-  player: '/player',
-}
+type Role = 'admin' | 'super_admin' | 'facilitator' | 'player'
 
-// Paths accessible to multiple roles (cross-role access)
-const SHARED_PATHS = ['/admin/lineups']
+// Dashboard sub-paths restricted to specific roles.
+// Paths not listed here are accessible to all authenticated users (e.g. /dashboard itself).
+const ROLE_PROTECTED_PAGES: Record<string, Role[]> = {
+  '/dashboard/users': ['admin', 'super_admin'],
+  '/dashboard/registrations': ['admin', 'super_admin'],
+  '/dashboard/payments': ['admin', 'super_admin'],
+  '/dashboard/schedules': ['admin', 'super_admin'],
+  '/dashboard/locations': ['admin', 'super_admin'],
+  '/dashboard/payment-channels': ['admin', 'super_admin'],
+  '/dashboard/logs': ['super_admin'],
+  '/dashboard/lineups': ['admin', 'super_admin'],
+  // '/dashboard/scanner': ['facilitator'],
+  // '/dashboard/teams': ['facilitator'],
+  // '/dashboard/mvp': ['facilitator'],
+  // '/dashboard/register': ['player'],
+  // '/dashboard/my-registrations': ['player'],
+}
 
 // Copies Supabase session cookies onto any redirect response so session
 // refresh tokens are not lost when the middleware redirects.
@@ -98,23 +108,19 @@ export async function middleware(request: NextRequest) {
     // S7: Public route (e.g. `/`) — pass through
     if (isPublicRoute) return supabaseResponse
 
-    // S8: On a role-prefixed path that belongs to a different role
-    const allowedPrefix = ROLE_PATH_MAP[role]
-    const isOnARolePath = Object.values(ROLE_PATH_MAP).some(p =>
-      pathname.startsWith(p),
+    // S8: Check role-protected dashboard pages
+    const protectedEntry = Object.entries(ROLE_PROTECTED_PAGES).find(([path]) =>
+      pathname.startsWith(path),
     )
-    const isSharedPath = SHARED_PATHS.some(p => pathname.startsWith(p))
-    const isOnWrongRolePath =
-      isOnARolePath &&
-      !isSharedPath &&
-      (!allowedPrefix || !pathname.startsWith(allowedPrefix))
-
-    if (isOnWrongRolePath) {
-      return redirectWithSession(
-        new URL('/dashboard', request.url).toString(),
-        request,
-        supabaseResponse,
-      )
+    if (protectedEntry) {
+      const [, allowedRoles] = protectedEntry
+      if (!allowedRoles.includes(role as Role)) {
+        return redirectWithSession(
+          new URL('/dashboard', request.url).toString(),
+          request,
+          supabaseResponse,
+        )
+      }
     }
 
     // S9: Correct path — pass through

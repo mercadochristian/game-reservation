@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { useHasAnimated } from '@/lib/hooks/useHasAnimated'
 import { ChevronLeft, Upload, X, Plus, CheckCircle, AlertCircle, Search, CreditCard, CalendarX, Users, XCircle } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { createClient } from '@/lib/supabase/client'
@@ -32,7 +33,7 @@ type SubmitResult = {
 
 type GroupPlayer_ =
   | { id: string; type: 'existing'; user_id: string; first_name: string; last_name: string; preferred_position: PlayerPosition | null }
-  | { id: string; type: 'guest'; first_name: string; last_name: string; email: string; phone?: string; preferred_position: PlayerPosition | null }
+  | { id: string; type: 'guest'; first_name: string; last_name: string; email: string; phone?: string; skill_level: string | null; preferred_position: PlayerPosition | null }
 
 type SearchResult = {
   id: string
@@ -84,6 +85,7 @@ export function RegisterClient({
 }: RegisterClientProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const hasAnimated = useHasAnimated()
   const dateParam = searchParams.get('date')
 
   // Multi-schedule state — initialized directly from props
@@ -122,12 +124,13 @@ export function RegisterClient({
   const [searchResults, setSearchResults] = useState<SearchResult[]>([])
   const [searching, setSearching] = useState(false)
   const [showAddPlayerForm, setShowAddPlayerForm] = useState(false)
-  const [newPlayerForm, setNewPlayerForm] = useState<{ type: 'existing' | 'guest'; first_name: string; last_name: string; email: string; phone: string; preferred_position: PlayerPosition | null }>({
+  const [newPlayerForm, setNewPlayerForm] = useState<{ type: 'existing' | 'guest'; first_name: string; last_name: string; email: string; phone: string; skill_level: string | null; preferred_position: PlayerPosition | null }>({
     type: 'guest',
     first_name: '',
     last_name: '',
     email: '',
     phone: '',
+    skill_level: null,
     preferred_position: null,
   })
   const [groupResults, setGroupResults] = useState<Array<{ player_index: number; player_email_or_name: string; success: boolean; user_id?: string; error?: string }>>([])
@@ -277,6 +280,7 @@ export function RegisterClient({
         last_name: newPlayerForm.last_name,
         email: newPlayerForm.email,
         phone: newPlayerForm.phone || undefined,
+        skill_level: newPlayerForm.skill_level,
         preferred_position: null,
       } as GroupPlayer_,
     ])
@@ -287,6 +291,7 @@ export function RegisterClient({
       last_name: '',
       email: '',
       phone: '',
+      skill_level: null,
       preferred_position: null,
     })
     setShowAddPlayerForm(false)
@@ -329,12 +334,6 @@ export function RegisterClient({
 
       try {
         const supabase = createClient()
-        const authUser = (await supabase.auth.getUser()).data.user
-        if (!authUser) {
-          toast.error('Session expired')
-          router.push('/auth')
-          return
-        }
 
         const fileExt = paymentFile.name.split('.').pop()
         const filename = `${user.id}/${Date.now()}.${fileExt}`
@@ -357,8 +356,8 @@ export function RegisterClient({
           const { data: insertedData, error: insertError } = await (supabase.from('registrations') as any)
             .insert({
               schedule_id: sid,
-              player_id: authUser.id,
-              registered_by: authUser.id,
+              player_id: user.id,
+              registered_by: user.id,
               preferred_position: position,
             })
             .select('id')
@@ -383,7 +382,7 @@ export function RegisterClient({
             const { error: paymentError } = await (supabase.from('registration_payments') as any)
               .insert({
                 registration_id: insertedData[0].id,
-                payer_id: authUser.id,
+                payer_id: user.id,
                 schedule_id: sid,
                 registration_type: 'solo',
                 required_amount: requiredAmount,
@@ -439,12 +438,6 @@ export function RegisterClient({
 
     try {
       const supabase = createClient()
-      const authUser = (await supabase.auth.getUser()).data.user
-      if (!authUser) {
-        toast.error('Session expired')
-        router.push('/auth')
-        return
-      }
 
       const fileExt = paymentFile.name.split('.').pop()
       const filename = `${user.id}/${Date.now()}.${fileExt}`
@@ -579,7 +572,7 @@ export function RegisterClient({
           </button>
 
           <motion.div
-            initial="hidden"
+            initial={hasAnimated.current ? false : "hidden"}
             animate="visible"
             variants={fadeUpVariants}
             className="space-y-4"
@@ -607,7 +600,7 @@ export function RegisterClient({
         <div className="min-h-screen bg-background">
           <div className="max-w-lg mx-auto px-4 py-8">
             <motion.div
-              initial="hidden"
+              initial={hasAnimated.current ? false : "hidden"}
               animate="visible"
               variants={fadeUpVariants}
               className="text-center space-y-4"
@@ -641,7 +634,7 @@ export function RegisterClient({
           </button>
 
           <motion.div
-            initial="hidden"
+            initial={hasAnimated.current ? false : "hidden"}
             animate="visible"
             variants={fadeUpVariants}
             className="space-y-4"
@@ -689,7 +682,7 @@ export function RegisterClient({
 
         {/* Page Title + Solo/Group/Team Toggle */}
         <motion.div
-          initial="hidden"
+          initial={hasAnimated.current ? false : "hidden"}
           animate="visible"
           variants={fadeUpVariants}
           custom={0}
@@ -723,7 +716,7 @@ export function RegisterClient({
 
         {/* Selected Schedules Section */}
         <motion.div
-          initial="hidden"
+          initial={hasAnimated.current ? false : "hidden"}
           animate="visible"
           variants={fadeUpVariants}
           custom={1}
@@ -764,7 +757,7 @@ export function RegisterClient({
 
         {/* Add Another Game Button */}
         <motion.div
-          initial="hidden"
+          initial={hasAnimated.current ? false : "hidden"}
           animate="visible"
           variants={fadeUpVariants}
           custom={2}
@@ -840,7 +833,7 @@ export function RegisterClient({
         {/* Solo Mode: Player Position */}
         {mode === 'solo' && (
           <motion.div
-            initial="hidden"
+            initial={hasAnimated.current ? false : "hidden"}
             animate="visible"
             variants={fadeUpVariants}
             custom={3}
@@ -892,7 +885,7 @@ export function RegisterClient({
         {/* Group Mode: Player List */}
         {mode === 'group' && (
           <motion.div
-            initial="hidden"
+            initial={hasAnimated.current ? false : "hidden"}
             animate="visible"
             variants={fadeUpVariants}
             custom={3}
@@ -1061,6 +1054,18 @@ export function RegisterClient({
                           onChange={e => setNewPlayerForm(p => ({ ...p, phone: e.target.value }))}
                           className="w-full px-3 py-2 text-sm border rounded bg-background"
                         />
+                        <select
+                          value={newPlayerForm.skill_level || ''}
+                          onChange={e => setNewPlayerForm(p => ({ ...p, skill_level: e.target.value || null }))}
+                          className="w-full px-3 py-2 text-sm border rounded bg-background"
+                        >
+                          <option value="">Select skill level</option>
+                          <option value="developmental">Developmental</option>
+                          <option value="developmental_plus">Developmental+</option>
+                          <option value="intermediate">Intermediate</option>
+                          <option value="intermediate_plus">Intermediate+</option>
+                          <option value="advanced">Advanced</option>
+                        </select>
                         <Button className="w-full" size="sm" onClick={handleAddGuestPlayer}>
                           Add Guest Player
                         </Button>
@@ -1076,7 +1081,7 @@ export function RegisterClient({
         {/* Team Mode: Player List + Position Requirements */}
         {mode === 'team' && (
           <motion.div
-            initial="hidden"
+            initial={hasAnimated.current ? false : "hidden"}
             animate="visible"
             variants={fadeUpVariants}
             custom={3}
@@ -1235,6 +1240,18 @@ export function RegisterClient({
                           onChange={e => setNewPlayerForm(p => ({ ...p, phone: e.target.value }))}
                           className="w-full px-3 py-2 text-sm border rounded bg-background"
                         />
+                        <select
+                          value={newPlayerForm.skill_level || ''}
+                          onChange={e => setNewPlayerForm(p => ({ ...p, skill_level: e.target.value || null }))}
+                          className="w-full px-3 py-2 text-sm border rounded bg-background"
+                        >
+                          <option value="">Select skill level</option>
+                          <option value="developmental">Developmental</option>
+                          <option value="developmental_plus">Developmental+</option>
+                          <option value="intermediate">Intermediate</option>
+                          <option value="intermediate_plus">Intermediate+</option>
+                          <option value="advanced">Advanced</option>
+                        </select>
                         <Button className="w-full" size="sm" onClick={handleAddGuestPlayer}>
                           Add Guest Member
                         </Button>
@@ -1306,7 +1323,7 @@ export function RegisterClient({
             if (costLines.length > 0) {
               return (
                 <motion.div
-                  initial="hidden"
+                  initial={hasAnimated.current ? false : "hidden"}
                   animate="visible"
                   variants={fadeUpVariants}
                   custom={4}
@@ -1318,7 +1335,7 @@ export function RegisterClient({
                       {costLines.map((line, idx) => (
                         <div key={idx} className="flex items-center justify-between text-sm">
                           <span className="text-muted-foreground">{line.label}</span>
-                          <span className="font-medium">&#8369;{line.amount.toFixed(2)}</span>
+                          <span className="font-medium">₱{line.amount.toFixed(2)}</span>
                         </div>
                       ))}
                     </div>
@@ -1326,7 +1343,7 @@ export function RegisterClient({
                       <>
                         <div className="border-t border-blue-500/20 pt-2 flex items-center justify-between">
                           <span className="font-medium text-foreground">Total</span>
-                          <span className="font-bold text-lg text-foreground">&#8369;{totalAmount.toFixed(2)}</span>
+                          <span className="font-bold text-lg text-foreground">₱{totalAmount.toFixed(2)}</span>
                         </div>
                       </>
                     )}
@@ -1362,7 +1379,7 @@ export function RegisterClient({
             if (costLines.length > 0) {
               return (
                 <motion.div
-                  initial="hidden"
+                  initial={hasAnimated.current ? false : "hidden"}
                   animate="visible"
                   variants={fadeUpVariants}
                   custom={4}
@@ -1377,7 +1394,7 @@ export function RegisterClient({
                             <p className="text-muted-foreground">{line.playerName}</p>
                             <p className="text-xs text-muted-foreground">{line.position}</p>
                           </div>
-                          <span className="font-medium">&#8369;{line.amount.toFixed(2)}</span>
+                          <span className="font-medium">₱{line.amount.toFixed(2)}</span>
                         </div>
                       ))}
                     </div>
@@ -1385,7 +1402,7 @@ export function RegisterClient({
                       <>
                         <div className="border-t border-blue-500/20 pt-2 flex items-center justify-between">
                           <span className="font-medium text-foreground">Total</span>
-                          <span className="font-bold text-lg text-foreground">&#8369;{totalAmount.toFixed(2)}</span>
+                          <span className="font-bold text-lg text-foreground">₱{totalAmount.toFixed(2)}</span>
                         </div>
                       </>
                     )}
@@ -1401,7 +1418,7 @@ export function RegisterClient({
             if (teamPrice > 0) {
               return (
                 <motion.div
-                  initial="hidden"
+                  initial={hasAnimated.current ? false : "hidden"}
                   animate="visible"
                   variants={fadeUpVariants}
                   custom={4}
@@ -1411,7 +1428,7 @@ export function RegisterClient({
                     <p className="text-sm font-medium text-foreground">Amount Due</p>
                     <div className="flex items-center justify-between">
                       <span className="text-muted-foreground">Team Registration</span>
-                      <span className="font-bold text-lg text-foreground">&#8369;{teamPrice.toFixed(2)}</span>
+                      <span className="font-bold text-lg text-foreground">₱{teamPrice.toFixed(2)}</span>
                     </div>
                   </Card>
                 </motion.div>
@@ -1424,7 +1441,7 @@ export function RegisterClient({
 
         {/* Payment Screenshot */}
         <motion.div
-          initial="hidden"
+          initial={hasAnimated.current ? false : "hidden"}
           animate="visible"
           variants={fadeUpVariants}
           custom={5}
@@ -1477,7 +1494,7 @@ export function RegisterClient({
 
         {/* Submit Button */}
         <motion.div
-          initial="hidden"
+          initial={hasAnimated.current ? false : "hidden"}
           animate="visible"
           variants={fadeUpVariants}
           custom={6}
