@@ -4,6 +4,7 @@ import { groupRegistrationSchema, GroupPlayer } from '@/lib/validations/group-re
 import { logError, logActivity } from '@/lib/logger'
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
+import { revalidatePath } from 'next/cache'
 import {
   getRequiredPositions,
   validateGroupPositions,
@@ -403,7 +404,10 @@ export async function POST(request: NextRequest) {
         })
       })
 
-    // Step 8: Return success response
+    // Step 8: Revalidate home page cache to reflect updated slot counts
+    revalidatePath('/')
+
+    // Step 9: Return success response
     return NextResponse.json({
       results: resolvedPlayers.map((r) => ({
         player_index: r.index,
