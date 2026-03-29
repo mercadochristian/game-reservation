@@ -123,6 +123,14 @@ export function PublicCalendar({ schedules }: PublicCalendarProps) {
     return map
   }, [schedules])
 
+  // Get upcoming schedules for the empty state
+  const upcomingSchedules = useMemo(() => {
+    const now = getNowInManila()
+    return schedules
+      .filter(s => new Date(s.start_time) > now && (s.status === 'open' || s.status === 'full'))
+      .slice(0, 4)
+  }, [schedules])
+
   // Initialize selectedDate from URL param
   useEffect(() => {
     const dateParam = searchParams.get('date')
@@ -282,16 +290,16 @@ export function PublicCalendar({ schedules }: PublicCalendarProps) {
 
   return (
     <>
-      <div className="pt-20 px-4 sm:px-6 max-w-4xl mx-auto">
+      <div className="pt-8 pb-12 px-4 sm:px-6 max-w-4xl mx-auto" id="schedule">
         {/* Calendar Section Header */}
         <div className="mb-6">
-          <p className="text-xs font-semibold text-muted-foreground tracking-widest uppercase">Schedule</p>
+          <p className="text-xs font-semibold text-muted-foreground tracking-widest uppercase border-l-2 border-primary pl-3">Schedule</p>
         </div>
 
         {/* Calendar Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h2 className="text-3xl font-semibold">{monthYear}</h2>
+            <h2 className="text-4xl sm:text-5xl font-bold tracking-tight">{monthYear}</h2>
           </div>
           <div className="flex gap-2">
             <Button variant="ghost" size="icon" onClick={prevMonth} className="rounded-full">
@@ -528,6 +536,64 @@ export function PublicCalendar({ schedules }: PublicCalendarProps) {
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* Empty State — No Date Selected */}
+        {!selectedDate && (
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            {upcomingSchedules.length > 0 ? (
+              <div>
+                <p className="text-xs font-semibold text-muted-foreground tracking-widest uppercase mb-4">
+                  Upcoming Games
+                </p>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {upcomingSchedules.map((schedule, index) => (
+                    <motion.button
+                      key={schedule.id}
+                      custom={index}
+                      initial="hidden"
+                      animate="visible"
+                      variants={fadeUpVariants}
+                      onClick={() => setSelectedDate(toManilaDateKey(schedule.start_time))}
+                      className="text-left rounded-xl bg-card ring-1 ring-foreground/8 p-3
+                                 hover:bg-muted/50 transition-colors cursor-pointer"
+                    >
+                      <p className="text-xs text-muted-foreground">
+                        {new Date(schedule.start_time).toLocaleDateString('en-US', {
+                          weekday: 'short',
+                          month: 'short',
+                          day: 'numeric',
+                          timeZone: 'Asia/Manila',
+                        })}
+                      </p>
+                      <p className="text-sm font-semibold text-foreground mt-0.5 truncate">
+                        {schedule.locations?.name}
+                      </p>
+                      <Badge
+                        variant={schedule.status === 'full' ? 'secondary' : 'default'}
+                        className="mt-2 text-xs capitalize"
+                      >
+                        {schedule.status}
+                      </Badge>
+                    </motion.button>
+                  ))}
+                </div>
+                <p className="text-xs text-center text-muted-foreground/60 mt-6">
+                  Select a highlighted date on the calendar to see all games
+                </p>
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <CalendarX className="mx-auto h-8 w-8 mb-3 text-muted-foreground/40" />
+                <p className="text-sm font-medium text-foreground">No upcoming games scheduled</p>
+                <p className="text-xs text-muted-foreground mt-1">Check back soon for new dates</p>
+              </div>
+            )}
+          </motion.div>
+        )}
       </div>
 
       {/* Modals */}
