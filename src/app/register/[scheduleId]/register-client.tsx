@@ -73,7 +73,10 @@ function computeCartTotal(
   groupPlayers: GroupPlayer_[]
 ): { totalAmount: number; costLines: Array<{ label: string; amount: number }> } {
   const costLines: Array<{ label: string; amount: number }> = []
-  let totalAmount = 0
+
+  if (Object.keys(selectedSchedules).length === 0) {
+    return { totalAmount: 0, costLines: [] }
+  }
 
   if (mode === 'solo') {
     Object.values(selectedSchedules).forEach(slot => {
@@ -85,7 +88,6 @@ function computeCartTotal(
         position
       )
       costLines.push({ label: slot.schedule.locations?.name || 'Game', amount })
-      totalAmount += amount
     })
   } else if (mode === 'group') {
     const primarySlot = Object.values(selectedSchedules)[0]
@@ -98,14 +100,14 @@ function computeCartTotal(
         player.preferred_position
       )
       costLines.push({ label: `${player.first_name} ${player.last_name}`, amount })
-      totalAmount += amount
     })
   } else {
     const primarySlot = Object.values(selectedSchedules)[0]
     const teamPrice = primarySlot.schedule.team_price || 0
     costLines.push({ label: 'Team Registration', amount: teamPrice })
-    totalAmount = teamPrice
   }
+
+  const totalAmount = costLines.reduce((sum, line) => sum + line.amount, 0)
 
   return { totalAmount, costLines }
 }
