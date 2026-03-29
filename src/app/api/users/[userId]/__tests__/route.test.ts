@@ -1,68 +1,79 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { POST } from '../route'
+import { PATCH } from '../route'
 
 vi.mock('@/lib/supabase/service')
-vi.mock('@/lib/supabase/client')
+vi.mock('@/lib/supabase/server')
 
-describe('POST /api/users/[userId]', () => {
+const CURRENT_USER_ID = '550e8400-e29b-41d4-a716-446655440000'
+const TARGET_USER_ID = '660e8400-e29b-41d4-a716-446655440001'
+
+function buildMockServerClient() {
+  return {
+    auth: {
+      getUser: vi.fn().mockResolvedValue({
+        data: { user: { id: CURRENT_USER_ID } },
+        error: null,
+      }),
+    },
+  }
+}
+
+function buildMockServiceClient() {
+  let callCount = 0
+  return {
+    from: vi.fn().mockImplementation((table: string) => {
+      callCount++
+      if (callCount === 1) {
+        // First call: fetch current user
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              single: vi.fn().mockResolvedValue({
+                data: { id: CURRENT_USER_ID, role: 'super_admin' },
+                error: null,
+              }),
+            }),
+          }),
+        }
+      } else {
+        // Second call: fetch target user
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              single: vi.fn().mockResolvedValue({
+                data: null,
+                error: null,
+              }),
+            }),
+          }),
+        }
+      }
+    }),
+  }
+}
+
+function makeRequest(userId: string, body: any = {}) {
+  return new Request(`http://localhost:3000/api/users/${userId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(body),
+    headers: { 'Content-Type': 'application/json' },
+  })
+}
+
+describe('PATCH /api/users/[userId]', () => {
   beforeEach(() => {
     vi.clearAllMocks()
   })
 
   it('should return 404 when target user does not exist', async () => {
     const { createServiceClient } = await import('@/lib/supabase/service')
-    const { createClient } = await import('@/lib/supabase/client')
+    const { createClient } = await import('@/lib/supabase/server')
 
-    // Mock Supabase client to return auth user
-    vi.mocked(createClient).mockReturnValue({
-      auth: {
-        getUser: vi.fn().mockResolvedValue({
-          data: { user: { id: 'current-user-id' } },
-          error: null,
-        }),
-      },
-    } as any)
+    vi.mocked(createClient).mockResolvedValue(buildMockServerClient() as any)
+    vi.mocked(createServiceClient).mockReturnValue(buildMockServiceClient() as any)
 
-    // Mock service client - setup for two from() calls
-    let callCount = 0
-    vi.mocked(createServiceClient).mockReturnValue({
-      from: vi.fn().mockImplementation((table: string) => {
-        callCount++
-        if (callCount === 1) {
-          // First call: fetch current user
-          return {
-            select: vi.fn().mockReturnValue({
-              eq: vi.fn().mockReturnValue({
-                single: vi.fn().mockResolvedValue({
-                  data: { id: 'current-user-id', role: 'super_admin' },
-                  error: null,
-                }),
-              }),
-            }),
-          }
-        } else {
-          // Second call: fetch target user (returns null)
-          return {
-            select: vi.fn().mockReturnValue({
-              eq: vi.fn().mockReturnValue({
-                single: vi.fn().mockResolvedValue({
-                  data: null,
-                  error: null,
-                }),
-              }),
-            }),
-          }
-        }
-      }),
-    } as any)
-
-    const request = new Request('http://localhost:3000/api/users/nonexistent', {
-      method: 'POST',
-      body: JSON.stringify({ first_name: 'John' }),
-      headers: { 'Content-Type': 'application/json' },
-    })
-
-    const response = await POST(request, { params: { userId: 'nonexistent' } })
+    const request = makeRequest(TARGET_USER_ID, { first_name: 'John' })
+    const response = await PATCH(request, { params: { userId: TARGET_USER_ID } })
 
     expect(response.status).toBe(404)
     const data = await response.json()
@@ -70,9 +81,9 @@ describe('POST /api/users/[userId]', () => {
   })
 
   it('should return 401 when user is not authenticated', async () => {
-    const { createClient } = await import('@/lib/supabase/client')
+    const { createClient } = await import('@/lib/supabase/server')
 
-    vi.mocked(createClient).mockReturnValue({
+    vi.mocked(createClient).mockResolvedValue({
       auth: {
         getUser: vi.fn().mockResolvedValue({
           data: { user: null },
@@ -81,12 +92,8 @@ describe('POST /api/users/[userId]', () => {
       },
     } as any)
 
-    const request = new Request('http://localhost:3000/api/users/some-id', {
-      method: 'POST',
-      body: JSON.stringify({ first_name: 'John' }),
-    })
-
-    const response = await POST(request, { params: { userId: 'some-id' } })
+    const request = makeRequest(TARGET_USER_ID, { first_name: 'John' })
+    const response = await PATCH(request, { params: { userId: TARGET_USER_ID } })
 
     expect(response.status).toBe(401)
     const data = await response.json()

@@ -1,27 +1,35 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/service'
-import { createClient } from '@/lib/supabase/client'
+import { createClient } from '@/lib/supabase/server'
 import { validateUserEditData } from '@/lib/validations/user-edit'
 
-export async function POST(
+export async function PATCH(
   request: NextRequest,
   { params }: { params: { userId: string } }
 ) {
   try {
     const userId = params.userId
-    const body = await request.json()
+    let body
+    try {
+      body = await request.json()
+    } catch {
+      return NextResponse.json(
+        { error: 'INVALID_INPUT', message: 'Invalid JSON in request body' },
+        { status: 400 }
+      )
+    }
 
     // Validate request data
     const validation = validateUserEditData(body)
     if (!validation.valid) {
       return NextResponse.json(
-        { error: 'INVALID_INPUT', message: 'Invalid input: ' + JSON.stringify(validation.errors) },
+        { error: 'INVALID_INPUT', details: validation.errors },
         { status: 400 }
       )
     }
 
     // Get current user from session
-    const supabase = createClient()
+    const supabase = await createClient()
     const { data: { user: authUser }, error: authError } = await supabase.auth.getUser()
 
     if (authError || !authUser) {
@@ -49,7 +57,7 @@ export async function POST(
     // Fetch target user to edit
     const { data: targetUser, error: targetUserError } = await serviceClient
       .from('users')
-      .select('*')
+      .select('id')
       .eq('id', userId)
       .single()
 
