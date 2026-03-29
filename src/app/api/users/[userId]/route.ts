@@ -1,15 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server'
+import type { UserRole } from '@/types'
 import { createServiceClient } from '@/lib/supabase/service'
 import { createClient } from '@/lib/supabase/server'
 import { validateUserEditData } from '@/lib/validations/user-edit'
 import { canEditField, canAssignRole } from '@/lib/permissions/user-editing'
 
+function isUserRole(value: string): value is UserRole {
+  return ['super_admin', 'admin', 'player', 'facilitator'].includes(value)
+}
+
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { userId: string } }
+  { params }: { params: Promise<{ userId: string }> }
 ) {
   try {
-    const userId = params.userId
+    const { userId } = await params
     let body
     try {
       body = await request.json()
@@ -55,6 +60,13 @@ export async function PATCH(
       )
     }
 
+    if (!isUserRole(currentUser.role)) {
+      return NextResponse.json(
+        { error: 'SERVER_ERROR', message: 'An error occurred while updating user' },
+        { status: 500 }
+      )
+    }
+
     // Fetch target user to edit
     const { data: targetUser, error: targetUserError } = await serviceClient
       .from('users')
@@ -75,7 +87,7 @@ export async function PATCH(
     )
 
     for (const field of fieldsToEdit) {
-      if (!canEditField(currentUser.role as any, field as any)) {
+      if (!canEditField(currentUser.role, field as any)) {
         return NextResponse.json(
           { error: 'PERMISSION_DENIED', message: `You don't have permission to edit ${field}` },
           { status: 403 }
@@ -92,7 +104,7 @@ export async function PATCH(
           )
         }
 
-        if (!canAssignRole(currentUser.role as any, validation.data.role as any)) {
+        if (!canAssignRole(currentUser.role, validation.data.role as any)) {
           return NextResponse.json(
             { error: 'PERMISSION_DENIED', message: `You don't have permission to assign role ${validation.data.role}` },
             { status: 403 }
@@ -101,7 +113,7 @@ export async function PATCH(
       }
     }
 
-    // Placeholder: Permission checks, validation, role changes added in later tasks
+    // Database update will be implemented in Task 5
     return NextResponse.json(
       { id: targetUser.id, message: 'Success' },
       { status: 200 }

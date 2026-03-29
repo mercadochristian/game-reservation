@@ -73,7 +73,7 @@ describe('PATCH /api/users/[userId]', () => {
     vi.mocked(createServiceClient).mockReturnValue(buildMockServiceClient() as any)
 
     const request = makeRequest(TARGET_USER_ID, { first_name: 'John' })
-    const response = await PATCH(request, { params: { userId: TARGET_USER_ID } })
+    const response = await PATCH(request, { params: { userId: TARGET_USER_ID } as any })
 
     expect(response.status).toBe(404)
     const data = await response.json()
@@ -93,7 +93,7 @@ describe('PATCH /api/users/[userId]', () => {
     } as any)
 
     const request = makeRequest(TARGET_USER_ID, { first_name: 'John' })
-    const response = await PATCH(request, { params: { userId: TARGET_USER_ID } })
+    const response = await PATCH(request, { params: { userId: TARGET_USER_ID } as any })
 
     expect(response.status).toBe(401)
     const data = await response.json()
@@ -147,6 +147,59 @@ describe('PATCH /api/users/[userId]', () => {
 
     const request = makeRequest(TARGET_USER_ID, { first_name: 'Jane' })
     const response = await PATCH(request, { params: { userId: TARGET_USER_ID } })
+
+    expect(response.status).toBe(403)
+    const data = await response.json()
+    expect(data.error).toBe('PERMISSION_DENIED')
+  })
+
+  it('should return 403 when player tries to edit themselves', async () => {
+    const { createServiceClient } = await import('@/lib/supabase/service')
+    const { createClient } = await import('@/lib/supabase/server')
+
+    vi.mocked(createClient).mockResolvedValue({
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: { id: CURRENT_USER_ID } },
+          error: null,
+        }),
+      },
+    } as any)
+
+    let callCount = 0
+    vi.mocked(createServiceClient).mockReturnValue({
+      from: vi.fn().mockImplementation((table: string) => {
+        callCount++
+        if (callCount === 1) {
+          // Current user is player
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({
+                  data: { id: CURRENT_USER_ID, role: 'player' },
+                  error: null,
+                }),
+              }),
+            }),
+          }
+        } else {
+          // Target user is same player (self-edit)
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({
+                  data: { id: CURRENT_USER_ID, role: 'player' },
+                  error: null,
+                }),
+              }),
+            }),
+          }
+        }
+      }),
+    } as any)
+
+    const request = makeRequest(CURRENT_USER_ID, { first_name: 'Jane' })
+    const response = await PATCH(request, { params: { userId: CURRENT_USER_ID } as any })
 
     expect(response.status).toBe(403)
     const data = await response.json()
@@ -252,9 +305,9 @@ describe('PATCH /api/users/[userId]', () => {
     } as any)
 
     const request = makeRequest(TARGET_USER_ID, { first_name: 'Jane', role: 'facilitator' })
-    const response = await PATCH(request, { params: { userId: TARGET_USER_ID } })
+    const response = await PATCH(request, { params: { userId: TARGET_USER_ID } as any })
 
     // Should pass permission checks (will return 200 for now since update logic not implemented)
-    expect(response.status).not.toBe(403)
+    expect(response.status).toBe(200)
   })
 })

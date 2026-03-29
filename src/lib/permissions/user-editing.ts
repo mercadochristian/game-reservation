@@ -1,4 +1,4 @@
-type UserRole = 'super_admin' | 'admin' | 'facilitator' | 'player'
+import type { UserRole } from '@/types'
 
 export type EditableField = 'first_name' | 'last_name' | 'email' | 'player_contact_number' | 'emergency_contact_name' | 'emergency_contact_relationship' | 'emergency_contact_number' | 'role' | 'skill_level'
 
