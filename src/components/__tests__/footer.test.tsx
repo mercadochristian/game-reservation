@@ -30,13 +30,13 @@ describe('Footer', () => {
   it('should render Facebook social link with correct URL from branding config', () => {
     render(<Footer />)
     const links = screen.getAllByRole('link', { name: /facebook/i })
-    expect(links[0].getAttribute('href')).toBe('https://facebook.com/dreamersvc')
+    expect(links[0].getAttribute('href')).toBe('https://www.facebook.com/profile.php?id=61560221969451')
   })
 
   it('should render Instagram social link with correct URL from branding config', () => {
     render(<Footer />)
     const links = screen.getAllByRole('link', { name: /instagram/i })
-    expect(links[0].getAttribute('href')).toBe('https://instagram.com/dreamersvc')
+    expect(links[0].getAttribute('href')).toBe('https://www.instagram.com/dreamersvolleyballclub/')
   })
 
   it('should have correct aria-labels for accessibility', () => {
