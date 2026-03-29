@@ -1,7 +1,6 @@
 import { Suspense } from 'react'
 import { type ScheduleWithLocation } from '@/types'
 import { createServiceClient } from '@/lib/supabase/service'
-import { getNowInManila } from '@/lib/utils/timezone'
 import { PublicNav } from '@/components/public-nav'
 import { PublicCalendar } from '@/components/public-calendar'
 import { HeroSection } from '@/components/hero-section'
@@ -33,31 +32,10 @@ function CalendarLoading() {
 export default async function Home() {
   const schedules = await getSchedules()
 
-  // Compute hero stats from schedules
-  const now = getNowInManila()
-  const gamesThisMonth = schedules.filter((s) => {
-    const d = new Date(s.start_time)
-    return (
-      d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
-    )
-  }).length
-
-  const uniqueLocations = new Set(
-    schedules.map((s) => s.locations?.name).filter(Boolean)
-  ).size
-
-  const upcomingCount = schedules.filter(
-    (s) => new Date(s.start_time) > now
-  ).length
-
   return (
     <div className="min-h-screen bg-background">
       <PublicNav />
-      <HeroSection
-        gamesThisMonth={gamesThisMonth}
-        uniqueLocations={uniqueLocations}
-        upcomingCount={upcomingCount}
-      />
+      <HeroSection />
       <div className="h-px max-w-4xl mx-auto px-4 sm:px-6">
         <div className="h-px bg-linear-to-r from-transparent via-border to-transparent" />
       </div>
