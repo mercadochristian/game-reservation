@@ -1,3 +1,5 @@
+// @vitest-environment jsdom
+
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { render, screen, cleanup } from '@testing-library/react'
 import { EditUserModal } from '../edit-user-modal'
@@ -99,6 +101,43 @@ describe('EditUserModal', () => {
     )
 
     // Role label/dropdown should not exist
+    expect(screen.queryByLabelText('Role')).not.toBeInTheDocument()
+  })
+
+  it('shows role field for super_admin', () => {
+    render(
+      <EditUserModal
+        isOpen={true}
+        onClose={vi.fn()}
+        user={mockUser}
+        currentUserRole="super_admin"
+      />
+    )
+
+    // Role dropdown should be visible for super_admin
+    expect(screen.getByLabelText('Role')).toBeInTheDocument()
+    const roleSelect = document.getElementById('role') as HTMLSelectElement
+    expect(roleSelect).toBeInTheDocument()
+  })
+
+  it('disables all fields for player role viewing another user', () => {
+    render(
+      <EditUserModal
+        isOpen={true}
+        onClose={vi.fn()}
+        user={mockUser}
+        currentUserRole="player"
+      />
+    )
+
+    // All fields should be disabled for player
+    const firstNameInput = document.getElementById('first_name') as HTMLInputElement
+    expect(firstNameInput.hasAttribute('disabled')).toBe(true)
+
+    const skillLevelSelect = document.getElementById('skill_level') as HTMLSelectElement
+    expect(skillLevelSelect.hasAttribute('disabled')).toBe(true)
+
+    // Role field should not exist for player
     expect(screen.queryByLabelText('Role')).not.toBeInTheDocument()
   })
 })

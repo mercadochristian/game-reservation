@@ -16,30 +16,7 @@ import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import type { UserRole } from '@/types'
 import { userEditSchema, type UserEditData } from '@/lib/validations/user-edit'
-
-function getEditableFields(userRole: UserRole): string[] {
-  const baseFields = ['skill_level']
-
-  if (userRole === 'super_admin' || userRole === 'admin') {
-    return [
-      'first_name',
-      'last_name',
-      'email',
-      'player_contact_number',
-      'emergency_contact_name',
-      'emergency_contact_relationship',
-      'emergency_contact_number',
-      'skill_level',
-      'role',
-    ]
-  }
-
-  return baseFields
-}
-
-function isFieldEditable(fieldName: string, userRole: UserRole): boolean {
-  return getEditableFields(userRole).includes(fieldName)
-}
+import { canEditField } from '@/lib/permissions/user-editing'
 
 interface UserRow {
   id: string
@@ -92,7 +69,7 @@ export function EditUserModal({
       emergency_contact_name: user.emergency_contact_name || '',
       emergency_contact_relationship: user.emergency_contact_relationship || '',
       emergency_contact_number: user.emergency_contact_number || '',
-      skill_level: user.skill_level as any,
+      skill_level: (user.skill_level || '') as any,
       role: user.role as UserRole,
     },
   })
@@ -122,7 +99,7 @@ export function EditUserModal({
               <Input
                 id="first_name"
                 {...register('first_name')}
-                disabled={!isFieldEditable('first_name', currentUserRole)}
+                disabled={!canEditField(currentUserRole, 'first_name')}
               />
               {errors.first_name && (
                 <p className="text-destructive text-sm mt-1">
@@ -137,7 +114,7 @@ export function EditUserModal({
               <Input
                 id="last_name"
                 {...register('last_name')}
-                disabled={!isFieldEditable('last_name', currentUserRole)}
+                disabled={!canEditField(currentUserRole, 'last_name')}
               />
               {errors.last_name && (
                 <p className="text-destructive text-sm mt-1">
@@ -153,7 +130,7 @@ export function EditUserModal({
                 id="email"
                 type="email"
                 {...register('email')}
-                disabled={!isFieldEditable('email', currentUserRole)}
+                disabled={!canEditField(currentUserRole, 'email')}
               />
               {errors.email && (
                 <p className="text-destructive text-sm mt-1">
@@ -167,8 +144,9 @@ export function EditUserModal({
               <Label htmlFor="player_contact_number">Phone Number</Label>
               <Input
                 id="player_contact_number"
+                type="tel"
                 {...register('player_contact_number')}
-                disabled={!isFieldEditable('player_contact_number', currentUserRole)}
+                disabled={!canEditField(currentUserRole, 'player_contact_number')}
               />
               {errors.player_contact_number && (
                 <p className="text-destructive text-sm mt-1">
@@ -183,7 +161,7 @@ export function EditUserModal({
               <Input
                 id="emergency_contact_name"
                 {...register('emergency_contact_name')}
-                disabled={!isFieldEditable('emergency_contact_name', currentUserRole)}
+                disabled={!canEditField(currentUserRole, 'emergency_contact_name')}
               />
               {errors.emergency_contact_name && (
                 <p className="text-destructive text-sm mt-1">
@@ -198,7 +176,7 @@ export function EditUserModal({
               <Input
                 id="emergency_contact_relationship"
                 {...register('emergency_contact_relationship')}
-                disabled={!isFieldEditable('emergency_contact_relationship', currentUserRole)}
+                disabled={!canEditField(currentUserRole, 'emergency_contact_relationship')}
               />
               {errors.emergency_contact_relationship && (
                 <p className="text-destructive text-sm mt-1">
@@ -212,8 +190,9 @@ export function EditUserModal({
               <Label htmlFor="emergency_contact_number">Emergency Contact Phone</Label>
               <Input
                 id="emergency_contact_number"
+                type="tel"
                 {...register('emergency_contact_number')}
-                disabled={!isFieldEditable('emergency_contact_number', currentUserRole)}
+                disabled={!canEditField(currentUserRole, 'emergency_contact_number')}
               />
               {errors.emergency_contact_number && (
                 <p className="text-destructive text-sm mt-1">
@@ -228,7 +207,7 @@ export function EditUserModal({
               <select
                 id="skill_level"
                 {...register('skill_level')}
-                disabled={!isFieldEditable('skill_level', currentUserRole)}
+                disabled={!canEditField(currentUserRole, 'skill_level')}
                 className="w-full px-3 py-2 rounded-lg border border-foreground/20 bg-background disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 <option value="">None</option>
@@ -246,7 +225,7 @@ export function EditUserModal({
             </div>
 
             {/* Role - only show for super_admin and admin */}
-            {isFieldEditable('role', currentUserRole) && (
+            {canEditField(currentUserRole, 'role') && (
               <div>
                 <Label htmlFor="role">Role</Label>
                 <select
