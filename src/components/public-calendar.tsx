@@ -352,7 +352,7 @@ export function PublicCalendar({ schedules }: PublicCalendarProps) {
                     className={`
                       relative h-10 w-10 rounded-full transition-all flex items-center justify-center cursor-pointer
                       ${!hasSchedule ? 'text-muted-foreground hover:bg-muted/50' : 'text-foreground hover:bg-muted'}
-                      ${isSelected ? 'bg-primary text-primary-foreground font-semibold shadow-sm' : ''}
+                      ${isSelected ? 'bg-primary text-primary-foreground font-semibold' : ''}
                       ${isToday && !isSelected ? 'ring-2 ring-primary/40 font-semibold' : ''}
                     `}
                   >
