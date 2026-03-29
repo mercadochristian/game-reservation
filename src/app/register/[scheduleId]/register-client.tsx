@@ -614,7 +614,7 @@ export function RegisterClient({
     const ErrorIcon = errorIcon
 
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-[100dvh] bg-background">
         <div className="max-w-lg mx-auto px-4 py-8">
           <button
             onClick={() => router.push(`/?date=${dateParam || ''}`)}
@@ -650,7 +650,7 @@ export function RegisterClient({
 
     if (allSuccess) {
       return (
-        <div className="min-h-screen bg-background">
+        <div className="min-h-[100dvh] bg-background">
           <div className="max-w-lg mx-auto px-4 py-8">
             <motion.div
               initial={hasAnimated.current ? false : "hidden"}
@@ -676,7 +676,7 @@ export function RegisterClient({
     }
 
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-[100dvh] bg-background">
         <div className="max-w-lg mx-auto px-4 py-8">
           <button
             onClick={() => router.push(`/?date=${dateParam || ''}`)}
@@ -732,6 +732,7 @@ export function RegisterClient({
           aria-label="Back"
         >
           <ChevronLeft className="h-5 w-5" />
+          <span className="hidden sm:inline">Back</span>
         </button>
         <span className="text-sm font-bold text-white">Register</span>
         <button
