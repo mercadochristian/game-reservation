@@ -1,6 +1,10 @@
-import { describe, it, expect, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { describe, it, expect, vi, afterEach } from 'vitest'
+import { render, screen, cleanup } from '@testing-library/react'
 import { EditUserModal } from '../edit-user-modal'
+
+afterEach(() => {
+  cleanup()
+})
 
 describe('EditUserModal', () => {
   const mockUser = {
@@ -45,5 +49,56 @@ describe('EditUserModal', () => {
     // Dialog should not be visible in DOM when closed
     const dialog = container.querySelector('[data-slot="dialog-content"]')
     expect(dialog).toBeNull()
+  })
+
+  it('shows all fields for admin', () => {
+    render(
+      <EditUserModal
+        isOpen={true}
+        onClose={vi.fn()}
+        user={mockUser}
+        currentUserRole="admin"
+      />
+    )
+
+    // Find the email field by id to avoid duplicates in StrictMode
+    const emailInput = document.getElementById('email') as HTMLInputElement
+    expect(emailInput).toBeInTheDocument()
+    expect(emailInput.value).toBe('john@example.com')
+
+    expect(screen.getByLabelText('First Name')).toBeInTheDocument() // use label to find field
+    expect(screen.getByLabelText('Phone Number')).toBeInTheDocument()
+  })
+
+  it('shows only skill_level editable for facilitator', () => {
+    render(
+      <EditUserModal
+        isOpen={true}
+        onClose={vi.fn()}
+        user={mockUser}
+        currentUserRole="facilitator"
+      />
+    )
+
+    const skillLevelInput = document.getElementById('skill_level') as HTMLSelectElement
+    expect(skillLevelInput).not.toHaveAttribute('disabled')
+
+    // Other fields should be disabled
+    const firstNameInput = document.getElementById('first_name') as HTMLInputElement
+    expect(firstNameInput.hasAttribute('disabled')).toBe(true)
+  })
+
+  it('does not show role field for facilitator', () => {
+    render(
+      <EditUserModal
+        isOpen={true}
+        onClose={vi.fn()}
+        user={{ ...mockUser, role: 'player' }}
+        currentUserRole="facilitator"
+      />
+    )
+
+    // Role label/dropdown should not exist
+    expect(screen.queryByLabelText('Role')).not.toBeInTheDocument()
   })
 })
