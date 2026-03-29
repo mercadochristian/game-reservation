@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { toast } from 'sonner'
 import {
   Dialog,
   DialogContent,
@@ -76,6 +77,67 @@ export function EditUserModal({
 
   const currentRole = watch('role')
 
+  const submitForm = async (data: UserEditData) => {
+    setIsSubmitting(true)
+    try {
+      const payload: Partial<UserEditData> = {}
+
+      // Build payload with only editable fields
+      const editableFields: Array<keyof UserEditData> = [
+        'first_name',
+        'last_name',
+        'email',
+        'player_contact_number',
+        'emergency_contact_name',
+        'emergency_contact_relationship',
+        'emergency_contact_number',
+        'skill_level',
+        'role',
+      ]
+
+      for (const field of editableFields) {
+        if (canEditField(currentUserRole, field)) {
+          payload[field] = data[field]
+        }
+      }
+
+      const response = await fetch(`/api/users/${user.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        toast.error(result.message || 'Failed to update user')
+        return
+      }
+
+      toast.success('User updated successfully')
+      onSuccess?.()
+      onClose()
+      reset()
+    } catch (error) {
+      console.error('Error updating user:', error)
+      toast.error('Something went wrong. Please try again.')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const onFormSubmit = async (data: UserEditData) => {
+    // If role is changing, show confirmation first
+    if (data.role && data.role !== user.role) {
+      setPendingRole(data.role)
+      setShowRoleConfirm(true)
+      return
+    }
+
+    // Otherwise submit immediately
+    await submitForm(data)
+  }
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent>
@@ -86,12 +148,7 @@ export function EditUserModal({
           </DialogDescription>
         </DialogHeader>
 
-        <form
-          onSubmit={handleSubmit(async (data) => {
-            // Placeholder for submission logic
-            console.log('Form submitted:', data)
-          })}
-        >
+        <form onSubmit={handleSubmit(onFormSubmit)}>
           <div className="space-y-4">
             {/* First Name */}
             <div>

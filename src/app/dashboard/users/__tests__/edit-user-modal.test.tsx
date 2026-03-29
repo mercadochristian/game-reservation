@@ -1,7 +1,9 @@
 // @vitest-environment jsdom
 
-import { describe, it, expect, vi, afterEach } from 'vitest'
+import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest'
 import { render, screen, cleanup } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import { toast } from 'sonner'
 import { EditUserModal } from '../edit-user-modal'
 
 afterEach(() => {
@@ -139,5 +141,66 @@ describe('EditUserModal', () => {
 
     // Role field should not exist for player
     expect(screen.queryByLabelText('Role')).not.toBeInTheDocument()
+  })
+
+  it('submits form with correct payload on save', async () => {
+    const user = userEvent.setup()
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ id: mockUser.id, ...mockUser }),
+    })
+    globalThis.fetch = mockFetch as any
+
+    const mockOnSuccess = vi.fn()
+    render(
+      <EditUserModal
+        isOpen={true}
+        onClose={vi.fn()}
+        onSuccess={mockOnSuccess}
+        user={mockUser}
+        currentUserRole="admin"
+      />
+    )
+
+    const saveButton = screen.getByRole('button', { name: 'Save' })
+    await user.click(saveButton)
+
+    expect(mockFetch).toHaveBeenCalledWith(
+      `/api/users/${mockUser.id}`,
+      expect.objectContaining({
+        method: 'PATCH',
+      })
+    )
+    expect(mockOnSuccess).toHaveBeenCalled()
+  })
+
+  it('shows error toast on API failure', async () => {
+    const user = userEvent.setup()
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: false,
+      json: async () => ({ error: 'EMAIL_IN_USE', message: 'Email already in use' }),
+    })
+    globalThis.fetch = mockFetch as any
+
+    const toastErrorSpy = vi.spyOn(toast, 'error')
+
+    render(
+      <EditUserModal
+        isOpen={true}
+        onClose={vi.fn()}
+        user={mockUser}
+        currentUserRole="admin"
+      />
+    )
+
+    const saveButton = screen.getByRole('button', { name: 'Save' })
+    await user.click(saveButton)
+
+    expect(toastErrorSpy).toHaveBeenCalledWith('Email already in use')
+
+    // Modal should remain open on error
+    expect(screen.getByText('Edit User')).toBeInTheDocument()
+
+    toastErrorSpy.mockRestore()
   })
 })

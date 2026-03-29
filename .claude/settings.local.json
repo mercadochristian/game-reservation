@@ -18,7 +18,8 @@
       "Bash(done)",
       "Bash(npx eslint:*)",
       "Bash(find /Users/christianmercado/Documents/Work/Personal/game-reservation -name vitest.config* -o -name vite.config*)",
-      "Bash(find /Users/christianmercado/Documents/Work/Personal/game-reservation -name *edit-user* -type f)"
+      "Bash(find /Users/christianmercado/Documents/Work/Personal/game-reservation -name *edit-user* -type f)",
+      "Bash(npm install:*)"
     ]
   }
 }
