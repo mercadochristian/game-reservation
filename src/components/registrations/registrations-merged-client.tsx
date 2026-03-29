@@ -3,7 +3,6 @@
 import { useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { PageHeader } from '@/components/ui/page-header'
 import { fadeUpVariants } from '@/lib/animations'
 import { useHasAnimated } from '@/lib/hooks/useHasAnimated'
@@ -31,8 +30,6 @@ export function RegistrationsMergedClient({
   const [isPastGamesExpanded, setIsPastGamesExpanded] = useState(false)
   const [upcomingPage, setUpcomingPage] = useState(1)
   const [pastPage, setPastPage] = useState(1)
-  const [registerDialogOpen, setRegisterDialogOpen] = useState(false)
-  const [selectedScheduleIdForRegister, setSelectedScheduleIdForRegister] = useState<string | null>(null)
 
   const { upcomingSchedules, pastSchedules, registrationsByScheduleId, loading } =
     useSchedulesByLocation(selectedLocationId)
@@ -52,9 +49,10 @@ export function RegistrationsMergedClient({
   }, [])
 
   const handleRegisterPlayer = useCallback((scheduleId: string) => {
-    setSelectedScheduleIdForRegister(scheduleId)
-    setRegisterDialogOpen(true)
-  }, [])
+    // Navigate to old single-game view with register dialog open
+    // This uses the existing registration infrastructure temporarily
+    router.push(`/dashboard/registrations?scheduleId=${scheduleId}&openRegister=true`)
+  }, [router])
 
   const handleManageLineups = useCallback((scheduleId: string) => {
     router.push(`/dashboard/lineups/${scheduleId}`)
@@ -64,8 +62,7 @@ export function RegistrationsMergedClient({
     Object.values(registrationsByScheduleId).reduce((sum, regs) => sum + regs.length, 0)
 
   return (
-    <>
-      <div className="max-w-6xl mx-auto p-6 lg:p-8">
+    <div className="max-w-6xl mx-auto p-6 lg:p-8">
         <PageHeader
           breadcrumb="Registrations"
           title="Registrations"
@@ -157,23 +154,5 @@ export function RegistrationsMergedClient({
           </>
         )}
       </div>
-
-      {/* Register Dialog (placeholder) */}
-      {registerDialogOpen && selectedScheduleIdForRegister && (
-        <Dialog open onOpenChange={(open) => { if (!open) setRegisterDialogOpen(false) }}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Register Players</DialogTitle>
-              <DialogDescription>
-                Registering for schedule {selectedScheduleIdForRegister}
-              </DialogDescription>
-            </DialogHeader>
-            <div className="py-4">
-              <p className="text-sm text-muted-foreground">Registration form will be implemented next</p>
-            </div>
-          </DialogContent>
-        </Dialog>
-      )}
-    </>
   )
 }
