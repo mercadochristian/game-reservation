@@ -313,6 +313,55 @@ export function EditUserModal({
             </Button>
           </DialogFooter>
         </form>
+
+        {/* Role Change Confirmation Dialog */}
+        {showRoleConfirm && (
+          <Dialog
+            open={showRoleConfirm}
+            onOpenChange={(open) => {
+              if (!open) {
+                setShowRoleConfirm(false)
+                setPendingRole(null)
+              }
+            }}
+          >
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Change Role?</DialogTitle>
+              </DialogHeader>
+
+              <p className="text-sm text-muted-foreground">
+                Change {user.first_name} {user.last_name}'s role from{' '}
+                <span className="font-medium text-foreground">{user.role}</span> to{' '}
+                <span className="font-medium text-foreground">{pendingRole}</span>?
+              </p>
+
+              <DialogFooter>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setShowRoleConfirm(false)
+                    setPendingRole(null)
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  onClick={async () => {
+                    const data = getValues()
+                    setShowRoleConfirm(false)
+                    setPendingRole(null)
+                    await submitForm(data)
+                  }}
+                >
+                  Confirm
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        )}
       </DialogContent>
     </Dialog>
   )

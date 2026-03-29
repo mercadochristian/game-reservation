@@ -203,4 +203,70 @@ describe('EditUserModal', () => {
 
     toastErrorSpy.mockRestore()
   })
+
+  it('shows confirmation dialog when role changes', async () => {
+    const user = userEvent.setup()
+    render(
+      <EditUserModal
+        isOpen={true}
+        onClose={vi.fn()}
+        user={mockUser}
+        currentUserRole="admin"
+      />
+    )
+
+    // Change role dropdown
+    const roleSelect = document.getElementById('role') as HTMLSelectElement
+    await user.selectOptions(roleSelect, 'facilitator')
+
+    // Click save
+    const saveButton = screen.getByRole('button', { name: 'Save' })
+    await user.click(saveButton)
+
+    // Confirmation dialog should appear
+    expect(screen.getByText('Change Role?')).toBeInTheDocument()
+  })
+
+  it('submits on role change confirmation', async () => {
+    const user = userEvent.setup()
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ id: mockUser.id, ...mockUser, role: 'facilitator' }),
+    })
+    globalThis.fetch = mockFetch as any
+
+    const mockOnSuccess = vi.fn()
+    render(
+      <EditUserModal
+        isOpen={true}
+        onClose={vi.fn()}
+        onSuccess={mockOnSuccess}
+        user={mockUser}
+        currentUserRole="admin"
+      />
+    )
+
+    // Change role
+    const roleSelect = document.getElementById('role') as HTMLSelectElement
+    await user.selectOptions(roleSelect, 'facilitator')
+
+    // Click save to show confirmation
+    let saveButton = screen.getByRole('button', { name: 'Save' })
+    await user.click(saveButton)
+
+    // Confirmation should appear
+    expect(screen.getByText('Change Role?')).toBeInTheDocument()
+
+    // Click confirm on confirmation dialog
+    const confirmButton = screen.getByRole('button', { name: 'Confirm' })
+    await user.click(confirmButton)
+
+    // Should have submitted the form
+    expect(mockFetch).toHaveBeenCalledWith(
+      `/api/users/${mockUser.id}`,
+      expect.objectContaining({
+        method: 'PATCH',
+      })
+    )
+  })
 })
