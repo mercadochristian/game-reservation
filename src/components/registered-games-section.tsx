@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useReducer } from 'react'
 import { motion } from 'framer-motion'
 import { createClient } from '@/lib/supabase/client'
-import type { ScheduleWithLocation, User, Registration } from '@/types'
+import type { ScheduleWithLocation, Registration } from '@/types'
 import { RegisteredGameCard } from '@/components/registered-game-card'
 import { QRModal } from '@/components/qr-modal'
 import { fadeUpVariants } from '@/lib/animations'
@@ -11,7 +11,7 @@ import { getNowInManila } from '@/lib/utils/timezone'
 import { toast } from 'sonner'
 
 interface RegisteredGamesSectionState {
-  user: User | null | undefined
+  userId: string | null | undefined
   registrations: (Registration & { schedules: ScheduleWithLocation })[]
   loading: boolean
   qrModalOpen: boolean
@@ -20,14 +20,14 @@ interface RegisteredGamesSectionState {
 }
 
 type RegisteredGamesAction =
-  | { type: 'SET_USER'; user: User | null }
+  | { type: 'SET_USER'; userId: string | null }
   | { type: 'SET_REGISTRATIONS'; registrations: (Registration & { schedules: ScheduleWithLocation })[] }
   | { type: 'SET_LOADING'; loading: boolean }
   | { type: 'OPEN_QR'; schedule: ScheduleWithLocation; registration: Registration }
   | { type: 'CLOSE_QR' }
 
 const initialState: RegisteredGamesSectionState = {
-  user: undefined,
+  userId: undefined,
   registrations: [],
   loading: true,
   qrModalOpen: false,
@@ -38,7 +38,7 @@ const initialState: RegisteredGamesSectionState = {
 function registeredGamesReducer(state: RegisteredGamesSectionState, action: RegisteredGamesAction): RegisteredGamesSectionState {
   switch (action.type) {
     case 'SET_USER':
-      return { ...state, user: action.user }
+      return { ...state, userId: action.userId }
     case 'SET_REGISTRATIONS':
       return { ...state, registrations: action.registrations, loading: false }
     case 'SET_LOADING':
@@ -58,7 +58,7 @@ interface RegisteredGamesSectionProps {
 
 export function RegisteredGamesSection({ includePastGames = false }: RegisteredGamesSectionProps) {
   const [state, dispatch] = useReducer(registeredGamesReducer, initialState)
-  const { user, registrations, loading, qrModalOpen, activeSchedule, activeRegistration } = state
+  const { userId, registrations, loading, qrModalOpen, activeSchedule, activeRegistration } = state
 
   // Fetch registrations when user is authenticated
   const fetchRegistrations = useCallback(async (userId: string) => {
@@ -66,31 +66,44 @@ export function RegisteredGamesSection({ includePastGames = false }: RegisteredG
     dispatch({ type: 'SET_LOADING', loading: true })
 
     try {
-      const { data, error } = (await supabase
+      const { data, error } = await supabase
         .from('registrations')
         .select(`
           *,
           schedules:schedule_id(*)
         `)
-        .eq('player_id', userId)) as any
+        .eq('player_id', userId) as {
+          data: (Registration & { schedules: ScheduleWithLocation })[] | null
+          error: any
+        }
 
       if (error) {
-        console.error('[RegisteredGamesSection] Failed to fetch registrations:', error)
+        console.error('[RegisteredGamesSection] Failed to fetch registrations for user:', {
+          userId,
+          error: error.message,
+          code: error.code,
+          timestamp: new Date().toISOString(),
+        })
         toast.error('Failed to load your registrations')
         dispatch({ type: 'SET_LOADING', loading: false })
         return
       }
 
       const now = getNowInManila()
-      const filtered = (data ?? []).filter((reg: any) => {
-        if (!reg.schedules) return false
+      const filtered = (data ?? []).filter((reg: Registration & { schedules: ScheduleWithLocation }) => {
+        if (!reg.schedules?.start_time) return false
         const gameTime = new Date(reg.schedules.start_time)
         return includePastGames ? true : gameTime >= now
       })
 
       dispatch({ type: 'SET_REGISTRATIONS', registrations: filtered })
     } catch (err) {
-      console.error('[RegisteredGamesSection] Error fetching registrations:', err)
+      console.error('[RegisteredGamesSection] Error fetching registrations:', {
+        userId,
+        error: err instanceof Error ? err.message : String(err),
+        stack: err instanceof Error ? err.stack : undefined,
+        timestamp: new Date().toISOString(),
+      })
       toast.error('Failed to load your registrations')
       dispatch({ type: 'SET_LOADING', loading: false })
     }
@@ -107,11 +120,11 @@ export function RegisteredGamesSection({ includePastGames = false }: RegisteredG
       if (cancelled) return
 
       if (error || !data.user) {
-        dispatch({ type: 'SET_USER', user: null })
+        dispatch({ type: 'SET_USER', userId: null })
         return
       }
 
-      dispatch({ type: 'SET_USER', user: (data.user as any) ?? null })
+      dispatch({ type: 'SET_USER', userId: data.user.id })
 
       if (data.user) {
         await fetchRegistrations(data.user.id)
@@ -127,7 +140,7 @@ export function RegisteredGamesSection({ includePastGames = false }: RegisteredG
 
   // Real-time subscription for registration changes
   useEffect(() => {
-    if (!user?.id) return
+    if (!userId) return
 
     const supabase = createClient()
     const channel = supabase
@@ -138,18 +151,24 @@ export function RegisteredGamesSection({ includePastGames = false }: RegisteredG
           event: '*',
           schema: 'public',
           table: 'registrations',
-          filter: `player_id=eq.${user.id}`,
+          filter: `player_id=eq.${userId}`,
         },
         () => {
-          void fetchRegistrations(user.id)
+          void fetchRegistrations(userId)
         }
       )
       .subscribe()
 
     return () => {
-      void supabase.removeChannel(channel)
+      void supabase.removeChannel(channel).catch(err => {
+        console.error('[RegisteredGamesSection] Failed to remove channel:', {
+          userId,
+          error: err instanceof Error ? err.message : String(err),
+          timestamp: new Date().toISOString(),
+        })
+      })
     }
-  }, [user?.id, fetchRegistrations])
+  }, [userId, fetchRegistrations])
 
   // Filter registrations based on current time (for real-time updates)
   const filteredRegistrations = useMemo(() => {
@@ -159,7 +178,7 @@ export function RegisteredGamesSection({ includePastGames = false }: RegisteredG
   }, [registrations, includePastGames])
 
   // Don't render for unauthenticated users
-  if (user === null) {
+  if (userId === null) {
     return null
   }
 

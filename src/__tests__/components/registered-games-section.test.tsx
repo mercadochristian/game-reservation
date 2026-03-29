@@ -85,7 +85,7 @@ describe('RegisteredGamesSection', () => {
         on: vi.fn().mockReturnThis(),
         subscribe: vi.fn().mockReturnThis(),
       }),
-      removeChannel: vi.fn(),
+      removeChannel: vi.fn().mockResolvedValue({}),
     }
     vi.mocked(supabaseModule.createClient).mockReturnValue(mockClient as any)
 
@@ -116,7 +116,7 @@ describe('RegisteredGamesSection', () => {
         on: vi.fn().mockReturnThis(),
         subscribe: vi.fn().mockReturnThis(),
       }),
-      removeChannel: vi.fn(),
+      removeChannel: vi.fn().mockResolvedValue({}),
     }
     vi.mocked(supabaseModule.createClient).mockReturnValue(mockClient as any)
 
@@ -153,7 +153,7 @@ describe('RegisteredGamesSection', () => {
         on: vi.fn().mockReturnThis(),
         subscribe: vi.fn().mockReturnThis(),
       }),
-      removeChannel: vi.fn(),
+      removeChannel: vi.fn().mockResolvedValue({}),
     }
     vi.mocked(supabaseModule.createClient).mockReturnValue(mockClient as any)
 
@@ -192,7 +192,7 @@ describe('RegisteredGamesSection', () => {
         on: vi.fn().mockReturnThis(),
         subscribe: vi.fn().mockReturnThis(),
       }),
-      removeChannel: vi.fn(),
+      removeChannel: vi.fn().mockResolvedValue({}),
     }
     vi.mocked(supabaseModule.createClient).mockReturnValue(mockClient as any)
 
@@ -225,7 +225,7 @@ describe('RegisteredGamesSection', () => {
         on: vi.fn().mockReturnThis(),
         subscribe: vi.fn().mockReturnThis(),
       }),
-      removeChannel: vi.fn(),
+      removeChannel: vi.fn().mockResolvedValue({}),
     }
     vi.mocked(supabaseModule.createClient).mockReturnValue(mockClient as any)
 
