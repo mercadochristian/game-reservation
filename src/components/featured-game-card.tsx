@@ -23,7 +23,7 @@ export function FeaturedGameCard({ schedule }: FeaturedGameCardProps) {
   }
 
   return (
-    <div className="border border-border rounded-lg bg-white p-6 hover:bg-gray-50 transition-colors">
+    <div className="border border-border rounded-lg bg-card p-6 hover:bg-muted transition-colors dark:hover:bg-muted/50">
       {/* Date & Time */}
       <h3 className="text-lg font-bold text-foreground dark:text-white mb-4">
         {formatDateTime(schedule.start_time, 'EEE, MMM d • h:mm a')}
@@ -37,7 +37,7 @@ export function FeaturedGameCard({ schedule }: FeaturedGameCardProps) {
 
       {/* Spots & Register */}
       <div className="flex items-end justify-between">
-        <p className={`text-sm font-medium ${isLowSpots ? 'text-destructive' : 'text-muted-foreground'}`}>
+        <p className={`text-sm font-medium ${isLowSpots ? 'text-destructive dark:text-red-400' : 'text-muted-foreground'}`}>
           {spotText}
         </p>
         {isFull ? (
