@@ -16,15 +16,15 @@ import { useHasAnimated } from '@/lib/hooks/useHasAnimated'
 import { usePagination } from '@/lib/hooks/usePagination'
 import { useUser } from '@/lib/context/user-context'
 import { SKILL_LEVEL_LABELS } from '@/lib/constants/labels'
-import type { UserRole } from '@/types'
+import type { UserRole, SkillLevel } from '@/types'
 
 type UserRow = {
   id: string
   first_name: string | null
   last_name: string | null
   email: string
-  role: string
-  skill_level: string | null
+  role: UserRole
+  skill_level: SkillLevel | null
   player_contact_number: string | null
   emergency_contact_name: string | null
   emergency_contact_relationship: string | null

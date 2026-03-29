@@ -6,7 +6,7 @@ import { X, UserCircle } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import type { NavCategory, NavPage } from '@/lib/config/navigation'
-import type { User } from '@/types/database'
+import type { User } from '@/types'
 
 interface NavModalProps {
   isOpen: boolean

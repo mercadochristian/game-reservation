@@ -15,7 +15,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
-import type { UserRole } from '@/types'
+import type { UserRole, SkillLevel } from '@/types'
 import { userEditSchema, type UserEditData } from '@/lib/validations/user-edit'
 import { canEditField } from '@/lib/permissions/user-editing'
 
@@ -24,8 +24,8 @@ interface UserRow {
   first_name: string | null
   last_name: string | null
   email: string
-  role: string
-  skill_level: string | null
+  role: UserRole
+  skill_level: SkillLevel | null
   player_contact_number: string | null
   emergency_contact_name: string | null
   emergency_contact_relationship: string | null
@@ -83,7 +83,7 @@ export function EditUserModal({
       emergency_contact_relationship: user.emergency_contact_relationship || '',
       emergency_contact_number: user.emergency_contact_number || '',
       skill_level: user.skill_level || undefined,
-      role: user.role as UserRole,
+      role: user.role,
     },
   })
 

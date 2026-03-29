@@ -38,7 +38,7 @@ export async function getPendingPaymentsStats(): Promise<{
     const { data, error } = await client
       .from('registration_payments')
       .select('id, required_amount')
-      .eq('payment_status', 'pending')
+      .eq('payment_status', 'pending') as { data: Array<{ id: string; required_amount: number }> | null; error: any }
 
     if (error) {
       console.error('Error fetching pending payments stats:', error)

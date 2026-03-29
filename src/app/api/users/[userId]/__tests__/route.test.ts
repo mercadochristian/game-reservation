@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { NextRequest } from 'next/server'
 import { PATCH } from '../route'
 
 vi.mock('@/lib/supabase/service')
@@ -20,7 +21,7 @@ function buildMockServerClient() {
 }
 
 function makeRequest(userId: string, body: any = {}) {
-  return new Request(`http://localhost:3000/api/users/${userId}`, {
+  return new NextRequest(`http://localhost:3000/api/users/${userId}`, {
     method: 'PATCH',
     body: JSON.stringify(body),
     headers: { 'Content-Type': 'application/json' },
@@ -65,7 +66,7 @@ describe('PATCH /api/users/[userId]', () => {
     } as any)
 
     const request = makeRequest(TARGET_USER_ID, { first_name: 'John' })
-    const response = await PATCH(request, { params: { userId: TARGET_USER_ID } as any })
+    const response = await PATCH(request, { params: Promise.resolve({ userId: TARGET_USER_ID }) })
 
     expect(response.status).toBe(404)
     const data = await response.json()
@@ -85,7 +86,7 @@ describe('PATCH /api/users/[userId]', () => {
     } as any)
 
     const request = makeRequest(TARGET_USER_ID, { first_name: 'John' })
-    const response = await PATCH(request, { params: { userId: TARGET_USER_ID } as any })
+    const response = await PATCH(request, { params: Promise.resolve({ userId: TARGET_USER_ID }) })
 
     expect(response.status).toBe(401)
     const data = await response.json()
@@ -145,7 +146,7 @@ describe('PATCH /api/users/[userId]', () => {
     } as any)
 
     const request = makeRequest(TARGET_USER_ID, { first_name: 'Jane' })
-    const response = await PATCH(request, { params: { userId: TARGET_USER_ID } })
+    const response = await PATCH(request, { params: Promise.resolve({ userId: TARGET_USER_ID }) })
 
     expect(response.status).toBe(403)
     const data = await response.json()
@@ -252,7 +253,7 @@ describe('PATCH /api/users/[userId]', () => {
     } as any)
 
     const request = makeRequest(TARGET_USER_ID, { role: 'player' })
-    const response = await PATCH(request, { params: { userId: TARGET_USER_ID } })
+    const response = await PATCH(request, { params: Promise.resolve({ userId: TARGET_USER_ID }) })
 
     expect(response.status).toBe(403)
     const data = await response.json()

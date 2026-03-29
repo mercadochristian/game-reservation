@@ -52,7 +52,7 @@ export async function PATCH(
       .from('users')
       .select('id, role')
       .eq('id', authUser.id)
-      .single()
+      .single() as { data: { id: string; role: string } | null; error: any }
 
     if (currentUserError || !currentUser) {
       return NextResponse.json(
@@ -73,7 +73,7 @@ export async function PATCH(
       .from('users')
       .select('id, role, email')
       .eq('id', userId)
-      .single()
+      .single() as { data: { id: string; role: string; email: string } | null; error: any }
 
     if (targetUserError || !targetUser) {
       return NextResponse.json(
@@ -166,6 +166,7 @@ export async function PATCH(
     // Update user in database
     const { data: updatedUser, error: updateError } = await serviceClient
       .from('users')
+      // @ts-ignore - Supabase typing issue with dynamic update fields
       .update(updateData)
       .eq('id', userId)
       .select()

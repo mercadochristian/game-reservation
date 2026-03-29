@@ -4,6 +4,7 @@ import { describe, it, expect, vi, afterEach } from 'vitest'
 import { render, screen, cleanup } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { toast } from 'sonner'
+import type { UserRole, SkillLevel } from '@/types'
 import { EditUserModal } from '../edit-user-modal'
 
 afterEach(() => {
@@ -16,8 +17,8 @@ describe('EditUserModal', () => {
     first_name: 'John',
     last_name: 'Doe',
     email: 'john@example.com',
-    role: 'player',
-    skill_level: 'intermediate',
+    role: 'player' as UserRole,
+    skill_level: 'intermediate' as SkillLevel,
     player_contact_number: '555-0000',
     emergency_contact_name: null,
     emergency_contact_relationship: null,
