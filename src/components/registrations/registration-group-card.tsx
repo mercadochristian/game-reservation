@@ -2,7 +2,7 @@
 
 import type { ScheduleWithSlots, RegistrationWithDetails } from '@/types'
 import { formatScheduleDateWithWeekday, formatScheduleTime } from '@/lib/utils/timezone'
-import { POSITION_LABELS, SKILL_LEVEL_LABELS } from '@/lib/constants/labels'
+import { POSITION_LABELS, SKILL_LEVEL_LABELS, PAYMENT_STATUS_LABELS } from '@/lib/constants/labels'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
@@ -48,11 +48,15 @@ export function RegistrationGroupCard({
     }
   }
 
+  const formatScheduleLabel = () => `${dateLabel} · ${timeLabel}`
+
   return (
     <div className={cn('border border-border rounded-lg bg-card overflow-hidden border-l-4', isPastGame ? 'border-l-muted/40' : 'border-l-primary/60')}>
       {/* Header - Clickable to toggle expansion */}
       <button
         onClick={() => onToggleExpand(schedule.id)}
+        aria-expanded={isExpanded}
+        aria-label={`Expand/collapse registrations for ${locationName} on ${formatScheduleLabel()}`}
         className="w-full px-6 py-4 flex items-center justify-between hover:bg-muted/50 transition-colors text-left cursor-pointer"
       >
         <div className="flex items-center gap-4 flex-1">
@@ -118,7 +122,7 @@ export function RegistrationGroupCard({
                           <TableCell className="hidden sm:table-cell text-sm">{skillLabel}</TableCell>
                           <TableCell>
                             <Badge variant={getPaymentStatusVariant(paymentStatus)} className="text-xs">
-                              {paymentStatus}
+                              {PAYMENT_STATUS_LABELS[paymentStatus] || paymentStatus}
                             </Badge>
                           </TableCell>
                           <TableCell className="hidden lg:table-cell text-sm">{teamName}</TableCell>

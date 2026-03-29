@@ -38,7 +38,7 @@
 
 **Key Architecture:**
 - Middleware (`src/middleware.ts`) enforces role-based route guards
-- Magic link sign-in via Supabase Auth
+- Email/password authentication via Supabase Auth (sign in + sign up on same page)
 - Three user roles: Admin, Facilitator, Player
 - Database triggers auto-create `public.users` rows on auth signup
 - Row-level security (RLS) protects all tables
@@ -81,22 +81,17 @@ Role-to-path mapping: `admin → /admin`, `facilitator → /facilitator`, `playe
 ### 3. Auth Page (`/auth`)
 **File:** `src/app/auth/page.tsx`
 
-Client component. Magic link form:
-- Calls `supabase.auth.signInWithOtp({ email, options: { emailRedirectTo: /auth/callback } })`
-- Reads `?error=` param from search for error display
+Client component. Email/password form with sign in and sign up modes:
+- Sign In: `supabase.auth.signInWithPassword({ email, password })`
+- Sign Up: `supabase.auth.signUp({ email, password })` → auto-logs in if confirmed
+- Reads `?returnUrl` param to redirect after auth
 - Uses `getAuthErrorMessage()` to humanize Supabase errors
-- Two-state UI: form → confirmation
+- Toggle between "Sign In" and "Create Account" modes
 
-### 4. Auth Callback (`/auth/callback`)
+### 4. Auth Callback (`/auth/callback`) — Deprecated
 **File:** `src/app/auth/callback/route.ts`
 
-GET handler. Receives `?code=` from magic link email:
-- Exchanges code for session: `supabase.auth.exchangeCodeForSession(code)`
-- Fetches `role` and `profile_completed` from `public.users`
-- Redirect logic:
-  - Player + `profile_completed = false` → `/create-profile`
-  - `?next=` param present → use that (e.g. `/?schedule=...`)
-  - Otherwise → role dashboard via `getRoleDashboard()` helper
+Previously used for magic link email confirmation. No longer in use with password-based auth.
 
 ### 5. Supabase Client Selection
 
@@ -875,10 +870,46 @@ Placeholder card grid. Links are non-functional (coming soon).
 
 ---
 
+### My Registrations (`/dashboard/my-registrations`)
+**File:** `src/app/dashboard/my-registrations/page.tsx` (server) + components/registrations/my-registrations-page.tsx (client)
+
+Player view of all their past and upcoming game registrations.
+
+**Features:**
+- Real-time subscription to registration changes
+- Filters for past/upcoming games
+- Game details: date, location, time, payment status
+- QR code modal for upcoming games (for check-in)
+- Attendance status for completed games
+- Registration team assignment display
+- Responsive card layout with location info
+
+**Auth:** Requires authenticated user role
+
+---
+
 ### Facilitator Dashboard (`/facilitator`)
 **File:** `src/app/facilitator/page.tsx`
 
 Placeholder card grid. Links are non-functional (coming soon).
+
+---
+
+### QR Scanner (`/dashboard/scanner`)
+**File:** `src/app/dashboard/scanner/page.tsx`
+
+**Status:** Coming soon (stub page)
+
+Designed for: Facilitators to scan QR codes and mark player attendance on game day.
+
+---
+
+### Award MVP (`/dashboard/mvp`)
+**File:** `src/app/dashboard/mvp/page.tsx`
+
+**Status:** Coming soon (stub page)
+
+Designed for: Facilitators to award MVP (most valuable player) post-game recognition.
 
 ---
 
@@ -1608,5 +1639,7 @@ Log all new features, pages, API routes, and significant changes here.
 | 2026-03-19 | Service: guest-user | `src/lib/services/guest-user.ts` | Extracted guest user create-or-reuse logic from group registration route into a standalone service function. Accepts service + regular Supabase clients; returns { user_id, error, reused }. |
 | 2026-03-19 | Vitest test suite (Phase 1–3) | `vitest.config.mts`, `src/__tests__/setup.ts`, `src/__tests__/middleware.test.ts`, `src/app/api/**/__tests__/*.test.ts`, `src/lib/**/__tests__/*.test.ts` | Full test infrastructure: Vitest + v8 coverage, global mock setup for Supabase/logger/next/headers, thresholds (lines 90%, functions 90%, branches 85%). Tests cover middleware, all API routes, guest-user service, hooks, and registration-position utilities. |
 | 2026-03-26 | Lineup Builder feature | `supabase/migrations/20250326000000_add_lineup_support.sql`, `src/types/database.ts`, `src/types/index.ts`, `src/lib/validations/lineup.ts`, `src/app/api/admin/lineups/route.ts`, `src/app/admin/lineups/[scheduleId]/page.tsx`, `src/app/admin/lineups/[scheduleId]/lineup-client.tsx`, `src/app/admin/registrations/registrations-client.tsx`, `src/middleware.ts` | Drag-and-drop lineup builder: admins/facilitators organize registered players into game-day teams. Adds `team_type` (`registration` \| `lineup`) to teams table, `lineup_team_id` to registrations. New `/admin/lineups/[scheduleId]` page with DnD UI (@dnd-kit/core). Groups drag atomically; individual players drag separately. Save creates lineup teams + assigns registrations. Facilitators access via shared SHARED_PATHS middleware exemption. |
+| 2026-03-28 | My Registrations page | `src/app/dashboard/my-registrations/page.tsx`, `src/components/registrations/my-registrations-page.tsx`, `src/components/registrations/registered-game-card.tsx`, `src/lib/hooks/useMyRegistrations.ts` | New player-facing page showing all past and upcoming registrations. Real-time subscription to registration changes. Displays game details (date, location, time, payment status), QR codes for upcoming games, attendance status for past games. Available to all authenticated users from main dashboard. |
+| 2026-03-29 | Merged Registrations Dashboard (in design) | `docs/superpowers/plans/2026-03-29-merged-registrations-dashboard.md`, `docs/superpowers/specs/2026-03-29-merged-registrations-dashboard-design.md` | New admin view combining all registrations with location-first filtering and games grouped by time. Improves UX for admins managing multiple games across venues. Design phase complete; implementation pending. |
 | | | | |
 

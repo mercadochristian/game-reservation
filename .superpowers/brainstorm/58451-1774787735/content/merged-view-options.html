@@ -1,0 +1,125 @@
+<h2>Merged Registrations View — Layout Options</h2>
+<p class="subtitle">All games at selected location, grouped by game with expandable sections</p>
+
+<div class="cards">
+  <div class="card" data-choice="compact" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="mockup">
+        <div class="mockup-header">Compact: Minimal Headers</div>
+        <div class="mockup-body" style="font-size: 12px; font-family: monospace;">
+          <div style="padding: 12px; border-bottom: 1px solid #333;">
+            <div style="font-weight: bold; margin-bottom: 4px;">Mon, Mar 31 · 6:00 PM <span style="float: right; font-size: 11px; color: #666;">▼ 8 players</span></div>
+          </div>
+          <div style="padding: 8px 12px; border-bottom: 1px solid #222;">
+            <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 8px; font-size: 11px; color: #999;">
+              <div>Player</div><div>Position</div><div>Payment</div><div>Team</div>
+            </div>
+          </div>
+          <div style="padding: 4px 12px; border-bottom: 1px solid #222;">
+            <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 8px; font-size: 11px;">
+              <div>Sarah Chen</div><div>Setter</div><div style="color: #4ade80;">Paid</div><div>Team A</div>
+            </div>
+          </div>
+          <div style="padding: 4px 12px; border-bottom: 1px solid #222;">
+            <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 8px; font-size: 11px;">
+              <div>Mike Johnson</div><div>Spiker</div><div style="color: #fbbf24;">Review</div><div>Team A</div>
+            </div>
+          </div>
+          <div style="padding: 12px; border-bottom: 1px solid #333;">
+            <div style="font-weight: bold; margin-bottom: 4px;">Wed, Apr 2 · 7:30 PM <span style="float: right; font-size: 11px; color: #666;">▼ 12 players</span></span></div>
+          </div>
+          <div style="padding: 8px 12px; border-bottom: 1px solid #222;">
+            <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 8px; font-size: 11px; color: #999;">
+              <div>Player</div><div>Position</div><div>Payment</div><div>Team</div>
+            </div>
+          </div>
+          <div style="padding: 4px 12px;">
+            <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 8px; font-size: 11px;">
+              <div>Alex Rivera</div><div>Middle</div><div style="color: #4ade80;">Paid</div><div>—</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>Compact</h3>
+      <p>Minimal spacing, focus on data density. Games grouped with collapsible headers.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="spacious" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="mockup">
+        <div class="mockup-header">Spacious: Clear Visual Separation</div>
+        <div class="mockup-body" style="font-size: 12px; font-family: monospace; padding: 16px; background: #1a1a1a;">
+          <div style="background: #0f172a; border-left: 4px solid #3b82f6; padding: 12px; margin-bottom: 16px; border-radius: 4px; cursor: pointer;">
+            <div style="font-weight: bold; display: flex; justify-content: space-between;">
+              <span>Monday, March 31 · 6:00 PM @ North Court</span>
+              <span style="font-size: 11px; color: #999;">▼ 8 registrations</span>
+            </div>
+          </div>
+          <div style="border: 1px solid #333; border-radius: 6px; overflow: hidden; margin-bottom: 20px;">
+            <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 12px; padding: 12px; background: #111; font-weight: bold; font-size: 11px; color: #999;">
+              <div>Player</div><div>Position</div><div>Payment</div><div>Team</div>
+            </div>
+            <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 12px; padding: 12px; border-top: 1px solid #333;">
+              <div>Sarah Chen</div><div>Setter</div><div style="color: #4ade80;">✓ Paid</div><div>Team A</div>
+            </div>
+            <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 12px; padding: 12px; border-top: 1px solid #333;">
+              <div>Mike Johnson</div><div>Spiker</div><div style="color: #fbbf24;">⚠ Review</div><div>Team A</div>
+            </div>
+          </div>
+
+          <div style="background: #0f172a; border-left: 4px solid #3b82f6; padding: 12px; margin-bottom: 16px; border-radius: 4px; cursor: pointer;">
+            <div style="font-weight: bold; display: flex; justify-content: space-between;">
+              <span>Wednesday, April 2 · 7:30 PM @ North Court</span>
+              <span style="font-size: 11px; color: #999;">▼ 12 registrations</span>
+            </div>
+          </div>
+          <div style="border: 1px solid #333; border-radius: 6px; overflow: hidden;">
+            <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 12px; padding: 12px; background: #111; font-weight: bold; font-size: 11px; color: #999;">
+              <div>Player</div><div>Position</div><div>Payment</div><div>Team</div>
+            </div>
+            <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 12px; padding: 12px; border-top: 1px solid #333;">
+              <div>Alex Rivera</div><div>Middle</div><div style="color: #4ade80;">✓ Paid</div><div>—</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>Spacious</h3>
+      <p>Breathing room between games. Card-style design with left accent bar. Clear visual hierarchy.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="tabs" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="mockup">
+        <div class="mockup-header">Tab-Based: One Game At A Time</div>
+        <div class="mockup-body" style="font-size: 12px; font-family: monospace; padding: 12px; background: #1a1a1a;">
+          <div style="display: flex; gap: 8px; border-bottom: 1px solid #333; margin-bottom: 12px;">
+            <div style="padding: 8px 12px; background: #3b82f6; border-radius: 4px 4px 0 0; cursor: pointer; font-weight: bold;">Mon 6pm (8)</div>
+            <div style="padding: 8px 12px; color: #999; cursor: pointer;">Wed 7:30pm (12)</div>
+            <div style="padding: 8px 12px; color: #999; cursor: pointer;">Fri 6pm (5)</div>
+          </div>
+          <div style="border: 1px solid #333; border-radius: 4px;">
+            <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 12px; padding: 12px; background: #111; font-weight: bold; font-size: 11px; color: #999;">
+              <div>Player</div><div>Position</div><div>Payment</div><div>Team</div>
+            </div>
+            <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 12px; padding: 12px; border-top: 1px solid #333;">
+              <div>Sarah Chen</div><div>Setter</div><div style="color: #4ade80;">Paid</div><div>Team A</div>
+            </div>
+            <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 12px; padding: 12px; border-top: 1px solid #333;">
+              <div>Mike Johnson</div><div>Spiker</div><div style="color: #fbbf24;">Review</div><div>Team A</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>Tab-Based</h3>
+      <p>Quick-switch between games via tabs. One game visible at a time, but flipping between is instant.</p>
+    </div>
+  </div>
+</div>

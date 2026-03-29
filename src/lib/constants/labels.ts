@@ -27,3 +27,11 @@ export const STATUS_LABELS: Record<string, string> = {
   cancelled: 'Cancelled',
   completed: 'Completed',
 }
+
+/** Maps payment_status enum values to display strings. */
+export const PAYMENT_STATUS_LABELS: Record<string, string> = {
+  pending: 'Pending',
+  review: 'Under Review',
+  paid: 'Paid',
+  rejected: 'Rejected',
+}
