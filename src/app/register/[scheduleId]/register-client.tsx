@@ -273,7 +273,6 @@ export function RegisterClient({
         setSearchResults(results)
       }
     } catch (err) {
-      console.error('Search error:', err)
       toast.error('Failed to search users')
     } finally {
       setSearching(false)
@@ -441,9 +440,8 @@ export function RegisterClient({
                 payment_channel_id: selectedChannelId || null,
               })
 
-            if (paymentError) {
-              console.error('[Registration] Failed to create registration_payments:', paymentError)
-            }
+            // Payment record creation may fail — continue with registration
+            paymentError
 
             fetch('/api/payment-proof/extract', {
               method: 'POST',
@@ -452,7 +450,9 @@ export function RegisterClient({
                 user_payment_id: insertedData[0].id,
                 payment_proof_url: paymentProofUrl,
               }),
-            }).catch(err => console.warn('[Registration] Extraction failed silently:', err))
+            }).catch(() => {
+              // Payment proof extraction failed silently — payment record exists without proof URL
+            })
           }
         }
 
@@ -461,7 +461,10 @@ export function RegisterClient({
         const allSuccess = results.every(r => r.success)
         if (allSuccess) {
           toast.success(`Registered for ${results.length} ${results.length === 1 ? 'game' : 'games'}!`)
-          router.push(`/?date=${dateParam || ''}`)
+          await router.push(`/?date=${dateParam || ''}`)
+          setIsSubmitting(false)
+        } else {
+          setIsSubmitting(false)
         }
       } catch (err) {
         toast.error('An error occurred')
@@ -570,9 +573,9 @@ export function RegisterClient({
 
       setGroupResults(result.results || [])
       toast.success(`Registered ${result.results.length} ${result.results.length === 1 ? 'player' : 'players'}!`)
-      router.push(`/?date=${dateParam || ''}`)
+      await router.push(`/?date=${dateParam || ''}`)
+      setIsSubmitting(false)
     } catch (err) {
-      console.error('Group registration error:', err)
       toast.error('An error occurred during group registration')
       setIsSubmitting(false)
     }
@@ -725,23 +728,23 @@ export function RegisterClient({
     <div className="flex min-h-[100dvh] bg-background">
 
       {/* ── MOBILE: Top nav ── */}
-      <div className="lg:hidden fixed top-0 inset-x-0 z-20 flex items-center justify-between px-4 h-14 bg-[#0f172a]">
+      <div className="lg:hidden fixed top-0 inset-x-0 z-20 flex items-center justify-between px-4 h-14 bg-[#0f172a] gap-2">
         <button
           onClick={() => router.push(`/?date=${dateParam || ''}`)}
-          className="flex items-center gap-1 text-sm text-sky-400 cursor-pointer"
+          className="flex items-center gap-1 text-sm text-sky-400 cursor-pointer flex-shrink-0"
           aria-label="Back"
         >
           <ChevronLeft className="h-5 w-5" />
-          <span className="hidden sm:inline">Back</span>
+          <span className="hidden sm:inline text-xs">Back</span>
         </button>
-        <span className="text-sm font-bold text-white">Register</span>
+        <span className="text-sm font-bold text-white flex-1 text-center">Register</span>
         <button
           onClick={() => setCartModalOpen(true)}
-          className="flex flex-col items-end cursor-pointer"
+          className="flex flex-col items-end cursor-pointer flex-shrink-0"
           aria-label="View cart"
         >
-          <span className="text-[10px] text-slate-500 leading-none">{scheduleCount} {scheduleCount === 1 ? 'game' : 'games'}</span>
-          <span className="text-sm font-extrabold text-sky-400 leading-none">₱{totalAmount.toFixed(0)} ▸</span>
+          <span className="text-[10px] text-slate-400 leading-none">{scheduleCount}G</span>
+          <span className="text-xs font-extrabold text-sky-400 leading-none">₱{totalAmount.toFixed(0)}</span>
         </button>
       </div>
 
@@ -1304,8 +1307,8 @@ export function RegisterClient({
                 <div className="w-9 h-1 rounded-full bg-muted" />
               </div>
 
-              <div className="px-5 py-3">
-                <p className="text-[15px] font-bold">Your Games</p>
+              <div className="px-5 py-4 border-b border-border">
+                <p className="text-base font-extrabold text-foreground">Your Games</p>
               </div>
 
               <div className="overflow-y-auto flex-1 px-5 space-y-3 pb-3">
@@ -1315,9 +1318,9 @@ export function RegisterClient({
                   const s = slot.schedule
                   return (
                     <div key={id} className="border border-border rounded-lg p-3 flex justify-between items-start">
-                      <div>
-                        <p className="text-[13px] font-bold">{s.locations?.name}</p>
-                        <p className="text-[11px] text-muted-foreground mt-0.5">
+                      <div className="flex-1">
+                        <p className="text-sm font-extrabold text-foreground">{s.locations?.name}</p>
+                        <p className="text-xs text-muted-foreground mt-1">
                           {formatScheduleDateWithWeekday(s.start_time)} · {formatScheduleTime(s.start_time)}
                         </p>
                       </div>
@@ -1398,12 +1401,12 @@ export function RegisterClient({
               </div>
 
               {/* Total + Done */}
-              <div className="px-5 py-4 border-t border-border">
-                <div className="flex justify-between items-center mb-3">
-                  <p className="text-[13px] text-muted-foreground">Total</p>
-                  <p className="text-xl font-black">₱{totalAmount.toFixed(0)}</p>
+              <div className="px-5 py-4 border-t border-border space-y-4">
+                <div className="flex justify-between items-center">
+                  <p className="text-xs text-muted-foreground font-medium">Total</p>
+                  <p className="text-2xl font-black text-foreground">₱{totalAmount.toFixed(0)}</p>
                 </div>
-                <Button className="w-full" variant="outline" onClick={() => setCartModalOpen(false)}>
+                <Button className="w-full" onClick={() => setCartModalOpen(false)}>
                   Done
                 </Button>
               </div>

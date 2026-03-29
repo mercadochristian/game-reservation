@@ -10,7 +10,7 @@ export function FloatingHomeButton() {
 
   // Hide on homepage and registration pages
   const isHomepage = pathname === '/'
-  const isRegistration = pathname.startsWith('/registration/')
+  const isRegistration = pathname.startsWith('/register/')
 
   if (isHomepage || isRegistration) {
     return null
