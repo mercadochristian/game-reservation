@@ -20,3 +20,13 @@ vi.mock('@/lib/supabase/server')
 vi.mock('@/lib/supabase/middleware')
 vi.mock('@/lib/logger')
 vi.mock('next/headers')
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({
+    push: vi.fn(),
+    refresh: vi.fn(),
+    back: vi.fn(),
+    forward: vi.fn(),
+  }),
+  useSearchParams: () => new URLSearchParams(),
+  usePathname: () => '',
+}))
