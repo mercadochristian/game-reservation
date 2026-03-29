@@ -4,7 +4,7 @@ import { useCallback, useMemo, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
-import { LogOut, Menu } from 'lucide-react'
+import { LogOut, Menu, UserCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { NavModal } from '@/components/navigation/nav-modal'
 import { NAVIGATION_CONFIG, getNavByRole, type Role } from '@/lib/config/navigation'
@@ -127,24 +127,26 @@ export function AppShell({ children }: AppShellProps) {
           </div>
         </div>
 
-        {/* Navigation with Categories */}
-        <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-4">
-          {/* Profile Link */}
+        {/* User Info Section */}
+        {(displayName || displaySubtitle) && (
           <Link
             href={NAVIGATION_CONFIG.profilePage.href}
-            className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-              pathname === NAVIGATION_CONFIG.profilePage.href
-                ? 'bg-accent text-accent-foreground'
-                : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-            }`}
+            className="px-4 py-3 border-b border-border hover:bg-muted transition-colors flex items-center gap-3 justify-center"
           >
-            {(() => {
-              const ProfileIcon = NAVIGATION_CONFIG.profilePage.icon
-              return <ProfileIcon size={20} />
-            })()}
-            <span>{NAVIGATION_CONFIG.profilePage.label}</span>
+            <UserCircle size={40} className="text-muted-foreground shrink-0" />
+            <div className="flex-1 min-w-0 text-left">
+              {displayName && (
+                <p className="text-sm font-semibold text-foreground truncate">{displayName}</p>
+              )}
+              {displaySubtitle && (
+                <p className="text-xs text-muted-foreground truncate">{displaySubtitle}</p>
+              )}
+            </div>
           </Link>
+        )}
 
+        {/* Navigation with Categories */}
+        <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-4">
           {/* Category Groups */}
           {categories.map(category => (
             <div key={category.id}>
@@ -188,18 +190,7 @@ export function AppShell({ children }: AppShellProps) {
         </nav>
 
         {/* Sign Out Section */}
-        <div className="border-t border-border p-4 space-y-2">
-          {/* User Info */}
-          {(displayName || displaySubtitle) && (
-            <div className="px-3 py-2">
-              {displayName && (
-                <p className="text-sm font-medium text-foreground truncate leading-tight">{displayName}</p>
-              )}
-              {displaySubtitle && (
-                <p className="text-xs text-muted-foreground truncate">{displaySubtitle}</p>
-              )}
-            </div>
-          )}
+        <div className="border-t border-border p-4">
           <Button
             onClick={handleSignOut}
             variant="ghost"

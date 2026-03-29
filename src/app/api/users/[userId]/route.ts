@@ -89,15 +89,15 @@ export async function PATCH(
 
     // Check for self-demotion first (before general permissions)
     if (fieldsToEdit.includes('role') && validation.data.role) {
-      if (
-        (currentUser.role === 'admin' || currentUser.role === 'super_admin') &&
-        currentUser.id === targetUser.id &&
-        (validation.data.role !== 'admin' && validation.data.role !== 'super_admin')
-      ) {
+      const isUserAdminOrHigher = currentUser.role === 'admin' || currentUser.role === 'super_admin'
+      const isEditingSelf = currentUser.id === targetUser.id
+      const isChangingRole = validation.data.role !== currentUser.role
+
+      if (isUserAdminOrHigher && isEditingSelf && isChangingRole) {
         return NextResponse.json(
           {
             error: 'SELF_DEMOTION',
-            message: 'You cannot change your own role to a lower privilege level',
+            message: 'You cannot change your own role',
           },
           { status: 400 }
         )
@@ -153,24 +153,8 @@ export async function PATCH(
       }
     }
 
-    // Check for role change and self-demotion
+    // Check if role is changing for audit log
     const isRoleChanging = validation.data.role && validation.data.role !== targetUser.role
-    if (isRoleChanging && validation.data.role) {
-      // Prevent self-demotion: user trying to remove their own admin/super_admin status
-      if (
-        (currentUser.role === 'admin' || currentUser.role === 'super_admin') &&
-        currentUser.id === targetUser.id &&
-        (validation.data.role !== 'admin' && validation.data.role !== 'super_admin')
-      ) {
-        return NextResponse.json(
-          {
-            error: 'SELF_DEMOTION',
-            message: 'You cannot change your own role to a lower privilege level',
-          },
-          { status: 400 }
-        )
-      }
-    }
 
     // Build update object from validated fields
     const updateData: Record<string, any> = {}

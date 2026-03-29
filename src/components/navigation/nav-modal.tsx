@@ -74,24 +74,31 @@ export function NavModal({
           >
             {/* Header with user info and close button */}
             <div className="p-4 border-b border-border">
-              <div className="flex items-start gap-3 mb-4">
-                {/* Avatar Column */}
-                <div className="shrink-0 pt-1">
-                  <UserCircle size={40} className="text-muted-foreground" />
-                </div>
-                {/* Name and Subtitle Column */}
-                <div className="flex-1 min-w-0">
-                  {user && (
-                    <>
-                      <p className="text-sm font-semibold text-foreground truncate">
-                        {[user.first_name, user.last_name].filter(Boolean).join(' ')}
-                      </p>
-                      <p className="text-xs text-muted-foreground truncate">
-                        {skillLevelLabel && roleLabel ? `${skillLevelLabel} | ${roleLabel}` : roleLabel || skillLevelLabel}
-                      </p>
-                    </>
-                  )}
-                </div>
+              <div className="flex items-center justify-between gap-3 mb-4">
+                {/* User Info (Clickable) */}
+                <Link
+                  href={profilePage.href}
+                  onClick={() => handleNavClick(profilePage.href)}
+                  className="flex items-center gap-3 flex-1 text-center hover:opacity-80 transition-opacity"
+                >
+                  {/* Avatar Column */}
+                  <div className="shrink-0">
+                    <UserCircle size={40} className="text-muted-foreground" />
+                  </div>
+                  {/* Name and Subtitle Column */}
+                  <div className="flex-1 min-w-0">
+                    {user && (
+                      <>
+                        <p className="text-sm font-semibold text-foreground truncate">
+                          {[user.first_name, user.last_name].filter(Boolean).join(' ')}
+                        </p>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {skillLevelLabel && roleLabel ? `${skillLevelLabel} | ${roleLabel}` : roleLabel || skillLevelLabel}
+                        </p>
+                      </>
+                    )}
+                  </div>
+                </Link>
                 {/* Close button */}
                 <button
                   onClick={onClose}
@@ -105,21 +112,7 @@ export function NavModal({
 
             {/* Navigation */}
             <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-4">
-              {/* Profile Link (matches desktop sidebar) */}
-              <Link
-                href={profilePage.href}
-                onClick={() => handleNavClick(profilePage.href)}
-                className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                  pathname === profilePage.href
-                    ? 'bg-accent text-accent-foreground'
-                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-                }`}
-              >
-                <profilePage.icon size={20} />
-                <span>{profilePage.label}</span>
-              </Link>
-
-              {/* Category Groups (identical to desktop sidebar) */}
+              {/* Category Groups */}
               {categories.map(category => (
                 <div key={category.id}>
                   <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide px-3 py-2 mb-1">
