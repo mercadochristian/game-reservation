@@ -20,6 +20,9 @@ vi.mock('@/lib/supabase/server')
 vi.mock('@/lib/supabase/middleware')
 vi.mock('@/lib/logger')
 vi.mock('next/headers')
+vi.mock('next/cache', () => ({
+  revalidatePath: vi.fn(),
+}))
 vi.mock('next/navigation', () => ({
   useRouter: () => ({
     push: vi.fn(),

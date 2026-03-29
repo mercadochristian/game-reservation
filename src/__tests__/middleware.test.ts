@@ -248,7 +248,7 @@ describe('middleware(request)', () => {
   })
 
   describe('role-based path access', () => {
-    it('redirects player on /admin/dashboard to /dashboard', async () => {
+    it('redirects player on /dashboard/users to /dashboard', async () => {
       const mockResponse = createMockResponse()
       const mockClient = createMockServerClient()
       mockClient.from('users').single.mockResolvedValue({
@@ -261,7 +261,7 @@ describe('middleware(request)', () => {
         supabase: mockClient as any,
       })
 
-      const request = createMockRequest('/admin/dashboard')
+      const request = createMockRequest('/dashboard/users')
 
       const result = await middleware(request)
 
@@ -270,7 +270,7 @@ describe('middleware(request)', () => {
       expect(location).toContain('/dashboard')
     })
 
-    it('redirects facilitator on /admin/reports to /dashboard', async () => {
+    it('redirects facilitator on /dashboard/logs to /dashboard', async () => {
       const mockResponse = createMockResponse()
       const mockClient = createMockServerClient()
       mockClient.from('users').single.mockResolvedValue({
@@ -283,7 +283,7 @@ describe('middleware(request)', () => {
         supabase: mockClient as any,
       })
 
-      const request = createMockRequest('/admin/reports')
+      const request = createMockRequest('/dashboard/logs')
 
       const result = await middleware(request)
 

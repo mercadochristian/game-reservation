@@ -74,6 +74,7 @@ function buildMockClients() {
   }
   const serviceTables: Record<string, any> = {
     users: createTableBuilder(),
+    schedules: createTableBuilder(),
     registrations: createTableBuilder(),
     teams: createTableBuilder(),
     team_members: createTableBuilder(),
@@ -110,6 +111,15 @@ function makeRequest(body: object) {
   })
 }
 
+// ─── Helper to add schedule mock ───────────────────────────────────────────────
+
+function addScheduleMock(tables: { service: Record<string, any> }) {
+  tables.service.schedules.single.mockResolvedValueOnce({
+    data: { position_prices: {}, team_price: 1000 },
+    error: null,
+  })
+}
+
 // ─── Shared setup helpers ─────────────────────────────────────────────────────
 
 function setupSinglePlayerHappyPath(
@@ -123,6 +133,11 @@ function setupSinglePlayerHappyPath(
     .mockResolvedValueOnce({ data: { role: adminRole }, error: null })
     // Player resolution
     .mockResolvedValueOnce({ data: { id: USER1_ID }, error: null })
+
+  tables.service.schedules.single.mockResolvedValueOnce({
+    data: { position_prices: {}, team_price: 1000 },
+    error: null,
+  })
 
   tables.server.registrations.then = vi.fn((onFulfilled: any) =>
     Promise.resolve({ data: [], error: null }).then(onFulfilled)
@@ -143,6 +158,11 @@ function setupGroupHappyPath(
     .mockResolvedValueOnce({ data: { id: USER2_ID }, error: null })
     // Registrant name for team naming
     .mockResolvedValueOnce({ data: { first_name: 'Alice' }, error: null })
+
+  tables.service.schedules.single.mockResolvedValueOnce({
+    data: { position_prices: {}, team_price: 1000 },
+    error: null,
+  })
 
   tables.server.registrations.then = vi.fn((onFulfilled: any) =>
     Promise.resolve({ data: [], error: null }).then(onFulfilled)
@@ -360,6 +380,7 @@ describe('POST /api/admin/register', () => {
       tables.server.users.single
         .mockResolvedValueOnce({ data: { role: 'admin' }, error: null })
         .mockResolvedValueOnce({ data: null, error: null })
+      addScheduleMock(tables)
 
       const request = makeRequest(validSingleBody)
       const response = await POST(request as any)
@@ -380,6 +401,7 @@ describe('POST /api/admin/register', () => {
       tables.server.users.single
         .mockResolvedValueOnce({ data: { role: 'admin' }, error: null })
         .mockResolvedValueOnce({ data: null, error: { message: 'timeout' } })
+      addScheduleMock(tables)
 
       const request = makeRequest(validSingleBody)
       const response = await POST(request as any)
@@ -399,6 +421,14 @@ describe('POST /api/admin/register', () => {
       vi.mocked(createServiceClient).mockReturnValue(serviceClient as any)
       serverClient.auth.getUser.mockResolvedValue({ data: { user: { id: AUTH_ID } }, error: null })
       tables.server.users.single.mockResolvedValueOnce({ data: { role: 'admin' }, error: null })
+      // Need to mock schedule twice: once for validation, once for team price check
+      tables.service.schedules.single.mockResolvedValueOnce({
+        data: { position_prices: {}, team_price: 1000 },
+        error: null,
+      }).mockResolvedValueOnce({
+        data: { position_prices: {}, team_price: 1000 },
+        error: null,
+      })
       vi.mocked(createGuestUser).mockResolvedValueOnce({ user_id: USER1_ID, error: null, reused: false })
 
       tables.server.registrations.then = vi.fn((onFulfilled: any) =>
@@ -415,6 +445,7 @@ describe('POST /api/admin/register', () => {
           first_name: 'Jane',
           last_name: 'Doe',
           email: 'jane@example.com',
+          skill_level: 'intermediate' as const,
           preferred_position: 'open_spiker' as const,
         }],
       }
@@ -422,9 +453,12 @@ describe('POST /api/admin/register', () => {
       const request = makeRequest(guestBody)
       const response = await POST(request as any)
 
+      const body = await response.json()
+      if (response.status !== 200) {
+        console.error('Expected 200 but got', response.status, 'Body:', JSON.stringify(body, null, 2))
+      }
       expect(response.status).toBe(200)
       expect(vi.mocked(createGuestUser)).toHaveBeenCalledOnce()
-      const body = await response.json()
       expect(body.results[0].success).toBe(true)
     })
 
@@ -437,6 +471,13 @@ describe('POST /api/admin/register', () => {
       vi.mocked(createServiceClient).mockReturnValue(serviceClient as any)
       serverClient.auth.getUser.mockResolvedValue({ data: { user: { id: AUTH_ID } }, error: null })
       tables.server.users.single.mockResolvedValueOnce({ data: { role: 'admin' }, error: null })
+      tables.service.schedules.single.mockResolvedValueOnce({
+        data: { position_prices: {}, team_price: 1000 },
+        error: null,
+      }).mockResolvedValueOnce({
+        data: { position_prices: {}, team_price: 1000 },
+        error: null,
+      })
       vi.mocked(createGuestUser).mockResolvedValueOnce({
         user_id: null,
         error: 'Failed to create account. Please try again.',
@@ -450,6 +491,7 @@ describe('POST /api/admin/register', () => {
           first_name: 'Bad',
           last_name: 'Guest',
           email: 'bad@example.com',
+          skill_level: 'intermediate' as const,
           preferred_position: 'open_spiker' as const,
         }],
       }
@@ -477,6 +519,7 @@ describe('POST /api/admin/register', () => {
       tables.server.users.single
         .mockResolvedValueOnce({ data: { role: 'admin' }, error: null })
         .mockResolvedValueOnce({ data: { id: USER1_ID }, error: null })
+      addScheduleMock(tables)
 
       tables.server.registrations.then = vi.fn((onFulfilled: any) =>
         Promise.resolve({ data: [{ player_id: USER1_ID }], error: null }).then(onFulfilled)
@@ -502,6 +545,7 @@ describe('POST /api/admin/register', () => {
         .mockResolvedValueOnce({ data: { role: 'admin' }, error: null })
         .mockResolvedValueOnce({ data: { id: USER1_ID }, error: null })
         .mockResolvedValueOnce({ data: { id: USER2_ID }, error: null })
+      addScheduleMock(tables)
 
       // Only USER1 is a duplicate
       tables.server.registrations.then = vi.fn((onFulfilled: any) =>
@@ -532,6 +576,7 @@ describe('POST /api/admin/register', () => {
       tables.server.users.single
         .mockResolvedValueOnce({ data: { role: 'admin' }, error: null })
         .mockResolvedValueOnce({ data: { id: USER1_ID }, error: null })
+      addScheduleMock(tables)
 
       tables.server.registrations.then = vi.fn((onFulfilled: any) =>
         Promise.resolve({ data: [], error: null }).then(onFulfilled)
@@ -596,6 +641,7 @@ describe('POST /api/admin/register', () => {
         .mockResolvedValueOnce({ data: { id: USER1_ID }, error: null })
         .mockResolvedValueOnce({ data: { id: USER2_ID }, error: null })
         .mockResolvedValueOnce({ data: { first_name: 'Bob' }, error: null })
+      addScheduleMock(tables)
 
       tables.server.registrations.then = vi.fn((onFulfilled: any) =>
         Promise.resolve({ data: [], error: null }).then(onFulfilled)
@@ -631,6 +677,7 @@ describe('POST /api/admin/register', () => {
         .mockResolvedValueOnce({ data: { id: USER1_ID }, error: null })
         .mockResolvedValueOnce({ data: { id: USER2_ID }, error: null })
         .mockResolvedValueOnce({ data: { first_name: 'Alice' }, error: null })
+      addScheduleMock(tables)
 
       tables.server.registrations.then = vi.fn((onFulfilled: any) =>
         Promise.resolve({ data: [], error: null }).then(onFulfilled)
@@ -664,6 +711,7 @@ describe('POST /api/admin/register', () => {
         .mockResolvedValueOnce({ data: { id: USER1_ID }, error: null })
         .mockResolvedValueOnce({ data: { id: USER2_ID }, error: null })
         .mockResolvedValueOnce({ data: { first_name: 'Alice' }, error: null })
+      addScheduleMock(tables)
 
       tables.server.registrations.then = vi.fn((onFulfilled: any) =>
         Promise.resolve({ data: [], error: null }).then(onFulfilled)
@@ -692,7 +740,7 @@ describe('POST /api/admin/register', () => {
   // ── Request body fields forwarded correctly ───────────────────────────────────
 
   describe('Request Body Field Forwarding', () => {
-    it('passes payment_status from request body into registration insert', async () => {
+    it('passes payment_status from request body into registration_payments insert', async () => {
       const { createClient } = await import('@/lib/supabase/server')
       const { createServiceClient } = await import('@/lib/supabase/service')
       const { serverClient, serviceClient, tables } = buildMockClients()
@@ -700,13 +748,16 @@ describe('POST /api/admin/register', () => {
       vi.mocked(createServiceClient).mockReturnValue(serviceClient as any)
       setupSinglePlayerHappyPath(serverClient, tables)
 
+      // Add registration_payments table mock
+      tables.service.registration_payments = createTableBuilder()
+
       const request = makeRequest({ ...validSingleBody, payment_status: 'review' as const })
       await POST(request as any)
 
-      expect(tables.service.registrations.insert).toHaveBeenCalledWith(
-        expect.arrayContaining([
-          expect.objectContaining({ payment_status: 'review' }),
-        ])
+      expect(tables.service.registration_payments.insert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          payment_status: 'review',
+        })
       )
     })
 
@@ -728,7 +779,7 @@ describe('POST /api/admin/register', () => {
       )
     })
 
-    it('sets payment_proof_url to null in registration insert (admin sets status, not proof)', async () => {
+    it('does not include payment_proof_url in registration insert (admin sets status, not proof)', async () => {
       const { createClient } = await import('@/lib/supabase/server')
       const { createServiceClient } = await import('@/lib/supabase/service')
       const { serverClient, serviceClient, tables } = buildMockClients()
@@ -741,7 +792,7 @@ describe('POST /api/admin/register', () => {
 
       expect(tables.service.registrations.insert).toHaveBeenCalledWith(
         expect.arrayContaining([
-          expect.objectContaining({ payment_proof_url: null }),
+          expect.not.objectContaining({ payment_proof_url: expect.anything() }),
         ])
       )
     })

@@ -34,6 +34,7 @@ describe('guest-user', () => {
       first_name: 'John',
       last_name: 'Doe',
       phone: '555-1234',
+      skill_level: 'intermediate',
     }
 
     it('creates a new guest user successfully', async () => {
@@ -54,9 +55,9 @@ describe('guest-user', () => {
         error: null,
       })
 
-      // Mock: users table insert
+      // Mock: users table upsert
       mockServiceClient.from.mockReturnValue({
-        insert: vi.fn().mockResolvedValue({ error: null }),
+        upsert: vi.fn().mockResolvedValue({ error: null }),
       })
 
       const result = await createGuestUser(mockServiceClient, mockRegularClient, guestData, {
@@ -73,7 +74,7 @@ describe('guest-user', () => {
       // Verify calls
       expect(mockServiceClient.auth.admin.createUser).toHaveBeenCalledWith({
         email: guestData.email,
-        email_confirm: true,
+        email_confirm: false,
         user_metadata: {
           first_name: guestData.first_name,
           last_name: guestData.last_name,
@@ -81,13 +82,14 @@ describe('guest-user', () => {
       })
 
       expect(mockServiceClient.from).toHaveBeenCalledWith('users')
-      const insertCall = mockServiceClient.from().insert.mock.calls[0][0]
-      expect(insertCall).toEqual({
+      const upsertCall = mockServiceClient.from().upsert.mock.calls[0]
+      expect(upsertCall[0]).toEqual({
         id: newUserId,
         email: guestData.email,
         first_name: guestData.first_name,
         last_name: guestData.last_name,
         player_contact_number: guestData.phone,
+        skill_level: guestData.skill_level,
         profile_completed: false,
         is_guest: true,
         role: 'player',
@@ -108,6 +110,13 @@ describe('guest-user', () => {
         }),
       })
 
+      // Mock: service client update for existing user
+      mockServiceClient.from.mockReturnValue({
+        update: vi.fn().mockReturnValue({
+          eq: vi.fn().mockResolvedValue({ error: null }),
+        }),
+      })
+
       const result = await createGuestUser(mockServiceClient, mockRegularClient, guestData)
 
       expect(result).toEqual({
@@ -116,9 +125,8 @@ describe('guest-user', () => {
         reused: true,
       })
 
-      // Should not attempt to create auth or insert user
+      // Should not attempt to create auth
       expect(mockServiceClient.auth.admin.createUser).not.toHaveBeenCalled()
-      expect(mockServiceClient.from).not.toHaveBeenCalled()
     })
 
     it('handles auth.admin.createUser failure', async () => {
@@ -190,7 +198,7 @@ describe('guest-user', () => {
       })
 
       mockServiceClient.from.mockReturnValue({
-        insert: vi.fn().mockResolvedValue({ error: insertError }),
+        upsert: vi.fn().mockResolvedValue({ error: insertError }),
       })
 
       const result = await createGuestUser(mockServiceClient, mockRegularClient, guestData, {
@@ -228,6 +236,7 @@ describe('guest-user', () => {
         email: 'guest2@example.com',
         first_name: 'Jane',
         last_name: 'Smith',
+        skill_level: 'beginner',
       }
 
       mockRegularClient.from.mockReturnValue({
@@ -244,7 +253,7 @@ describe('guest-user', () => {
       })
 
       mockServiceClient.from.mockReturnValue({
-        insert: vi.fn().mockResolvedValue({ error: null }),
+        upsert: vi.fn().mockResolvedValue({ error: null }),
       })
 
       const result = await createGuestUser(mockServiceClient, mockRegularClient, guestDataNoPhone)
@@ -252,8 +261,8 @@ describe('guest-user', () => {
       expect(result.user_id).toBe(newUserId)
       expect(result.error).toBeNull()
 
-      const insertCall = mockServiceClient.from().insert.mock.calls[0][0]
-      expect(insertCall.player_contact_number).toBeNull()
+      const upsertCall = mockServiceClient.from().upsert.mock.calls[0][0]
+      expect(upsertCall.player_contact_number).toBeNull()
     })
   })
 })
