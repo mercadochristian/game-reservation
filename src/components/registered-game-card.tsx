@@ -8,12 +8,14 @@ interface RegisteredGameCardProps {
   schedule: ScheduleWithLocation
   registration: Registration
   onShowQR: (schedule: ScheduleWithLocation, registration: Registration) => void
+  isPastGame?: boolean
 }
 
 export function RegisteredGameCard({
   schedule,
   registration,
   onShowQR,
+  isPastGame = false,
 }: RegisteredGameCardProps) {
   const positionLabel = registration.preferred_position
     ? POSITION_LABELS[registration.preferred_position]
@@ -38,13 +40,15 @@ export function RegisteredGameCard({
         <p className="text-sm font-medium text-foreground dark:text-white">{positionLabel}</p>
       </div>
 
-      {/* Show QR Button */}
-      <button
-        onClick={() => onShowQR(schedule, registration)}
-        className="w-full cursor-pointer inline-flex items-center justify-center rounded-lg border border-transparent bg-primary text-primary-foreground text-sm font-medium whitespace-nowrap transition-all h-9 hover:opacity-90"
-      >
-        Show QR →
-      </button>
+      {/* Show QR Button - Only for future games */}
+      {!isPastGame && (
+        <button
+          onClick={() => onShowQR(schedule, registration)}
+          className="w-full cursor-pointer inline-flex items-center justify-center rounded-lg border border-transparent bg-primary text-primary-foreground text-sm font-medium whitespace-nowrap transition-all h-9 hover:opacity-90"
+        >
+          Show QR →
+        </button>
+      )}
     </div>
   )
 }

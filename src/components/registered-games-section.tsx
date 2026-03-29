@@ -227,22 +227,29 @@ export function RegisteredGamesSection({ includePastGames = false }: RegisteredG
               initial="hidden"
               animate="visible"
             >
-              {filteredRegistrations.map((reg, index) => (
-                <motion.div
-                  key={reg.id}
-                  custom={index}
-                  variants={fadeUpVariants}
-                  data-testid="registered-game-card"
-                >
-                  <RegisteredGameCard
-                    schedule={reg.schedules}
-                    registration={reg}
-                    onShowQR={(schedule, registration) => {
-                      dispatch({ type: 'OPEN_QR', schedule, registration })
-                    }}
-                  />
-                </motion.div>
-              ))}
+              {filteredRegistrations.map((reg, index) => {
+                const now = getNowInManila()
+                const gameTime = new Date(reg.schedules.start_time)
+                const isPastGame = gameTime < now
+
+                return (
+                  <motion.div
+                    key={reg.id}
+                    custom={index}
+                    variants={fadeUpVariants}
+                    data-testid="registered-game-card"
+                  >
+                    <RegisteredGameCard
+                      schedule={reg.schedules}
+                      registration={reg}
+                      onShowQR={(schedule, registration) => {
+                        dispatch({ type: 'OPEN_QR', schedule, registration })
+                      }}
+                      isPastGame={isPastGame}
+                    />
+                  </motion.div>
+                )
+              })}
             </motion.div>
           ) : (
             <motion.div
