@@ -70,6 +70,7 @@ export function PastGamesSection({
                   totalCount={schedules.length}
                   pageSize={pageSize}
                   onPageChange={onPageChange}
+                  onPageSizeChange={() => {}}
                 />
               )}
             </>

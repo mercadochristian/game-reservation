@@ -26,7 +26,7 @@ export function RegistrationsFilterBar({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
         <div>
           <Label className="text-sm font-semibold mb-2 block">Location</Label>
-          <Select value={selectedLocationId} onValueChange={onLocationChange}>
+          <Select value={selectedLocationId} onValueChange={(value) => value && onLocationChange(value)}>
             <SelectTrigger>
               <SelectValue placeholder="Select a location" />
             </SelectTrigger>

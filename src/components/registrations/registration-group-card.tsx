@@ -15,6 +15,8 @@ interface RegistrationGroupCardProps {
   isExpanded: boolean
   onToggleExpand: (scheduleId: string) => void
   isPastGame?: boolean
+  onRegisterPlayer?: (scheduleId: string) => void
+  onManageLineups?: (scheduleId: string) => void
 }
 
 /**
@@ -28,6 +30,8 @@ export function RegistrationGroupCard({
   isExpanded,
   onToggleExpand,
   isPastGame = false,
+  onRegisterPlayer,
+  onManageLineups,
 }: RegistrationGroupCardProps) {
   const dateLabel = formatScheduleDateWithWeekday(schedule.start_time)
   const timeLabel = formatScheduleTime(schedule.start_time)
