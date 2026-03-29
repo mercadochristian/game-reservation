@@ -3,15 +3,13 @@
 import { useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useHasAnimated } from '@/lib/hooks/useHasAnimated'
-import { ChevronLeft, Upload, X, Plus, CheckCircle, AlertCircle, Search, CreditCard, CalendarX, Users, XCircle } from 'lucide-react'
+import { ChevronLeft, Upload, X, Plus, CheckCircle, AlertCircle, CreditCard, CalendarX, Users, XCircle } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { createClient } from '@/lib/supabase/client'
 import { type ScheduleWithLocation, type PlayerPosition, type User } from '@/types'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
 import { toast } from 'sonner'
-import { ScheduleInfo } from '@/components/schedule-info'
 import { PaymentChannelsModal } from '@/components/payment-channels-modal'
 import { fadeUpVariants } from '@/lib/animations'
 import { getUserFriendlyMessage } from '@/lib/errors/messages'
@@ -181,8 +179,6 @@ export function RegisterClient({
     skill_level: null,
     preferred_position: null,
   })
-  const [groupResults, setGroupResults] = useState<Array<{ player_index: number; player_email_or_name: string; success: boolean; user_id?: string; error?: string }>>([])
-
   const fetchAvailableSchedules = async () => {
     if (availableLoaded) return
 
@@ -461,7 +457,7 @@ export function RegisterClient({
         const allSuccess = results.every(r => r.success)
         if (allSuccess) {
           toast.success(`Registered for ${results.length} ${results.length === 1 ? 'game' : 'games'}!`)
-          await router.push(`/?date=${dateParam || ''}`)
+          router.push(`/?date=${dateParam || ''}`)
           setIsSubmitting(false)
         } else {
           setIsSubmitting(false)
@@ -564,16 +560,14 @@ export function RegisterClient({
             .join(', ')
           toast.error(`Missing positions: ${missingStr}`)
         } else {
-          setGroupResults(result.results || [])
           toast.error('Registration failed. Please try again.')
         }
         setIsSubmitting(false)
         return
       }
 
-      setGroupResults(result.results || [])
       toast.success(`Registered ${result.results.length} ${result.results.length === 1 ? 'player' : 'players'}!`)
-      await router.push(`/?date=${dateParam || ''}`)
+      router.push(`/?date=${dateParam || ''}`)
       setIsSubmitting(false)
     } catch (err) {
       toast.error('An error occurred during group registration')
@@ -740,11 +734,11 @@ export function RegisterClient({
         <span className="text-sm font-bold text-white flex-1 text-center">Register</span>
         <button
           onClick={() => setCartModalOpen(true)}
-          className="flex flex-col items-end cursor-pointer flex-shrink-0"
+          className="flex flex-col items-end cursor-pointer flex-shrink-0 hover:opacity-80 transition-opacity active:scale-95"
           aria-label="View cart"
         >
           <span className="text-[10px] text-slate-400 leading-none">{scheduleCount}G</span>
-          <span className="text-xs font-extrabold text-sky-400 leading-none">₱{totalAmount.toFixed(0)}</span>
+          <span className="text-xs font-extrabold text-sky-400 leading-none flex items-center gap-0.5">₱{totalAmount.toFixed(0)} <span className="text-[8px] text-sky-300">▼</span></span>
         </button>
       </div>
 
