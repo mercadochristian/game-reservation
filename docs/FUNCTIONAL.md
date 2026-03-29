@@ -25,6 +25,10 @@ The **Volleyball Game Reservation System** is a web platform that manages game r
 
 **Access:** Dashboard, Locations management, Schedules management
 
+**Admin page experience improvements:**
+- All admin list pages show an animated loading placeholder (skeleton rows) while data is being fetched, so the page layout does not jump when records appear
+- Filter controls on list pages are hidden by default inside a collapsible panel to keep the page clean; the panel header shows how many filters are currently active
+
 ---
 
 ### 👥 Facilitator
@@ -66,7 +70,8 @@ Admins create game sessions with:
 - **Status** — Open (accepting registrations), Full (at capacity), Cancelled, Completed
 
 Players see upcoming games in an interactive calendar view with:
-- Available spots per position (open spiker, setter, etc.)
+- Live counts of available spots per position (open spiker, setter, middle blocker, opposite spiker) — these update automatically as registrations come in
+- Clicking a position badge opens a details panel showing who has already registered for that position slot
 - Estimated teams that will form
 - Location and timing details
 
@@ -108,11 +113,39 @@ Players submit proof of payment (photo/screenshot) during registration. Admins c
 
 ---
 
+### ⚙️ Lineup Builder
+**For admins and facilitators before the game**
+
+Before game day, admins or facilitators build the official lineup to assign players to teams. The **Lineup Builder** is a drag-and-drop tool accessible from the registrations page:
+
+1. **Select a game** from the registrations view
+2. **Click "Set Lineup"** to open the builder
+3. **See all registered players:**
+   - **Unassigned pool** on the left shows all players not yet assigned
+   - Solo players (registered alone) drag individually
+   - Group players (registered together) drag as a block — they stay together in whatever team you assign them
+4. **Team columns** on the right show game-day teams (e.g., "Team 1", "Team 2")
+   - Customize team names by clicking to edit
+5. **Drag players** from the pool to team columns
+   - Drop individual players one at a time
+   - Drop entire groups together (they don't split)
+6. **Save** when lineup is finalized
+   - This records the official team assignments for the game
+   - Registrations page updates to show assigned teams
+
+**Benefits:**
+- Clear visualization of who plays where before the game
+- No need to manually assign teams on game day — it's already done
+- Group members guaranteed to stay together
+- Facilitators have official roster when match starts
+
+---
+
 ### 🎫 Game Check-In
 On game day, players show their unique QR code (generated at registration) to the facilitator. The QR code contains:
 - Player name and contact info
 - Game details (location, time)
-- Assigned position
+- Assigned position and team (from the lineup)
 
 Facilitators use a QR scanner to:
 - Check players in quickly
@@ -278,5 +311,8 @@ A record of implemented features. Updated as new features are deployed.
 | 2026-03-18 | Timezone Centralization | All date/time displays now consistently use Manila time (UTC+8) from a single shared utility, eliminating scattered timezone logic and reducing the risk of display bugs as the app grows. |
 | 2026-03-18 | Database Performance Improvements (#39) | Added database indices to speed up player name search, position filtering, and role-based queries as data grows. No change to visible functionality. |
 | 2026-03-18 | Safe Delete for Venues and Schedules (#38) | Deleting a location or game schedule now archives it rather than destroying it permanently. Past registration records, payment history, and attendance data are fully preserved. Admins can view and restore archived items. |
+| 2026-03-19 | Real-Time Position Availability | The public game calendar now shows live spot counts per position on each game card. Counts update automatically as players register. Clicking a position badge opens a panel listing the names of players who have already claimed that slot. |
+| 2026-03-19 | Admin Page UX Improvements | Admin list pages (locations, schedules, registrations) now display animated placeholder rows while data loads, preventing layout jumps. Filter controls are collapsed by default into a toggle panel that shows the number of active filters in its label. |
+| 2026-03-26 | Lineup Builder | Admins and facilitators can now organize registered players into game-day teams before each game using an interactive drag-and-drop interface. Solo players drag individually; group registrations drag together as a unit. Team names are customizable. Once saved, the lineup appears in the registrations list and ensures everyone knows their assigned team before game day. |
 | | | |
 

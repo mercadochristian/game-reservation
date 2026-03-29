@@ -5,6 +5,7 @@ import { Geist } from "next/font/google";
 import { cn } from "@/lib/utils";
 import { Toaster } from "@/components/ui/sonner";
 import { FloatingHomeButton } from "@/components/floating-home-button";
+import { UserProvider } from '@/lib/context/user-context';
 
 const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
@@ -23,8 +24,10 @@ export default function RootLayout({
   return (
     <html lang="en" className={cn("font-sans dark", geist.variable)}>
       <body>
-        {children}
-        <FloatingHomeButton />
+        <UserProvider user={null}>
+          {children}
+          <FloatingHomeButton />
+        </UserProvider>
         <Toaster />
       </body>
     </html>

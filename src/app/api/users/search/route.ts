@@ -1,7 +1,5 @@
-import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
 import { NextRequest, NextResponse } from 'next/server'
-import type { Database } from '@/types/database'
+import { createClient } from '@/lib/supabase/server'
 import { userSearchSchema } from '@/lib/validations/user-search'
 import { logError } from '@/lib/logger'
 
@@ -19,34 +17,7 @@ export async function GET(request: NextRequest) {
 
     const { q } = parsed.data
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-
-    if (!supabaseUrl || !supabaseAnonKey) {
-      return NextResponse.json({ error: 'Server misconfiguration' }, { status: 500 })
-    }
-
-    const cookieStore = await cookies()
-    const supabase = createServerClient<Database>(
-      supabaseUrl,
-      supabaseAnonKey,
-      {
-        cookies: {
-          getAll() {
-            return cookieStore.getAll()
-          },
-          setAll(cookiesToSet) {
-            try {
-              cookiesToSet.forEach(({ name, value, options }) =>
-                cookieStore.set(name, value, options)
-              )
-            } catch {
-              // ignored - cookies can't be set in GET requests
-            }
-          },
-        },
-      }
-    )
+    const supabase = await createClient()
 
     // Get authenticated user
     const {

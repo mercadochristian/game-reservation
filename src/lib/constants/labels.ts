@@ -18,7 +18,6 @@ export const POSITION_LABELS: Record<string, string> = {
   opposite_spiker: 'Opposite Spiker',
   middle_blocker: 'Middle Blocker',
   setter: 'Setter',
-  middle_setter: 'Middle Setter',
 }
 
 /** Maps schedule status enum values to display strings. */

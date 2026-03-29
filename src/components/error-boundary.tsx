@@ -43,6 +43,23 @@ export class ErrorBoundary extends React.Component<
   componentDidCatch(error: Error, info: React.ErrorInfo) {
     // Log full technical details for debugging — never shown to users
     console.error('[ErrorBoundary] Caught render error:', error, info)
+
+    // Log to database (fire-and-forget, don't block rendering)
+    fetch('/api/logs/error', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'error_boundary',
+        message: error.message,
+        stack: error.stack,
+        metadata: {
+          componentStack: info.componentStack,
+        },
+      }),
+    }).catch((err) => {
+      // If logging fails, just log to console as fallback
+      console.error('[ErrorBoundary] Failed to log error:', err)
+    })
   }
 
   reset = () => {

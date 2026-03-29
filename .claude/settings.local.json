@@ -1,7 +1,25 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npm pack:*)"
+      "Bash(npm pack:*)",
+      "Bash(git diff:*)",
+      "Bash(npm test:*)",
+      "Bash(npx tsc:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(xargs cat:*)",
+      "Bash(grep -n \"^export.*type User\" /Users/christianmercado/Documents/Work/Personal/game-reservation/src/types/*.ts)",
+      "Bash(ls -la /Users/christianmercado/Documents/Work/Personal/game-reservation/*.ts /Users/christianmercado/Documents/Work/Personal/game-reservation/*.js)",
+      "Bash(npm run:*)",
+      "Bash(for page:*)",
+      "Bash(do)",
+      "Bash(echo \"=== /dashboard/$page/page.tsx ===\")",
+      "Read(//Users/christianmercado/Documents/Work/Personal/game-reservation/src/app/dashboard/$page/**)",
+      "Bash(done)",
+      "Bash(npx eslint:*)",
+      "Bash(find /Users/christianmercado/Documents/Work/Personal/game-reservation -name vitest.config* -o -name vite.config*)",
+      "Bash(find /Users/christianmercado/Documents/Work/Personal/game-reservation -name *edit-user* -type f)",
+      "Bash(npm install:*)"
     ]
   }
 }

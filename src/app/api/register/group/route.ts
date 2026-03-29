@@ -1,84 +1,23 @@
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { groupRegistrationSchema, GroupPlayer } from '@/lib/validations/group-registration'
-import { logError } from '@/lib/logger'
+import { logError, logActivity } from '@/lib/logger'
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
+import { revalidatePath } from 'next/cache'
+import {
+  getRequiredPositions,
+  validateGroupPositions,
+  validateTeamPositions,
+} from '@/lib/utils/registration-positions'
+import { createGuestUser } from '@/lib/services/guest-user'
+import { computeGroupAmount, computeTeamAmount } from '@/lib/utils/pricing'
 
 interface PlayerResolution {
   index: number
   player: GroupPlayer
   user_id: string | null
   error: string | null
-}
-
-interface PositionRequirements {
-  setter: number
-  middle_blocker: number
-  open_spiker: number
-  opposite_spiker: number
-}
-
-function getRequiredPositions(): PositionRequirements {
-  // All teams require this minimum composition
-  return { setter: 1, middle_blocker: 2, open_spiker: 2, opposite_spiker: 1 }
-}
-
-function countPositions(players: GroupPlayer[]): Record<string, number> {
-  const counts: Record<string, number> = {
-    setter: 0,
-    middle_blocker: 0,
-    open_spiker: 0,
-    opposite_spiker: 0,
-  }
-  for (const player of players) {
-    const pos = player.preferred_position
-    if (pos === 'middle_setter') {
-      counts['setter']++
-    } else if (pos in counts) {
-      counts[pos]++
-    }
-  }
-  return counts
-}
-
-function validateTeamPositions(
-  players: GroupPlayer[],
-  required: PositionRequirements
-): { valid: boolean; missing?: Array<{ position: string; required: number; provided: number }> } {
-  const counts = countPositions(players)
-  const missing: Array<{ position: string; required: number; provided: number }> = []
-
-  for (const [pos, req] of Object.entries(required)) {
-    const provided = counts[pos] || 0
-    if (provided < req) {
-      missing.push({ position: pos, required: req, provided })
-    }
-  }
-
-  return { valid: missing.length === 0, missing: missing.length > 0 ? missing : undefined }
-}
-
-function validateGroupPositions(
-  players: GroupPlayer[]
-): { valid: boolean; issues?: Array<{ position: string; max: number; provided: number }> } {
-  const counts = countPositions(players)
-  const maxPerPosition: Record<string, number> = {
-    setter: 1,
-    opposite_spiker: 1,
-    middle_blocker: 2,
-    open_spiker: 2,
-  }
-  const issues: Array<{ position: string; max: number; provided: number }> = []
-
-  for (const [pos, max] of Object.entries(maxPerPosition)) {
-    const count = counts[pos] || 0
-    if (count > max) {
-      issues.push({ position: pos, max, provided: count })
-    }
-  }
-
-  return { valid: issues.length === 0, issues: issues.length > 0 ? issues : undefined }
 }
 
 
@@ -104,6 +43,66 @@ export async function POST(request: NextRequest) {
 
     // Use service client for admin operations
     const serviceClient = createServiceClient()
+
+    // Schedule validation: check if schedule is available (not past, not full, not cancelled)
+    const { data: schedule, error: scheduleError } = await (serviceClient
+      .from('schedules')
+      .select('start_time, status, max_players, position_prices, team_price')
+      .eq('id', validated.schedule_id)
+      .single() as any)
+
+    if (scheduleError || !schedule) {
+      return NextResponse.json(
+        { error: 'Schedule not found' },
+        { status: 404 }
+      )
+    }
+
+    // Check if schedule is in the past
+    if (new Date(schedule.start_time) < new Date()) {
+      await logError(
+        'registration.rejected_past_schedule',
+        'Player attempted to register for a past schedule',
+        authUser.id,
+        { schedule_id: validated.schedule_id }
+      )
+      return NextResponse.json(
+        { error: 'Registration for this schedule has closed' },
+        { status: 400 }
+      )
+    }
+
+    // Check if schedule is cancelled or completed
+    if (schedule.status === 'cancelled' || schedule.status === 'completed') {
+      return NextResponse.json(
+        { error: 'This schedule is no longer accepting registrations' },
+        { status: 400 }
+      )
+    }
+
+    // Check if schedule has available slots
+    const { count: existingRegistrationCount } = await serviceClient
+      .from('registrations')
+      .select('*', { count: 'exact', head: true })
+      .eq('schedule_id', validated.schedule_id)
+
+    const slotsRemaining = (schedule.max_players ?? 0) - (existingRegistrationCount ?? 0)
+    if (slotsRemaining < validated.players.length) {
+      await logError(
+        'registration.rejected_full_schedule',
+        'Player attempted to register for a full schedule',
+        authUser.id,
+        {
+          schedule_id: validated.schedule_id,
+          slots_remaining: slotsRemaining,
+          requested: validated.players.length,
+        }
+      )
+      return NextResponse.json(
+        { error: 'Not enough slots available for this registration' },
+        { status: 400 }
+      )
+    }
 
     // Step 0: Player count and position validation - different rules for group vs team
     if (validated.registration_mode === 'group') {
@@ -185,61 +184,19 @@ export async function POST(request: NextRequest) {
             resolution.user_id = player.user_id
           }
         } else if (player.type === 'guest') {
-          // Check if email already exists in users table
-          const { data: existingUser } = await supabase
-            .from('users')
-            .select('id')
-            .eq('email', player.email)
-            .single() as { data: { id: string } | null; error: any }
+          // Create or reuse guest user
+          const result = await createGuestUser(serviceClient, supabase, {
+            email: player.email,
+            first_name: player.first_name,
+            last_name: player.last_name,
+            phone: player.phone,
+          }, {
+            userId: authUser?.id,
+            operationName: 'register.group',
+          })
 
-          if (existingUser) {
-            // Reuse existing user (could be a real user or another guest)
-            resolution.user_id = existingUser.id
-          } else {
-            // Create stub auth user and public user record
-            try {
-              const { data: authData, error: authError } =
-                await serviceClient.auth.admin.createUser({
-                  email: player.email,
-                  email_confirm: true, // Skip email confirmation (guest already has valid email)
-                  user_metadata: {
-                    first_name: player.first_name,
-                    last_name: player.last_name,
-                  },
-                })
-
-              if (authError || !authData.user) {
-                void logError('register.group.guest_create', authError || new Error('Unknown auth error'), authUser?.id)
-                resolution.error = 'Failed to create account. Please try again.'
-              } else {
-                const newUserId = authData.user.id
-
-                // Insert public.users record
-                const { error: insertError } = await (serviceClient
-                  .from('users') as any)
-                  .insert({
-                    id: newUserId,
-                    email: player.email,
-                    first_name: player.first_name,
-                    last_name: player.last_name,
-                    player_contact_number: player.phone || null,
-                    profile_completed: false,
-                    is_guest: true,
-                    role: 'player',
-                  })
-
-                if (insertError) {
-                  void logError('register.group.user_insert', insertError, authUser?.id, { email: player.email })
-                  resolution.error = 'Failed to add player. Please try again.'
-                } else {
-                  resolution.user_id = newUserId
-                }
-              }
-            } catch (err) {
-              void logError('register.group.guest_exception', err instanceof Error ? err : new Error(String(err)), authUser?.id, { email: player.email })
-              resolution.error = 'Failed to add guest player. Please try again.'
-            }
-          }
+          resolution.user_id = result.user_id
+          resolution.error = result.error
         }
       } catch (err) {
         void logError('register.group.player_resolve', err instanceof Error ? err : new Error(String(err)), authUser?.id)
@@ -324,9 +281,7 @@ export async function POST(request: NextRequest) {
         player_id: r.user_id!,
         registered_by: authUser.id,
         preferred_position: r.player.preferred_position,
-        payment_proof_url: validated.payment_proof_path,
         team_preference: validated.registration_mode as 'group' | 'team',
-        payment_status: 'pending' as const,
       }))
 
     const { data: insertedRegistrations, error: insertError } = await (serviceClient
@@ -392,7 +347,68 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Step 6: Return success response
+    // Step 6: Create single registration_payments record for the group/team
+    const requiredAmount =
+      validated.registration_mode === 'team'
+        ? computeTeamAmount(schedule)
+        : computeGroupAmount(
+            schedule,
+            resolvedPlayers
+              .filter((r) => r.user_id)
+              .map((r) => r.player.preferred_position)
+          )
+
+    const { data: userPayment, error: userPaymentError } = await (serviceClient
+      .from('registration_payments') as any)
+      .insert({
+        team_id: team.id,
+        payer_id: authUser.id,
+        schedule_id: validated.schedule_id,
+        registration_type: validated.registration_mode,
+        required_amount: requiredAmount,
+        payment_status: 'pending',
+        payment_proof_url: validated.payment_proof_path,
+        payment_channel_id: validated.payment_channel_id || null,
+      })
+      .select('id')
+      .single()
+
+    if (userPaymentError || !userPayment) {
+      console.error('User payment insert error:', userPaymentError)
+      void logError('register.group.user_payment', userPaymentError || new Error('Unknown payment error'), authUser.id, { teamId: team?.id })
+      return NextResponse.json(
+        { error: 'Payment record creation failed. Please try again.' },
+        { status: 500 }
+      )
+    }
+
+    // Step 7: Trigger AI extraction for registration_payments (non-blocking)
+    const origin = new URL(request.url).origin
+    fetch(new URL('/api/payment-proof/extract', origin), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        user_payment_id: userPayment.id,
+        payment_proof_url: validated.payment_proof_path,
+      }),
+    })
+      .then(() => {
+        void logActivity('payment_proof.extract', authUser.id, {
+          registration_mode: validated.registration_mode,
+          player_count: insertedRegistrations?.length || 0,
+        })
+      })
+      .catch((err) => {
+        console.warn('[Group Register] Extraction failed silently:', err)
+        void logError('payment_proof.extract_failed', err, authUser.id, {
+          registration_mode: validated.registration_mode,
+        })
+      })
+
+    // Step 8: Revalidate home page cache to reflect updated slot counts
+    revalidatePath('/')
+
+    // Step 9: Return success response
     return NextResponse.json({
       results: resolvedPlayers.map((r) => ({
         player_index: r.index,
