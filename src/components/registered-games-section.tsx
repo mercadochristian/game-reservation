@@ -70,7 +70,7 @@ export function RegisteredGamesSection({ includePastGames = false }: RegisteredG
         .from('registrations')
         .select(`
           *,
-          schedules:schedule_id(*)
+          schedules:schedule_id(*, locations(*))
         `)
         .eq('player_id', userId) as {
           data: (Registration & { schedules: ScheduleWithLocation })[] | null
