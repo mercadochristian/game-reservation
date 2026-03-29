@@ -30,6 +30,9 @@ export type ScheduleWithLocation = Schedule & {
 export type RegistrationWithDetails = Registration & {
   users: Pick<User, 'id' | 'first_name' | 'last_name' | 'email' | 'skill_level' | 'is_guest'>
   team_members: Array<{ team_id: string; teams: Pick<Team, 'id' | 'name'> | null }>
+  is_grouped?: boolean
+  team_name?: string | null
+  payment_status?: PaymentStatus
 }
 
 export type RegistrationForLineup = Registration & {
@@ -39,6 +42,9 @@ export type RegistrationForLineup = Registration & {
 
 export type ScheduleWithSlots = ScheduleWithLocation & {
   registration_count: number
+  available_slots?: number
+  available_slots_per_position?: Record<string, number>
+  positions?: Record<string, { available: number; total: number; registered: number }>
 }
 
 // Map of schedule_id -> position key -> registered count

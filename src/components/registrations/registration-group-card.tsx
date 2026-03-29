@@ -1,5 +1,6 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import type { ScheduleWithSlots, RegistrationWithDetails } from '@/types'
 import { formatScheduleDateWithWeekday, formatScheduleTime } from '@/lib/utils/timezone'
 import { POSITION_LABELS, SKILL_LEVEL_LABELS, PAYMENT_STATUS_LABELS } from '@/lib/constants/labels'
@@ -8,6 +9,7 @@ import { Badge } from '@/components/ui/badge'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { ChevronDown, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { POSITION_SLOTS, getPositionTotal, getPositionAvailable } from '@/lib/utils/position-slots'
 
 interface RegistrationGroupCardProps {
   schedule: ScheduleWithSlots
@@ -26,13 +28,41 @@ interface RegistrationGroupCardProps {
  */
 export function RegistrationGroupCard({
   schedule,
-  registrations,
+  registrations: initialRegistrations,
   isExpanded,
   onToggleExpand,
   isPastGame = false,
   onRegisterPlayer,
   onManageLineups,
 }: RegistrationGroupCardProps) {
+  const [positionCounts, setPositionCounts] = useState<Record<string, number>>({})
+  const [registrations, setRegistrations] = useState<RegistrationWithDetails[]>(initialRegistrations)
+
+  useEffect(() => {
+    if (!isExpanded || initialRegistrations.length === 0) return
+
+    const fetchDetails = async () => {
+      try {
+        // Fetch position counts
+        const posRes = await fetch(`/api/registrations/counts?schedule_ids=${schedule.id}`)
+        if (posRes.ok) {
+          const data = await posRes.json()
+          setPositionCounts(data.positionCounts?.[schedule.id] || {})
+        }
+
+        // Fetch full registration details (users, payments, team info)
+        const regRes = await fetch(`/api/admin/registrations/${schedule.id}`)
+        if (regRes.ok) {
+          const data = await regRes.json()
+          setRegistrations(data.registrations || [])
+        }
+      } catch (err) {
+        console.error('Failed to fetch schedule details:', err)
+      }
+    }
+
+    fetchDetails()
+  }, [isExpanded, schedule.id, initialRegistrations.length])
   const dateLabel = formatScheduleDateWithWeekday(schedule.start_time)
   const timeLabel = formatScheduleTime(schedule.start_time)
   const locationName = schedule.locations?.name || 'Unknown Location'
@@ -92,6 +122,22 @@ export function RegistrationGroupCard({
       {/* Expanded content - Registrations table */}
       {isExpanded && (
         <div className="border-t border-border px-6 py-4">
+          {/* Available slots per position */}
+          <div className="mb-4 grid grid-cols-2 md:grid-cols-4 gap-2">
+            {POSITION_SLOTS.map((pos) => {
+              const numTeams = Math.ceil(schedule.max_players / 6)
+              const total = getPositionTotal(pos.key, numTeams)
+              const registered = positionCounts[pos.key] ?? 0
+              const available = getPositionAvailable(pos.key, numTeams, registered)
+              return (
+                <div key={pos.key} className="text-xs bg-muted/50 rounded p-2">
+                  <div className="text-muted-foreground">{pos.label}</div>
+                  <div className="font-semibold text-foreground">{available} / {total}</div>
+                </div>
+              )
+            })}
+          </div>
+
           {registrations.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">No registrations yet</div>
           ) : (
@@ -114,15 +160,26 @@ export function RegistrationGroupCard({
                         ? POSITION_LABELS[reg.preferred_position]
                         : 'Not specified'
                       const skillLabel = SKILL_LEVEL_LABELS[reg.users.skill_level] || 'Unknown'
-                      const teamName =
+                      const lineupTeamName =
                         reg.team_members && reg.team_members.length > 0 && reg.team_members[0].teams
                           ? reg.team_members[0].teams.name
                           : '—'
                       const paymentStatus = (reg as any).payment_status || 'pending'
+                      const isGrouped = (reg as any).is_grouped || false
+                      const groupTeamName = (reg as any).team_name
 
                       return (
                         <TableRow key={reg.id}>
-                          <TableCell className="font-medium">{playerName}</TableCell>
+                          <TableCell className="font-medium">
+                            <div className="flex items-center gap-2">
+                              <span>{playerName}</span>
+                              {isGrouped && groupTeamName && (
+                                <Badge variant="secondary" className="text-xs">
+                                  {groupTeamName}
+                                </Badge>
+                              )}
+                            </div>
+                          </TableCell>
                           <TableCell className="hidden sm:table-cell text-sm">{positionLabel}</TableCell>
                           <TableCell className="hidden sm:table-cell text-sm">{skillLabel}</TableCell>
                           <TableCell>
@@ -130,7 +187,7 @@ export function RegistrationGroupCard({
                               {PAYMENT_STATUS_LABELS[paymentStatus] || paymentStatus}
                             </Badge>
                           </TableCell>
-                          <TableCell className="hidden lg:table-cell text-sm">{teamName}</TableCell>
+                          <TableCell className="hidden lg:table-cell text-sm">{lineupTeamName}</TableCell>
                         </TableRow>
                       )
                     })}
@@ -141,10 +198,10 @@ export function RegistrationGroupCard({
               {/* Action buttons - Only show for upcoming games */}
               {!isPastGame && (
                 <div className="flex gap-2 mt-6 justify-end">
-                  <Button variant="outline" size="sm">
+                  <Button variant="outline" size="sm" onClick={() => onRegisterPlayer?.(schedule.id)}>
                     Register Player
                   </Button>
-                  <Button variant="default" size="sm">
+                  <Button variant="default" size="sm" onClick={() => onManageLineups?.(schedule.id)}>
                     Manage Lineups
                   </Button>
                 </div>

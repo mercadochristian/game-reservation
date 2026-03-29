@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { PageHeader } from '@/components/ui/page-header'
@@ -13,20 +13,35 @@ import { PastGamesSection } from './past-games-section'
 import type { Location } from '@/types'
 
 interface RegistrationsClientProps {
-  locations: Location[]
-  userRole: 'admin' | 'facilitator' | 'player'
+  readonly locations: Location[]
+  readonly userRole: 'admin' | 'facilitator' | 'player'
+  readonly initialSearchParams?: Record<string, string | string[] | undefined>
 }
 
 export function RegistrationsClient({
   locations,
   userRole,
+  initialSearchParams = {},
 }: RegistrationsClientProps) {
   const router = useRouter()
   const hasAnimated = useHasAnimated()
 
-  const [selectedLocationId, setSelectedLocationId] = useState('')
-  const [selectedDateRange, setSelectedDateRange] = useState<'all' | 'last30' | 'last7'>('all')
-  const [expandedScheduleIds, setExpandedScheduleIds] = useState<Set<string>>(new Set())
+  const [selectedLocationId, setSelectedLocationId] = useState(() => {
+    const param = initialSearchParams?.locationId
+    return typeof param === 'string' ? param : ''
+  })
+  const [selectedDateRange, setSelectedDateRange] = useState<'all' | 'last30' | 'last7'>(() => {
+    const param = initialSearchParams?.dateRange
+    if (param === 'all' || param === 'last30' || param === 'last7') return param
+    return 'all'
+  })
+  const [expandedScheduleIds, setExpandedScheduleIds] = useState<Set<string>>(() => {
+    const param = initialSearchParams?.expanded
+    if (typeof param === 'string' && param) {
+      return new Set(param.split(',').filter(Boolean))
+    }
+    return new Set()
+  })
   const [isPastGamesExpanded, setIsPastGamesExpanded] = useState(false)
   const [upcomingPage, setUpcomingPage] = useState(1)
   const [pastPage, setPastPage] = useState(1)
@@ -49,110 +64,145 @@ export function RegistrationsClient({
   }, [])
 
   const handleRegisterPlayer = useCallback((scheduleId: string) => {
-    // Navigate to old single-game view with register dialog open
-    // This uses the existing registration infrastructure temporarily
-    router.push(`/dashboard/registrations?scheduleId=${scheduleId}&openRegister=true`)
-  }, [router])
+    // State is already synced to URL by useEffect, just add the registration params
+    const params = new URLSearchParams()
+    if (selectedLocationId) params.set('locationId', selectedLocationId)
+    if (selectedDateRange !== 'all') params.set('dateRange', selectedDateRange)
+    if (expandedScheduleIds.size > 0) {
+      params.set('expanded', Array.from(expandedScheduleIds).join(','))
+    }
+    params.set('scheduleId', scheduleId)
+    params.set('openRegister', 'true')
+    router.push(`/dashboard/registrations?${params.toString()}`)
+  }, [router, selectedLocationId, selectedDateRange, expandedScheduleIds])
 
   const handleManageLineups = useCallback((scheduleId: string) => {
-    router.push(`/dashboard/lineups/${scheduleId}`)
-  }, [router])
+    // Add return URL params so we can restore state when coming back
+    const params = new URLSearchParams()
+    if (selectedLocationId) params.set('locationId', selectedLocationId)
+    if (selectedDateRange !== 'all') params.set('dateRange', selectedDateRange)
+    if (expandedScheduleIds.size > 0) {
+      params.set('expanded', Array.from(expandedScheduleIds).join(','))
+    }
+    router.push(`/dashboard/lineups/${scheduleId}?${params.toString()}`)
+  }, [router, selectedLocationId, selectedDateRange, expandedScheduleIds])
+
+  // Sync state to URL whenever filters change
+  useEffect(() => {
+    const params = new URLSearchParams()
+    if (selectedLocationId) params.set('locationId', selectedLocationId)
+    if (selectedDateRange !== 'all') params.set('dateRange', selectedDateRange)
+    if (expandedScheduleIds.size > 0) {
+      params.set('expanded', Array.from(expandedScheduleIds).join(','))
+    }
+    const queryString = params.toString()
+    router.push(`/dashboard/registrations${queryString ? '?' + queryString : ''}`)
+  }, [selectedLocationId, selectedDateRange, expandedScheduleIds, router])
 
   const totalRegistrations =
     Object.values(registrationsByScheduleId).reduce((sum, regs) => sum + regs.length, 0)
 
+  const loadingContent = (
+    <motion.div
+      custom={1}
+      initial={hasAnimated.current ? false : 'hidden'}
+      animate="visible"
+      variants={fadeUpVariants}
+      className="bg-card border-border border rounded-lg p-12 text-center"
+    >
+      <p className="text-muted-foreground">Loading registrations...</p>
+    </motion.div>
+  )
+
+  const noLocationContent = (
+    <motion.div
+      custom={1}
+      initial={hasAnimated.current ? false : 'hidden'}
+      animate="visible"
+      variants={fadeUpVariants}
+      className="bg-card border-border border rounded-lg p-12 text-center"
+    >
+      <p className="text-muted-foreground">Select a location to view games and registrations</p>
+    </motion.div>
+  )
+
+  const gamesContent = (
+    <>
+      {/* Upcoming Games Section */}
+      <motion.div
+        custom={1}
+        initial={hasAnimated.current ? false : 'hidden'}
+        animate="visible"
+        variants={fadeUpVariants}
+        className="mb-8"
+      >
+        <UpcomingGamesSection
+          schedules={upcomingSchedules}
+          registrationsByScheduleId={registrationsByScheduleId}
+          expandedScheduleIds={expandedScheduleIds}
+          onToggleExpand={handleToggleGameExpand}
+          onRegisterPlayer={handleRegisterPlayer}
+          onManageLineups={handleManageLineups}
+          currentPage={upcomingPage}
+          pageSize={PAGE_SIZE}
+          onPageChange={setUpcomingPage}
+        />
+      </motion.div>
+
+      {/* Past Games Section */}
+      <motion.div
+        custom={2}
+        initial={hasAnimated.current ? false : 'hidden'}
+        animate="visible"
+        variants={fadeUpVariants}
+      >
+        <PastGamesSection
+          schedules={pastSchedules}
+          registrationsByScheduleId={registrationsByScheduleId}
+          expandedScheduleIds={expandedScheduleIds}
+          isExpanded={isPastGamesExpanded}
+          onToggleSectionExpand={() => setIsPastGamesExpanded(!isPastGamesExpanded)}
+          onToggleGameExpand={handleToggleGameExpand}
+          currentPage={pastPage}
+          pageSize={PAGE_SIZE}
+          onPageChange={setPastPage}
+        />
+      </motion.div>
+    </>
+  )
+
+  const contentWhenLocationSelected = loading ? loadingContent : gamesContent
+  const mainContent = selectedLocationId ? contentWhenLocationSelected : noLocationContent
+
   return (
     <div className="max-w-6xl mx-auto p-6 lg:p-8">
-        <PageHeader
-          breadcrumb="Registrations"
-          title="Registrations"
-          count={totalRegistrations}
-          description="View and manage player registrations by location"
+      <PageHeader
+        breadcrumb="Registrations"
+        title="Registrations"
+        count={totalRegistrations}
+        description="View and manage player registrations by location"
+      />
+
+      {/* Filter Bar */}
+      <motion.div
+        custom={0}
+        initial={hasAnimated.current ? false : 'hidden'}
+        animate="visible"
+        variants={fadeUpVariants}
+        className="mb-8"
+      >
+        <RegistrationsFilterBar
+          locations={locations}
+          selectedLocationId={selectedLocationId}
+          selectedDateRange={selectedDateRange}
+          totalRegistrations={totalRegistrations}
+          onLocationChange={setSelectedLocationId}
+          onDateRangeChange={setSelectedDateRange}
         />
+      </motion.div>
 
-        {/* Filter Bar */}
-        <motion.div
-          custom={0}
-          initial={hasAnimated.current ? false : 'hidden'}
-          animate="visible"
-          variants={fadeUpVariants}
-          className="mb-8"
-        >
-          <RegistrationsFilterBar
-            locations={locations}
-            selectedLocationId={selectedLocationId}
-            selectedDateRange={selectedDateRange}
-            totalRegistrations={totalRegistrations}
-            onLocationChange={setSelectedLocationId}
-            onDateRangeChange={setSelectedDateRange}
-          />
-        </motion.div>
-
-        {/* Main Content */}
-        {!selectedLocationId ? (
-          <motion.div
-            custom={1}
-            initial={hasAnimated.current ? false : 'hidden'}
-            animate="visible"
-            variants={fadeUpVariants}
-            className="bg-card border-border border rounded-lg p-12 text-center"
-          >
-            <p className="text-muted-foreground">Select a location to view games and registrations</p>
-          </motion.div>
-        ) : loading ? (
-          <motion.div
-            custom={1}
-            initial={hasAnimated.current ? false : 'hidden'}
-            animate="visible"
-            variants={fadeUpVariants}
-            className="bg-card border-border border rounded-lg p-12 text-center"
-          >
-            <p className="text-muted-foreground">Loading registrations...</p>
-          </motion.div>
-        ) : (
-          <>
-            {/* Upcoming Games Section */}
-            <motion.div
-              custom={1}
-              initial={hasAnimated.current ? false : 'hidden'}
-              animate="visible"
-              variants={fadeUpVariants}
-              className="mb-8"
-            >
-              <UpcomingGamesSection
-                schedules={upcomingSchedules}
-                registrationsByScheduleId={registrationsByScheduleId}
-                expandedScheduleIds={expandedScheduleIds}
-                onToggleExpand={handleToggleGameExpand}
-                onRegisterPlayer={handleRegisterPlayer}
-                onManageLineups={handleManageLineups}
-                currentPage={upcomingPage}
-                pageSize={PAGE_SIZE}
-                onPageChange={setUpcomingPage}
-              />
-            </motion.div>
-
-            {/* Past Games Section */}
-            <motion.div
-              custom={2}
-              initial={hasAnimated.current ? false : 'hidden'}
-              animate="visible"
-              variants={fadeUpVariants}
-            >
-              <PastGamesSection
-                schedules={pastSchedules}
-                registrationsByScheduleId={registrationsByScheduleId}
-                expandedScheduleIds={expandedScheduleIds}
-                isExpanded={isPastGamesExpanded}
-                onToggleSectionExpand={() => setIsPastGamesExpanded(!isPastGamesExpanded)}
-                onToggleGameExpand={handleToggleGameExpand}
-                currentPage={pastPage}
-                pageSize={PAGE_SIZE}
-                onPageChange={setPastPage}
-              />
-            </motion.div>
-          </>
-        )}
-      </div>
+      {/* Main Content */}
+      {mainContent}
+    </div>
   )
 }

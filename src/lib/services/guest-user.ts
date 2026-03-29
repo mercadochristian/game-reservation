@@ -7,6 +7,7 @@ interface GuestUserInput {
   first_name: string
   last_name: string
   phone?: string
+  skill_level: string
 }
 
 interface CreateGuestUserResult {
@@ -46,6 +47,7 @@ export async function createGuestUser(
         first_name: guestData.first_name,
         last_name: guestData.last_name,
         player_contact_number: guestData.phone || null,
+        skill_level: guestData.skill_level,
         is_guest: true,
         role: 'player',
       }).eq('id', existingUser.id)
@@ -98,6 +100,7 @@ export async function createGuestUser(
             first_name: guestData.first_name,
             last_name: guestData.last_name,
             player_contact_number: guestData.phone || null,
+            skill_level: guestData.skill_level,
             profile_completed: false,
             is_guest: true,
             role: 'player',
@@ -163,6 +166,7 @@ export async function createGuestUser(
       first_name: guestData.first_name,
       last_name: guestData.last_name,
       player_contact_number: guestData.phone || null,
+      skill_level: guestData.skill_level,
       profile_completed: false,
       is_guest: true,
       role: 'player',

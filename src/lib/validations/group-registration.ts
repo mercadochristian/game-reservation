@@ -15,6 +15,10 @@ const guestPlayerSchema = z.object({
   email: z.string().email('Invalid email address'),
   phone: z.string().optional(),
   preferred_position: z.enum(['open_spiker', 'opposite_spiker', 'middle_blocker', 'setter'] as const),
+  skill_level: z.enum(
+    ['developmental', 'developmental_plus', 'intermediate', 'intermediate_plus', 'advanced'],
+    { error: 'Please choose the player\'s skill level' }
+  ),
 })
 
 export const groupPlayerSchema = z.union([existingPlayerSchema, guestPlayerSchema])
