@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
-import { validateUserEditData } from '../user-edit-schema'
+import { validateUserEditData } from '../user-edit'
 
-describe('user-edit-schema', () => {
+describe('user-edit', () => {
   describe('validateUserEditData', () => {
     it('should accept valid data with all fields', () => {
       const data = {
@@ -19,6 +19,8 @@ describe('user-edit-schema', () => {
       expect(result.valid).toBe(true)
       if (result.valid) {
         expect(result.data.first_name).toBe('John')
+        expect(result.data.last_name).toBe('Doe')
+        expect(result.data.email).toBe('john@example.com')
       }
     })
 
@@ -55,12 +57,18 @@ describe('user-edit-schema', () => {
       const data = { role: 'invalid' }
       const result = validateUserEditData(data)
       expect(result.valid).toBe(false)
+      if (!result.valid) {
+        expect(result.errors['role']).toBeDefined()
+      }
     })
 
     it('should reject invalid skill_level', () => {
       const data = { skill_level: 'expert' }
       const result = validateUserEditData(data)
       expect(result.valid).toBe(false)
+      if (!result.valid) {
+        expect(result.errors['skill_level']).toBeDefined()
+      }
     })
 
     it('should accept null values for nullable fields', () => {
