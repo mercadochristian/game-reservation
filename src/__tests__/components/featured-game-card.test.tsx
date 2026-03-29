@@ -54,7 +54,7 @@ describe('FeaturedGameCard', () => {
     const gameWithRegistrations = { ...mockGame, registrations_count: 11 } // 1 spot left
     render(<FeaturedGameCard schedule={gameWithRegistrations} />)
     const spotsElement = screen.getByText('1 spot left')
-    expect(spotsElement).toHaveClass('text-red-500')
+    expect(spotsElement).toHaveClass('text-destructive')
   })
 
   it('should render Register link with correct href', () => {
@@ -62,5 +62,14 @@ describe('FeaturedGameCard', () => {
     render(<FeaturedGameCard schedule={gameWithRegistrations} />)
     const registerLink = screen.getByRole('link', { name: /register/i })
     expect(registerLink).toHaveAttribute('href', '/register?schedule_id=1')
+  })
+
+  it('should display Full and disable register when schedule is full', () => {
+    const fullGame = { ...mockGame, registrations_count: 12 } // All 12 spots taken
+    render(<FeaturedGameCard schedule={fullGame} />)
+    const fullButtons = screen.getAllByText('Full')
+    expect(fullButtons.length).toBe(2) // One in the text, one in the button
+    const registerBtn = screen.queryByRole('link', { name: /register/i })
+    expect(registerBtn).not.toBeInTheDocument()
   })
 })
