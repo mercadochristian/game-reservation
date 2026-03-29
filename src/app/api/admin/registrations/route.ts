@@ -21,7 +21,6 @@ export async function GET(req: NextRequest) {
         end_time,
         location_id,
         max_players,
-        price,
         created_at,
         updated_at,
         locations (id, name, address, google_map_url),
@@ -55,15 +54,17 @@ export async function GET(req: NextRequest) {
           created_at,
           updated_at,
           payment_status,
-          users (id, first_name, last_name, email, skill_level, is_guest),
-          team_members (id, team_id, teams (id, name))
+          users (id, first_name, last_name, email, skill_level, is_guest)
         `
         )
         .in('schedule_id', scheduleIds)
         .order('created_at', { ascending: false })
 
       if (regsError) throw regsError
-      registrations = data || []
+      registrations = (data || []).map((reg: any) => ({
+        ...reg,
+        team_members: [],
+      }))
     }
 
     return NextResponse.json({
