@@ -101,6 +101,9 @@ export function AppShell({ children }: AppShellProps) {
         pathname={pathname}
         onNavigate={handleNavigate}
         onSignOut={handleSignOut}
+        user={user}
+        skillLevelLabel={role === 'player' && user?.skill_level ? SKILL_LEVEL_LABELS[user.skill_level] : undefined}
+        roleLabel={displaySubtitle ?? undefined}
       />
 
       {/* Desktop: Fixed Sidebar */}
