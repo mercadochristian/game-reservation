@@ -1308,7 +1308,7 @@ export function RegisterClient({
               </div>
 
               <div className="px-5 py-4 border-b border-border">
-                <p className="text-base font-extrabold text-foreground">Your Games</p>
+                <p className="text-lg font-extrabold text-slate-900">Your Games</p>
               </div>
 
               <div className="overflow-y-auto flex-1 px-5 space-y-3 pb-3">
@@ -1319,8 +1319,8 @@ export function RegisterClient({
                   return (
                     <div key={id} className="border border-border rounded-lg p-3 flex justify-between items-start">
                       <div className="flex-1">
-                        <p className="text-sm font-extrabold text-foreground">{s.locations?.name}</p>
-                        <p className="text-xs text-muted-foreground mt-1">
+                        <p className="text-sm font-extrabold text-slate-900">{s.locations?.name}</p>
+                        <p className="text-xs text-slate-500 mt-1">
                           {formatScheduleDateWithWeekday(s.start_time)} · {formatScheduleTime(s.start_time)}
                         </p>
                       </div>
@@ -1379,8 +1379,8 @@ export function RegisterClient({
                             {availableSchedules.map(s => (
                               <div key={s.id} className="flex items-center justify-between gap-2 px-3 py-2 border-b border-border last:border-b-0">
                                 <div className="min-w-0">
-                                  <p className="text-[12px] font-semibold truncate">{s.locations?.name}</p>
-                                  <p className="text-[10px] text-muted-foreground">
+                                  <p className="text-sm font-semibold text-slate-900 truncate">{s.locations?.name}</p>
+                                  <p className="text-xs text-slate-600">
                                     {formatScheduleDateWithWeekday(s.start_time)} · ₱{computeSoloAmount(
                                       { position_prices: s.position_prices as Record<string, number>, team_price: s.team_price },
                                       position
@@ -1403,8 +1403,8 @@ export function RegisterClient({
               {/* Total + Done */}
               <div className="px-5 py-4 border-t border-border space-y-4">
                 <div className="flex justify-between items-center">
-                  <p className="text-xs text-muted-foreground font-medium">Total</p>
-                  <p className="text-2xl font-black text-foreground">₱{totalAmount.toFixed(0)}</p>
+                  <p className="text-xs text-slate-600 font-semibold">Total</p>
+                  <p className="text-2xl font-black text-slate-900">₱{totalAmount.toFixed(0)}</p>
                 </div>
                 <Button className="w-full" onClick={() => setCartModalOpen(false)}>
                   Done
