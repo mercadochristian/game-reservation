@@ -814,6 +814,37 @@ Browse and manage game registrations by schedule.
 
 ---
 
+### Merged Registrations Dashboard (`/dashboard/registrations`)
+**File:** `src/app/dashboard/registrations/page.tsx` (server) + `registrations-merged-client.tsx` (client)
+
+Admin and facilitator view of all registrations at a location, split into upcoming/past game sections with filtering and pagination.
+
+**Features:**
+- Location dropdown filter (required to display data)
+- Date range filter: All, Last 7 Days, Last 30 Days
+- Upcoming Games Section: All schedules with future start times, expanded by default, paginated (10 per page)
+- Past Games Section: All schedules with past start times, collapsed by default, expandable, paginated
+- Expandable game cards showing full registration table per schedule
+- Per-registration action menu (view details, mark attendance, verify payment, delete) with role-based visibility
+- Dark mode optimized with accent bar styling on game cards
+
+**Components Used:**
+- `<RegistrationsFilterBar>` — Location + date range filters
+- `<UpcomingGamesSection>` — Upcoming schedules with pagination
+- `<PastGamesSection>` — Past schedules with collapsible expand
+- `<RegistrationGroupCard>` — Individual game card with player table
+- `<RegistrationActionsMenu>` — Per-registration action dropdown
+
+**Hook:**
+- `useSchedulesByLocation()` — Fetches schedules + registrations by location, splits into upcoming/past
+
+**API:**
+- `GET /api/admin/registrations?locationId={id}` — Returns all schedules at location with registration details
+
+**Auth:** Requires admin or facilitator role
+
+---
+
 ### Register (`/register/[scheduleId]`)
 **File:** `src/app/register/[scheduleId]/page.tsx`
 
@@ -1109,6 +1140,168 @@ Collapsible animated filter panel used on admin list pages to reveal filter cont
 - `ChevronDown` icon rotates 180° when open
 - `Filter` icon always shown in the toggle button
 - Active filter count shown in the button label when `activeFilterCount > 0`
+
+---
+
+### Registrations Dashboard Components
+
+#### RegistrationGroupCard (`src/components/registrations/registration-group-card.tsx`)
+Collapsible card showing a single game's registrations with player details.
+
+**Props:**
+```ts
+{
+  schedule: ScheduleWithLocation
+  registrations: RegistrationWithPlayer[]
+  isExpanded: boolean
+  onToggle: () => void
+  onMarkAttendance?: (registrationId: string) => void
+  onVerifyPayment?: (registrationId: string) => void
+  onDeleteRegistration?: (registrationId: string) => void
+  userRole?: 'admin' | 'facilitator'
+}
+```
+
+**Features:**
+- Collapsible header with accent bar styling (dark mode optimized)
+- Shows game date, time, location, registration count
+- Expandable table showing player details (name, position, skill level, payment status, team)
+- Per-registration action menu with role-based visibility
+- Animations on expand/collapse
+
+---
+
+#### RegistrationsFilterBar (`src/components/registrations/registrations-filter-bar.tsx`)
+Location dropdown and date range filter controls.
+
+**Props:**
+```ts
+{
+  locations: Location[]
+  selectedLocationId: string | null
+  onLocationChange: (locationId: string) => void
+  dateRange: 'all' | 'last7' | 'last30'
+  onDateRangeChange: (range: 'all' | 'last7' | 'last30') => void
+}
+```
+
+**Features:**
+- Location dropdown (required to show data)
+- Date range buttons: All, Last 7 Days, Last 30 Days
+- Responsive layout (stacked on mobile, side-by-side on desktop)
+
+---
+
+#### UpcomingGamesSection (`src/components/registrations/upcoming-games-section.tsx`)
+Displays upcoming games (expanded by default) with pagination.
+
+**Props:**
+```ts
+{
+  schedules: ScheduleWithLocation[]
+  registrations: RegistrationWithPlayer[]
+  isLoading: boolean
+  page: number
+  pageSize: number
+  onPageChange: (page: number) => void
+  userRole?: 'admin' | 'facilitator'
+}
+```
+
+**Features:**
+- All schedules with future start times
+- Expanded by default (show registrations immediately)
+- Pagination: 10 games per page
+- Integrates `<RegistrationGroupCard>` for each game
+
+---
+
+#### PastGamesSection (`src/components/registrations/past-games-section.tsx`)
+Displays past games (collapsed by default) with expandable sections and pagination.
+
+**Props:**
+```ts
+{
+  schedules: ScheduleWithLocation[]
+  registrations: RegistrationWithPlayer[]
+  isLoading: boolean
+  page: number
+  pageSize: number
+  onPageChange: (page: number) => void
+  userRole?: 'admin' | 'facilitator'
+}
+```
+
+**Features:**
+- All schedules with past start times
+- Collapsed by default (expandable)
+- Pagination: 10 games per page
+- Read-only view (no action buttons)
+- Integrates `<RegistrationGroupCard>` for each game
+
+---
+
+#### RegistrationActionsMenu (`src/components/registrations/registration-actions-menu.tsx`)
+Dropdown menu for per-registration actions.
+
+**Props:**
+```ts
+{
+  registrationId: string
+  userRole?: 'admin' | 'facilitator'
+  onViewDetails?: () => void
+  onMarkAttendance?: () => void
+  onReassignTeam?: () => void
+  onVerifyPayment?: () => void
+  onEdit?: () => void
+  onDelete?: () => void
+}
+```
+
+**Features:**
+- View Details action (always available)
+- Mark Attendance (facilitator, upcoming games only)
+- Reassign Team (admin, upcoming games)
+- Verify Payment (admin only)
+- Edit/Delete (admin only)
+- Icons paired with text labels
+- Disabled state for non-applicable actions
+
+---
+
+#### RegistrationsMergedClient (`src/components/registrations/registrations-merged-client.tsx`)
+Main client component orchestrating the merged registrations dashboard.
+
+**Features:**
+- Location selection (required to proceed)
+- Date range filtering
+- State management for upcoming/past sections
+- Pagination for both sections
+- Real-time data fetching via `useSchedulesByLocation()`
+- Loading states and error handling
+- Role-based view (admin vs facilitator)
+
+---
+
+### useSchedulesByLocation Hook (`src/lib/hooks/useSchedulesByLocation.ts`)
+Fetches schedules and registrations by location, splits into upcoming/past, maps registrations by schedule.
+
+**Returns:**
+```ts
+{
+  upcomingSchedules: ScheduleWithLocation[]
+  pastSchedules: ScheduleWithLocation[]
+  registrationsBySchedule: Record<string, RegistrationWithPlayer[]>
+  isLoading: boolean
+  error: Error | null
+}
+```
+
+**Usage:**
+```ts
+const { upcomingSchedules, pastSchedules, registrationsBySchedule, isLoading, error }
+  = useSchedulesByLocation(locationId)
+```
 
 ---
 

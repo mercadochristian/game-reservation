@@ -142,6 +142,73 @@ Before game day, admins or facilitators build the official lineup to assign play
 
 ---
 
+### 📋 Registrations Dashboard (Merged View)
+**Roles:** Admin, Facilitator
+**Access:** `/dashboard/registrations`
+
+Unified dashboard showing all registrations at a location, split into upcoming/past game sections with location-first filtering and pagination.
+
+**Workflow:**
+
+1. **Select Location** — User navigates to Registrations dashboard
+   - Must select a location from dropdown (required to proceed)
+   - Dashboard displays all games at that location
+
+2. **View Upcoming Games** (expanded by default)
+   - Shows all games with future start times
+   - Games displayed with full registration details
+   - Paginated: 10 games per page
+   - Can collapse individual game cards
+
+3. **View Past Games** (collapsed by default, expandable)
+   - Shows all games with past start times
+   - Games collapsed to save space, click to expand
+   - Paginated: 10 games per page
+   - Read-only view (no action buttons)
+
+4. **Filter by Date Range** (optional)
+   - **All** — Show all games at location
+   - **Last 7 Days** — Show only games from past 7 days
+   - **Last 30 Days** — Show only games from past 30 days
+
+5. **Manage Individual Registrations** (upcoming games only)
+   - For each player in a game's registration table:
+     - **View Details** — Opens player details panel
+     - **Mark Attendance** — Records attendance (facilitator only)
+     - **Reassign Team** — Moves player to different team (admin only)
+     - **Verify Payment** — Confirms payment received (admin only)
+     - **Edit/Delete** — Modify or remove registration (admin only)
+
+6. **Set Lineup** (upcoming games only)
+   - Click "Set Lineup" on a game card to open the Lineup Builder
+   - Assign players to teams before the game
+   - Teams display in the registration table after assignment
+
+7. **Register New Players** (upcoming games only)
+   - Click "Register Player" to add solo/group/team registrations
+   - Admin can register players on behalf of others
+
+**Facilitators** see:
+- Location filter + date range filter
+- All game cards with registration tables
+- Mark Attendance action (upcoming games)
+- No payment verification or edit/delete actions
+
+**Admins** see:
+- Location filter + date range filter
+- All game cards with registration tables
+- All actions: Mark Attendance, Reassign Team, Verify Payment, Edit, Delete
+- Manage Lineups action
+
+**Benefits:**
+- Location-first view for venue managers
+- See all registrations without switching between games
+- Upcoming/past separation reduces clutter
+- Pagination keeps page responsive
+- Role-based actions prevent accidental operations
+
+---
+
 ### 🎫 Game Check-In
 On game day, players show their unique QR code (generated at registration) to the facilitator. The QR code contains:
 - Player name and contact info
@@ -296,6 +363,7 @@ Post-game, facilitators award MVP to standout players. This is used for:
 - **Lineup Builder** — Admins/facilitators organize registered players into game-day teams with drag-and-drop
 - **QR Code Generation** — Players receive unique QR codes for game check-in
 - **Activity Logs** — Admins view system activity logs
+- **Merged Registrations Dashboard** — Admins and facilitators view all registrations at a location with location-first filtering, upcoming/past game separation, and role-based actions
 
 ### 🔄 Coming Soon (Scaffolded Pages)
 - **QR Scanner** — Facilitators scan QR codes to mark attendance on game day
