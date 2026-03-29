@@ -10,8 +10,13 @@ interface FeaturedGamesSectionProps {
 }
 
 export function FeaturedGamesSection({ schedules }: FeaturedGamesSectionProps) {
-  // Show only first 3 upcoming games
-  const featuredGames = schedules.slice(0, 3)
+  // Filter out past games and show only first 3 upcoming games
+  const now = new Date()
+  const upcomingGames = schedules.filter((schedule) => {
+    const gameTime = new Date(schedule.start_time)
+    return gameTime > now
+  })
+  const featuredGames = upcomingGames.slice(0, 3)
 
   return (
     <section id="schedule" className="py-16 px-4 sm:px-6 bg-background">

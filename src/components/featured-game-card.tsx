@@ -25,13 +25,13 @@ export function FeaturedGameCard({ schedule }: FeaturedGameCardProps) {
   return (
     <div className="border border-border rounded-lg bg-white p-6 hover:bg-gray-50 transition-colors">
       {/* Date & Time */}
-      <h3 className="text-lg font-bold text-foreground mb-4">
+      <h3 className="text-lg font-bold text-foreground dark:text-white mb-4">
         {formatDateTime(schedule.start_time, 'EEE, MMM d • h:mm a')}
       </h3>
 
       {/* Location */}
       <div className="mb-6">
-        <p className="font-medium text-foreground">{schedule.locations?.name}</p>
+        <p className="font-medium text-foreground dark:text-white">{schedule.locations?.name}</p>
         <p className="text-sm text-muted-foreground">{schedule.locations?.address}</p>
       </div>
 
