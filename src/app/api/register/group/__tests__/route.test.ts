@@ -86,7 +86,9 @@ function buildMockClients() {
   }
   const serviceTables: Record<string, any> = {
     users: createTableBuilder(),
+    schedules: createTableBuilder(),
     registrations: createTableBuilder(),
+    registration_payments: createTableBuilder(),
     teams: createTableBuilder(),
     team_members: createTableBuilder(),
   }
@@ -124,6 +126,20 @@ function makeRequest(body: object) {
 
 // ─── Shared fixture ───────────────────────────────────────────────────────────
 
+function addScheduleMock(tables: { service: Record<string, any> }) {
+  const futureDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7 days from now
+  tables.service.schedules.single.mockResolvedValueOnce({
+    data: {
+      start_time: futureDate,
+      status: 'scheduled',
+      max_players: 100,
+      position_prices: {},
+      team_price: 1000,
+    },
+    error: null,
+  })
+}
+
 function setupHappyPath2Players(
   serverClient: any,
   serviceClient: any,
@@ -135,6 +151,8 @@ function setupHappyPath2Players(
     .mockResolvedValueOnce({ data: { id: USER2_ID }, error: null })
     // Third call is registrant name for team naming
     .mockResolvedValueOnce({ data: { first_name: 'Alice' }, error: null })
+
+  addScheduleMock(tables)
 
   tables.server.registrations.then = vi.fn((onFulfilled: any) =>
     Promise.resolve({ data: [], error: null }).then(onFulfilled)
@@ -149,6 +167,10 @@ function setupHappyPath2Players(
   tables.service.team_members.then = vi.fn((onFulfilled: any) =>
     Promise.resolve({ data: null, error: null }).then(onFulfilled)
   )
+  // registration_payments is called with .insert().select('id').single()
+  // Since table builders chain methods, single() is called on the result of select()
+  // which returns the same builder due to mockReturnThis()
+  tables.service.registration_payments.single.mockResolvedValueOnce({ data: { id: 'payment-1' }, error: null })
 }
 
 // ─── Tests ────────────────────────────────────────────────────────────────────
@@ -221,10 +243,11 @@ describe('POST /api/register/group', () => {
     it('rejects group with >=6 players (route-level check after Zod passes)', async () => {
       const { createClient } = await import('@/lib/supabase/server')
       const { createServiceClient } = await import('@/lib/supabase/service')
-      const { serverClient, serviceClient } = buildMockClients()
+      const { serverClient, serviceClient, tables } = buildMockClients()
       vi.mocked(createClient).mockResolvedValue(serverClient as any)
       vi.mocked(createServiceClient).mockReturnValue(serviceClient as any)
       serverClient.auth.getUser.mockResolvedValue({ data: { user: { id: AUTH_ID } }, error: null })
+      addScheduleMock(tables)
 
       const request = makeRequest({
         registration_mode: 'group',
@@ -249,10 +272,11 @@ describe('POST /api/register/group', () => {
     it('rejects group with 2 setters (position-limit violation)', async () => {
       const { createClient } = await import('@/lib/supabase/server')
       const { createServiceClient } = await import('@/lib/supabase/service')
-      const { serverClient, serviceClient } = buildMockClients()
+      const { serverClient, serviceClient, tables } = buildMockClients()
       vi.mocked(createClient).mockResolvedValue(serverClient as any)
       vi.mocked(createServiceClient).mockReturnValue(serviceClient as any)
       serverClient.auth.getUser.mockResolvedValue({ data: { user: { id: AUTH_ID } }, error: null })
+      addScheduleMock(tables)
 
       const request = makeRequest({
         registration_mode: 'group',
@@ -274,10 +298,11 @@ describe('POST /api/register/group', () => {
     it('rejects group with 2 opposite spikers', async () => {
       const { createClient } = await import('@/lib/supabase/server')
       const { createServiceClient } = await import('@/lib/supabase/service')
-      const { serverClient, serviceClient } = buildMockClients()
+      const { serverClient, serviceClient, tables } = buildMockClients()
       vi.mocked(createClient).mockResolvedValue(serverClient as any)
       vi.mocked(createServiceClient).mockReturnValue(serviceClient as any)
       serverClient.auth.getUser.mockResolvedValue({ data: { user: { id: AUTH_ID } }, error: null })
+      addScheduleMock(tables)
 
       const request = makeRequest({
         registration_mode: 'group',
@@ -305,6 +330,11 @@ describe('POST /api/register/group', () => {
 
       const request = makeRequest(validGroupBody)
       const response = await POST(request as any)
+
+      const body = await response.json()
+      if (response.status !== 200) {
+        console.error('Expected 200 but got', response.status, 'Body:', JSON.stringify(body, null, 2))
+      }
       expect(response.status).toBe(200)
     })
   })
@@ -315,10 +345,11 @@ describe('POST /api/register/group', () => {
     it('rejects team with fewer than 6 players', async () => {
       const { createClient } = await import('@/lib/supabase/server')
       const { createServiceClient } = await import('@/lib/supabase/service')
-      const { serverClient, serviceClient } = buildMockClients()
+      const { serverClient, serviceClient, tables } = buildMockClients()
       vi.mocked(createClient).mockResolvedValue(serverClient as any)
       vi.mocked(createServiceClient).mockReturnValue(serviceClient as any)
       serverClient.auth.getUser.mockResolvedValue({ data: { user: { id: AUTH_ID } }, error: null })
+      addScheduleMock(tables)
 
       const request = makeRequest({
         registration_mode: 'team',
@@ -342,10 +373,11 @@ describe('POST /api/register/group', () => {
     it('rejects team missing required position (no setter)', async () => {
       const { createClient } = await import('@/lib/supabase/server')
       const { createServiceClient } = await import('@/lib/supabase/service')
-      const { serverClient, serviceClient } = buildMockClients()
+      const { serverClient, serviceClient, tables } = buildMockClients()
       vi.mocked(createClient).mockResolvedValue(serverClient as any)
       vi.mocked(createServiceClient).mockReturnValue(serviceClient as any)
       serverClient.auth.getUser.mockResolvedValue({ data: { user: { id: AUTH_ID } }, error: null })
+      addScheduleMock(tables)
 
       const request = makeRequest({
         registration_mode: 'team',
@@ -465,6 +497,22 @@ describe('POST /api/register/group', () => {
       vi.mocked(createServiceClient).mockReturnValue(serviceClient as any)
       serverClient.auth.getUser.mockResolvedValue({ data: { user: { id: AUTH_ID } }, error: null })
 
+      // Mock schedule (twice for two schedule lookups)
+      const futureDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+      const scheduleData = {
+        data: {
+          start_time: futureDate,
+          status: 'scheduled',
+          max_players: 100,
+          position_prices: {},
+          team_price: 1000,
+        },
+        error: null,
+      }
+      tables.service.schedules.single
+        .mockResolvedValueOnce(scheduleData)
+        .mockResolvedValueOnce(scheduleData)
+
       // First player is existing
       tables.server.users.single
         .mockResolvedValueOnce({ data: { id: USER1_ID }, error: null })
@@ -494,16 +542,19 @@ describe('POST /api/register/group', () => {
         payment_proof_path: 'uploads/proof.jpg',
         players: [
           { type: 'existing' as const, user_id: USER1_ID, preferred_position: 'open_spiker' as const },
-          { type: 'guest' as const, first_name: 'Jane', last_name: 'Guest', email: 'jane@example.com', preferred_position: 'setter' as const },
+          { type: 'guest' as const, first_name: 'Jane', last_name: 'Guest', email: 'jane@example.com', skill_level: 'intermediate' as const, preferred_position: 'setter' as const },
         ],
       }
 
       const request = makeRequest(bodyWithGuest)
       const response = await POST(request as any)
 
+      const body = await response.json()
+      if (response.status !== 200) {
+        console.error('Expected 200 but got', response.status, 'Body:', JSON.stringify(body, null, 2))
+      }
       expect(response.status).toBe(200)
       expect(vi.mocked(createGuestUser)).toHaveBeenCalledOnce()
-      const body = await response.json()
       expect(body.results[1].success).toBe(true)
       expect(body.results[1].user_id).toBe(USER2_ID)
     })
@@ -516,6 +567,19 @@ describe('POST /api/register/group', () => {
       vi.mocked(createClient).mockResolvedValue(serverClient as any)
       vi.mocked(createServiceClient).mockReturnValue(serviceClient as any)
       serverClient.auth.getUser.mockResolvedValue({ data: { user: { id: AUTH_ID } }, error: null })
+
+      // Mock schedule
+      const futureDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+      tables.service.schedules.single.mockResolvedValueOnce({
+        data: {
+          start_time: futureDate,
+          status: 'scheduled',
+          max_players: 100,
+          position_prices: {},
+          team_price: 1000,
+        },
+        error: null,
+      })
 
       tables.server.users.single.mockResolvedValueOnce({ data: { id: USER1_ID }, error: null })
       vi.mocked(createGuestUser).mockResolvedValueOnce({
@@ -530,7 +594,7 @@ describe('POST /api/register/group', () => {
         payment_proof_path: 'uploads/proof.jpg',
         players: [
           { type: 'existing' as const, user_id: USER1_ID, preferred_position: 'open_spiker' as const },
-          { type: 'guest' as const, first_name: 'Bad', last_name: 'Guest', email: 'bad@example.com', preferred_position: 'setter' as const },
+          { type: 'guest' as const, first_name: 'Bad', last_name: 'Guest', email: 'bad@example.com', skill_level: 'intermediate' as const, preferred_position: 'setter' as const },
         ],
       }
 
@@ -798,6 +862,11 @@ describe('POST /api/register/group', () => {
         .mockResolvedValueOnce({ data: { id: USER1_ID }, error: null })
         .mockResolvedValueOnce({ data: { id: USER2_ID }, error: null })
         .mockResolvedValueOnce({ data: { first_name: null }, error: null })
+
+      tables.service.schedules.single.mockResolvedValueOnce({
+        data: { position_prices: {}, team_price: 1000, current_registrations: 0 },
+        error: null,
+      })
 
       tables.server.registrations.then = vi.fn((onFulfilled: any) =>
         Promise.resolve({ data: [], error: null }).then(onFulfilled)
