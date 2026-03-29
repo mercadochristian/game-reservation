@@ -2,17 +2,21 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
-import { Search, Users } from 'lucide-react'
+import { Search, Users, Edit2 } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Pagination } from '@/components/ui/pagination'
 import { FilterAccordion } from '@/components/filter-accordion'
+import { EditUserModal } from './edit-user-modal'
 import { createClient } from '@/lib/supabase/client'
 import { fadeUpVariants } from '@/lib/animations'
 import { useHasAnimated } from '@/lib/hooks/useHasAnimated'
 import { usePagination } from '@/lib/hooks/usePagination'
+import { useUser } from '@/lib/context/user-context'
 import { SKILL_LEVEL_LABELS } from '@/lib/constants/labels'
+import type { UserRole } from '@/types'
 
 type UserRow = {
   id: string
@@ -21,6 +25,10 @@ type UserRow = {
   email: string
   role: string
   skill_level: string | null
+  player_contact_number: string | null
+  emergency_contact_name: string | null
+  emergency_contact_relationship: string | null
+  emergency_contact_number: string | null
   is_guest: boolean
   created_at: string
 }
@@ -64,6 +72,7 @@ const GUEST_OPTIONS = [
 
 export default function UsersClient() {
   const hasAnimated = useHasAnimated()
+  const { user: currentUser } = useUser()
   const [users, setUsers] = useState<UserRow[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -71,20 +80,23 @@ export default function UsersClient() {
   const [roleFilter, setRoleFilter] = useState('')
   const [skillFilter, setSkillFilter] = useState('')
   const [guestFilter, setGuestFilter] = useState('')
+  const [selectedUser, setSelectedUser] = useState<UserRow | null>(null)
+  const [isModalOpen, setIsModalOpen] = useState(false)
+
+  const fetchUsers = async () => {
+    const supabase = createClient()
+    const { data, error } = await supabase
+      .from('users')
+      .select('id, first_name, last_name, email, role, skill_level, player_contact_number, emergency_contact_name, emergency_contact_relationship, emergency_contact_number, is_guest, created_at')
+      .order('created_at', { ascending: false })
+
+    if (!error && data) {
+      setUsers(data as UserRow[])
+    }
+    setLoading(false)
+  }
 
   useEffect(() => {
-    async function fetchUsers() {
-      const supabase = createClient()
-      const { data, error } = await supabase
-        .from('users')
-        .select('id, first_name, last_name, email, role, skill_level, is_guest, created_at')
-        .order('created_at', { ascending: false })
-
-      if (!error && data) {
-        setUsers(data as UserRow[])
-      }
-      setLoading(false)
-    }
     fetchUsers()
   }, [])
 
@@ -230,6 +242,7 @@ export default function UsersClient() {
                   <TableHead>Role</TableHead>
                   <TableHead>Skill Level</TableHead>
                   <TableHead>Joined</TableHead>
+                  <TableHead className="w-12">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -259,6 +272,19 @@ export default function UsersClient() {
                         day: 'numeric',
                       })}
                     </TableCell>
+                    <TableCell>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => {
+                          setSelectedUser(user)
+                          setIsModalOpen(true)
+                        }}
+                        aria-label={`Edit ${user.first_name} ${user.last_name}`}
+                      >
+                        <Edit2 size={16} />
+                      </Button>
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -275,6 +301,23 @@ export default function UsersClient() {
           </>
         )}
       </motion.div>
+
+      {selectedUser && currentUser && (
+        <EditUserModal
+          isOpen={isModalOpen}
+          onClose={() => {
+            setIsModalOpen(false)
+            setSelectedUser(null)
+          }}
+          onSuccess={() => {
+            setIsModalOpen(false)
+            setSelectedUser(null)
+            fetchUsers()
+          }}
+          user={selectedUser}
+          currentUserRole={currentUser.role as UserRole}
+        />
+      )}
     </div>
   )
 }

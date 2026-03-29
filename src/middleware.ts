@@ -71,14 +71,25 @@ export async function middleware(request: NextRequest) {
     }
 
     // Authenticated: always fetch fresh profile data from DB
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('users')
       .select('role, profile_completed')
       .eq('id', user.id)
-      .single() as { data: { role: string; profile_completed: boolean } | null }
+      .single() as { data: { role: string; profile_completed: boolean } | null; error: any }
+
+    if (error) {
+      void logError('middleware.profile_query_failed', error)
+      // If profile query fails, treat as incomplete to be safe
+      if (!PROFILE_CHECK_EXEMPT.some(route => pathname.startsWith(route))) {
+        const dest = new URL('/create-profile', request.url)
+        dest.searchParams.set('returnUrl', pathname)
+        return redirectWithSession(dest.toString(), request, supabaseResponse)
+      }
+    }
 
     const role = data?.role ?? 'player'
-    const profileCompleted = data?.profile_completed ?? false
+    // profile_completed could be null (legacy data) or false — treat both as incomplete
+    const profileCompleted = data?.profile_completed === true
 
     // S5/S6: Profile incomplete
     if (!profileCompleted) {
