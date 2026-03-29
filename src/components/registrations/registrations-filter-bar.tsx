@@ -21,6 +21,12 @@ export function RegistrationsFilterBar({
   onLocationChange,
   onDateRangeChange,
 }: RegistrationsFilterBarProps) {
+  const dateRangeLabels: Record<'all' | 'last30' | 'last7', string> = {
+    all: 'All',
+    last7: 'Last 7 Days',
+    last30: 'Last 30 Days',
+  }
+
   return (
     <div className="bg-card border-border border rounded-lg p-6 mb-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
@@ -28,7 +34,7 @@ export function RegistrationsFilterBar({
           <Label className="text-sm font-semibold mb-2 block">Location</Label>
           <Select value={selectedLocationId} onValueChange={(value) => value && onLocationChange(value)}>
             <SelectTrigger>
-              <SelectValue placeholder="Select a location" />
+              <SelectValue placeholder="Select A Location" />
             </SelectTrigger>
             <SelectContent>
               {locations.map((loc) => (
@@ -44,7 +50,7 @@ export function RegistrationsFilterBar({
           <Label className="text-sm font-semibold mb-2 block">Date Range</Label>
           <Select value={selectedDateRange} onValueChange={(val) => onDateRangeChange(val as any)}>
             <SelectTrigger>
-              <SelectValue />
+              <SelectValue>{dateRangeLabels[selectedDateRange]}</SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All</SelectItem>
