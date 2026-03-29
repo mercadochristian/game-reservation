@@ -9,7 +9,7 @@ export default defineConfig({
   },
   test: {
     setupFiles: ['src/__tests__/setup.ts'],
-    environment: 'node',
+    environment: 'jsdom',
     include: ['src/**/__tests__/**/*.test.{ts,tsx}'],
     coverage: {
       provider: 'v8',
