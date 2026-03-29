@@ -1,0 +1,4 @@
+{"type":"server-started","port":60251,"host":"127.0.0.1","url_host":"localhost","url":"http://localhost:60251","screen_dir":"/Users/christianmercado/Documents/Work/Personal/game-reservation/.superpowers/brainstorm/58451-1774787735/content","state_dir":"/Users/christianmercado/Documents/Work/Personal/game-reservation/.superpowers/brainstorm/58451-1774787735/state"}
+{"type":"screen-added","file":"/Users/christianmercado/Documents/Work/Personal/game-reservation/.superpowers/brainstorm/58451-1774787735/content/merged-view-options.html"}
+{"type":"screen-added","file":"/Users/christianmercado/Documents/Work/Personal/game-reservation/.superpowers/brainstorm/58451-1774787735/content/waiting.html"}
+{"type":"server-stopped","reason":"idle timeout"}

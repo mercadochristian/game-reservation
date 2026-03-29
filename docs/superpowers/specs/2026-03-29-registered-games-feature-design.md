@@ -248,3 +248,76 @@ AppShell (src/components/app-shell.tsx)
 ## Open Questions
 
 None at this time.
+
+---
+
+## Future Roadmap
+
+### Authentication & User Management
+- **Forgot Password** — Enable users to reset passwords via email link
+- **Data Privacy Agreement** — Require users to agree to privacy policy before profile creation
+- **User Waiver** — Display and require acceptance of liability waiver during registration
+
+### Game Operations
+- **Facilitator Attendance Tracking**
+  - Facilitators/admins can scan player QR codes at game start
+  - System marks player as attended
+  - If payment is pending, notify facilitator immediately after scan
+  - Add attendance section to left nav/drawer for easy access
+
+- **Facilitator Assignment**
+  - Allow facilitators/admins to self-assign to specific game schedules
+  - Track which facilitator is responsible for each game
+  - Display assignment in facilitator dashboard
+
+- **MVP Assignment**
+  - Admins can assign MVP (Most Valuable Player) to any game schedule
+  - Show MVP badge/designation in player dashboard
+  - Display MVP details and stats in game details view
+
+### Infrastructure & Integrations
+- **Webhook Integrations** — Explore webhook use cases for:
+  - Real-time payment notifications
+  - Schedule updates/cancellations
+  - Attendance tracking webhooks
+  - External system integrations (if needed)
+
+- **Progressive Web App (PWA)** — Convert web app to PWA for:
+  - Offline access to key features
+  - Install as native app capability
+  - Push notifications for game updates and reminders
+  - Improved mobile experience
+
+### Payment & Billing
+- **Cash Payment Option** — Enable cash payments without image uploads:
+  - Players request a cash payment code from admin/super admin
+  - Admin generates unique code for each cash registration
+  - Registration is saved without payment image upload
+  - When facilitator scans QR at game:
+    - Display "Cash Payment" status on attendance screen
+    - Show total amount owed for that registration
+    - Facilitator can confirm cash payment received
+  - Track cash payments separately in admin payment dashboard
+
+### Promotions & Deals
+- **Discount & Deal Management** — Allow admins to create promotions:
+  - Percentage-based discounts (e.g., 10% off)
+  - Buy 1 Take 1 deals (BOGO promotions)
+  - Schedule deals to specific date ranges
+  - Apply deals to specific game schedules or globally
+  - Track deal usage and redemption
+  - Display active deals on game cards and registration flow
+  - Apply discount calculations during checkout
+
+### Announcements & Communication
+- **Announcements** — Allow admins to broadcast announcements to users:
+  - Create and schedule announcements
+  - Target specific user roles or all users
+  - Display in dashboard banner or notification center
+  - Mark as read/dismissed
+  - Include announcement history
+
+### Navigation & Dashboard
+- **Dashboard Links** — Add contextual links between related pages
+  - Link from game details to facilitator dashboard
+  - Cross-linking between user roles and their active games

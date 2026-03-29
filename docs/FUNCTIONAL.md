@@ -6,7 +6,7 @@
 
 ## What Is This System?
 
-The **Volleyball Game Reservation System** is a web platform that manages game reservations and player registrations for volleyball clubs. Members can browse upcoming games, register themselves or entire teams, and check in via QR codes on game day. Administrators manage game schedules, locations, and player profiles. Facilitators oversee on-court operations and attendance tracking.
+The **Volleyball Game Reservation System** is a web platform that manages game reservations and player registrations for volleyball clubs. Members can sign up with email/password, browse upcoming games, register themselves or entire teams, and check in via QR codes on game day. Administrators manage game schedules, locations, and player profiles. Facilitators oversee on-court operations and attendance tracking.
 
 ---
 
@@ -35,12 +35,13 @@ The **Volleyball Game Reservation System** is a web platform that manages game r
 **Who:** Game-day staff, match coordinators
 
 **Can do:**
-- View game rosters and team assignments
-- Mark players as present/absent via QR code scanning
-- Award MVP (most valuable player) to standout players
+- ✅ Build and finalize game-day lineups (assign players to teams and positions)
+- ✅ View game rosters and team assignments
+- 🔄 Mark players as present/absent via QR code scanning (coming soon)
+- 🔄 Award MVP (most valuable player) to standout players (coming soon)
 - View upcoming games and player details
 
-**Access:** Dashboard, Team management (coming soon), QR scanner (coming soon), MVP awards (coming soon)
+**Access:** Dashboard, Lineup Builder, QR scanner (coming soon), MVP awards (coming soon)
 
 ---
 
@@ -166,11 +167,12 @@ Post-game, facilitators award MVP to standout players. This is used for:
 
 ### New Player Onboarding
 1. Visit the website
-2. Click "Login" and enter email
-3. Receive magic link via email
-4. Complete profile: name, birthday, skill level, contact info, emergency contact
-5. Redirected to dashboard
-6. Ready to register for games
+2. Click "Create Account" and enter email + password
+3. Create account (password confirmation required)
+4. Automatically signed in
+5. Complete profile: name, birthday, skill level, contact info, emergency contact
+6. Redirected to dashboard
+7. Ready to register for games
 
 ### Playing a Game (Solo Mode)
 1. Browse calendar of upcoming games
@@ -279,17 +281,25 @@ Post-game, facilitators award MVP to standout players. This is used for:
 
 ---
 
-## Planned / Coming Soon
+## Status of Key Features
 
-These features are scaffolded (pages exist but are not yet functional):
+### ✅ Fully Implemented & Live
+- **User Authentication** — Magic link sign-in, role-based access
+- **Profile Management** — Players create and edit profiles with skill level, contact info, emergency contact
+- **Game Schedule Management** — Admins create, edit, delete game schedules with location and capacity
+- **Location Management** — Admins manage venues with maps integration
+- **Game Registration** — Players register solo, in groups, or as teams with position validation
+- **Registrations Admin View** — Admins view all registrations for each game with filtering by date and location
+- **Payments Admin View** — Admins review and approve/reject payment submissions with payment channel management
+- **My Registrations (Player)** — Players view all their registrations (past and upcoming) with QR codes
+- **My Profile (Player)** — Players edit their profile after initial setup
+- **Lineup Builder** — Admins/facilitators organize registered players into game-day teams with drag-and-drop
+- **QR Code Generation** — Players receive unique QR codes for game check-in
+- **Activity Logs** — Admins view system activity logs
 
-- **Registrations Admin View** — view all registrations for a game, manage approvals
-- **Payments Admin View** — manage payment reviews, approve/reject submissions
-- **QR Scanner** — facilitators scan QR codes to check players in
-- **Team Management** — view and edit team assignments for a game
-- **Award MVP** — facilitators award post-game MVP
-- **My Registrations (Player)** — players view their registration history
-- **My Profile (Player)** — players edit their profile after initial setup
+### 🔄 Coming Soon (Scaffolded Pages)
+- **QR Scanner** — Facilitators scan QR codes to mark attendance on game day
+- **Award MVP** — Facilitators award post-game MVP to standout players
 
 ---
 
@@ -314,5 +324,6 @@ A record of implemented features. Updated as new features are deployed.
 | 2026-03-19 | Real-Time Position Availability | The public game calendar now shows live spot counts per position on each game card. Counts update automatically as players register. Clicking a position badge opens a panel listing the names of players who have already claimed that slot. |
 | 2026-03-19 | Admin Page UX Improvements | Admin list pages (locations, schedules, registrations) now display animated placeholder rows while data loads, preventing layout jumps. Filter controls are collapsed by default into a toggle panel that shows the number of active filters in its label. |
 | 2026-03-26 | Lineup Builder | Admins and facilitators can now organize registered players into game-day teams before each game using an interactive drag-and-drop interface. Solo players drag individually; group registrations drag together as a unit. Team names are customizable. Once saved, the lineup appears in the registrations list and ensures everyone knows their assigned team before game day. |
-| | | |
+| 2026-03-28 | My Registrations (Player View) | Players can now view all their past and upcoming game registrations in one place. Shows game details, location, payment status, QR codes for check-in on upcoming games, and attendance status for completed games. Available from the main dashboard for all authenticated users. |
+| 2026-03-29 | Merged Registrations Dashboard | New admin view combining all registrations with location-first filtering and grouped games by time. Enables admins to manage payments and lineup assignments more efficiently. |
 
