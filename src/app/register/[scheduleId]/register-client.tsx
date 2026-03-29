@@ -873,7 +873,382 @@ export function RegisterClient({
 
       {/* ── Form panel (right on desktop, full-width on mobile) ── */}
       <main className="flex-1 overflow-y-auto pt-14 pb-20 px-4 lg:pt-8 lg:pb-8 lg:px-8">
-        {/* form content — Task 4 */}
+        {/* Title */}
+        <motion.div
+          initial={hasAnimated.current ? false : 'hidden'}
+          animate="visible"
+          variants={fadeUpVariants}
+          custom={0}
+          className="mb-6"
+        >
+          <h1 className="text-xl font-extrabold text-foreground">Registration Details</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Applies to {scheduleCount === 1 ? 'your selected game' : `all ${scheduleCount} selected games`}
+          </p>
+        </motion.div>
+
+        {/* ── Section: Registration Mode ── */}
+        <motion.div
+          initial={hasAnimated.current ? false : 'hidden'}
+          animate="visible"
+          variants={fadeUpVariants}
+          custom={1}
+          className="mb-5"
+        >
+          <div className="border border-border rounded-xl p-4">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-3">Registration Mode</p>
+            <div className="flex gap-2">
+              {(['solo', 'group', 'team'] as const).map(m => (
+                <button
+                  key={m}
+                  onClick={() => setMode(m)}
+                  className={`flex-1 py-2 rounded-lg text-sm font-semibold border transition-colors cursor-pointer capitalize ${
+                    mode === m
+                      ? 'bg-primary text-primary-foreground border-primary'
+                      : 'bg-background text-muted-foreground border-border hover:border-primary/40'
+                  }`}
+                >
+                  {m.charAt(0).toUpperCase() + m.slice(1)}
+                </button>
+              ))}
+            </div>
+          </div>
+        </motion.div>
+
+        {/* ── Section: Position (Solo) ── */}
+        {mode === 'solo' && (
+          <motion.div
+            initial={hasAnimated.current ? false : 'hidden'}
+            animate="visible"
+            variants={fadeUpVariants}
+            custom={2}
+            className="mb-5"
+          >
+            <div className="border border-border rounded-xl p-4">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-3">Your Position</p>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { value: 'open_spiker' as const, label: 'Open Spiker' },
+                  { value: 'opposite_spiker' as const, label: 'Opposite Spiker' },
+                  { value: 'middle_blocker' as const, label: 'Middle Blocker' },
+                  { value: 'setter' as const, label: 'Setter' },
+                ].map(opt => (
+                  <div
+                    key={opt.value}
+                    onClick={() => setPosition(opt.value)}
+                    role="radio"
+                    aria-checked={position === opt.value}
+                    tabIndex={0}
+                    onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') setPosition(opt.value) }}
+                    className={`flex items-center gap-2.5 p-3 rounded-lg border cursor-pointer transition-colors ${
+                      position === opt.value
+                        ? 'bg-primary/10 border-primary'
+                        : 'bg-background border-border hover:border-primary/40'
+                    }`}
+                  >
+                    <div className={`h-3.5 w-3.5 rounded-full border-2 shrink-0 ${
+                      position === opt.value ? 'bg-primary border-primary' : 'border-muted-foreground'
+                    }`} />
+                    <span className={`text-sm font-medium ${position === opt.value ? 'text-primary' : 'text-foreground'}`}>
+                      {opt.label}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+        {/* ── Section: Players (Group mode) ── */}
+        {mode === 'group' && (
+          <motion.div
+            initial={hasAnimated.current ? false : 'hidden'}
+            animate="visible"
+            variants={fadeUpVariants}
+            custom={2}
+            className="mb-5"
+          >
+            <div className="border border-border rounded-xl p-4 space-y-3">
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Players</p>
+                <p className="text-xs text-muted-foreground mt-0.5">2–5 players · setter/opposite max 1 · MB/OS max 2</p>
+              </div>
+              <div className="space-y-2">
+                {groupPlayers.map((player, idx) => {
+                  const isPrimary = idx === 0
+                  return (
+                    <Card key={player.id} className="p-3 space-y-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium">{player.first_name} {player.last_name}{isPrimary && ' (You)'}</p>
+                          {player.type === 'guest' && <p className="text-xs text-muted-foreground">{player.email}</p>}
+                        </div>
+                        {!isPrimary && (
+                          <button onClick={() => handleRemoveGroupPlayer(player.id)} className="text-muted-foreground hover:text-foreground transition-colors shrink-0 cursor-pointer">
+                            <X className="h-4 w-4" />
+                          </button>
+                        )}
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground mb-2">Position</p>
+                        <div className="grid grid-cols-2 gap-2">
+                          {(['open_spiker', 'opposite_spiker', 'middle_blocker', 'setter'] as const).map(pos => (
+                            <button
+                              key={pos}
+                              onClick={() => handleUpdateGroupPlayerPosition(player.id, pos)}
+                              className={`p-2 rounded text-xs font-medium text-center transition-colors cursor-pointer ${
+                                player.preferred_position === pos
+                                  ? 'bg-primary text-primary-foreground'
+                                  : 'bg-muted hover:bg-muted/80 text-foreground'
+                              }`}
+                            >
+                              {POSITION_LABELS[pos]}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </Card>
+                  )
+                })}
+              </div>
+              <button
+                onClick={() => setShowAddPlayerForm(!showAddPlayerForm)}
+                className="flex items-center gap-2 text-sm text-primary cursor-pointer hover:underline"
+              >
+                <Plus className="h-4 w-4" />
+                {showAddPlayerForm ? 'Cancel' : 'Add Player'}
+              </button>
+              <AnimatePresence>
+                {showAddPlayerForm && (
+                  <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.2 }} className="overflow-hidden">
+                    <Card className="p-4 space-y-3">
+                      <div className="flex gap-2">
+                        <Button variant={newPlayerForm.type === 'existing' ? 'default' : 'outline'} size="sm" onClick={() => setNewPlayerForm(p => ({ ...p, type: 'existing' }))}>Existing Player</Button>
+                        <Button variant={newPlayerForm.type === 'guest' ? 'default' : 'outline'} size="sm" onClick={() => setNewPlayerForm(p => ({ ...p, type: 'guest' }))}>Guest</Button>
+                      </div>
+                      {newPlayerForm.type === 'existing' ? (
+                        <div className="space-y-2">
+                          <div className="relative">
+                            <input type="text" placeholder="Search by name or email..." value={searchQuery} onChange={e => handleSearchUsers(e.target.value)} className="w-full px-3 py-2 text-sm border rounded bg-background" />
+                            {searching && <p className="text-xs text-muted-foreground mt-1">Searching...</p>}
+                          </div>
+                          {searchResults.length > 0 && (
+                            <div className="space-y-1 max-h-40 overflow-y-auto">
+                              {searchResults.map(result => (
+                                <button key={result.id} onClick={() => handleAddExistingPlayer(result)} className="w-full text-left p-2 rounded hover:bg-muted text-sm transition-colors">
+                                  <p className="font-medium">{result.first_name} {result.last_name}</p>
+                                  <p className="text-xs text-muted-foreground">{result.email}</p>
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                          {searchQuery.length >= 2 && searchResults.length === 0 && !searching && (
+                            <p className="text-xs text-muted-foreground text-center py-2">No players found</p>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          <input type="text" placeholder="First name" value={newPlayerForm.first_name} onChange={e => setNewPlayerForm(p => ({ ...p, first_name: e.target.value }))} className="w-full px-3 py-2 text-sm border rounded bg-background" />
+                          <input type="text" placeholder="Last name" value={newPlayerForm.last_name} onChange={e => setNewPlayerForm(p => ({ ...p, last_name: e.target.value }))} className="w-full px-3 py-2 text-sm border rounded bg-background" />
+                          <input type="email" placeholder="Email" value={newPlayerForm.email} onChange={e => setNewPlayerForm(p => ({ ...p, email: e.target.value }))} className="w-full px-3 py-2 text-sm border rounded bg-background" />
+                          <input type="text" placeholder="Gender" value={newPlayerForm.gender || ''} onChange={e => setNewPlayerForm(p => ({ ...p, gender: e.target.value || null }))} className="w-full px-3 py-2 text-sm border rounded bg-background" />
+                          <select value={newPlayerForm.skill_level || ''} onChange={e => setNewPlayerForm(p => ({ ...p, skill_level: e.target.value || null }))} className="w-full px-3 py-2 text-sm border rounded bg-background">
+                            <option value="">Select skill level</option>
+                            <option value="developmental">Developmental</option>
+                            <option value="developmental_plus">Developmental+</option>
+                            <option value="intermediate">Intermediate</option>
+                            <option value="intermediate_plus">Intermediate+</option>
+                            <option value="advanced">Advanced</option>
+                          </select>
+                          <input type="tel" placeholder="Phone (optional)" value={newPlayerForm.phone} onChange={e => setNewPlayerForm(p => ({ ...p, phone: e.target.value }))} className="w-full px-3 py-2 text-sm border rounded bg-background" />
+                          <Button className="w-full" size="sm" onClick={handleAddGuestPlayer}>Add Guest Player</Button>
+                        </div>
+                      )}
+                    </Card>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          </motion.div>
+        )}
+
+        {/* ── Section: Team Members ── */}
+        {mode === 'team' && (
+          <motion.div
+            initial={hasAnimated.current ? false : 'hidden'}
+            animate="visible"
+            variants={fadeUpVariants}
+            custom={2}
+            className="mb-5"
+          >
+            <div className="border border-border rounded-xl p-4 space-y-3">
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Team Members</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Minimum 6 · 1 Setter + 2 MB + 2 OS + 1 OPP</p>
+              </div>
+              <div className="space-y-2">
+                {groupPlayers.map((player, idx) => {
+                  const isPrimary = idx === 0
+                  return (
+                    <Card key={player.id} className="p-3 space-y-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium">{player.first_name} {player.last_name}{isPrimary && ' (You)'}</p>
+                          {player.type === 'guest' && <p className="text-xs text-muted-foreground">{player.email}</p>}
+                        </div>
+                        {!isPrimary && (
+                          <button onClick={() => handleRemoveGroupPlayer(player.id)} className="text-muted-foreground hover:text-foreground transition-colors shrink-0 cursor-pointer">
+                            <X className="h-4 w-4" />
+                          </button>
+                        )}
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground mb-2">Position</p>
+                        <div className="grid grid-cols-2 gap-2">
+                          {(['open_spiker', 'opposite_spiker', 'middle_blocker', 'setter'] as const).map(pos => (
+                            <button
+                              key={pos}
+                              onClick={() => handleUpdateGroupPlayerPosition(player.id, pos)}
+                              className={`p-2 rounded text-xs font-medium text-center transition-colors cursor-pointer ${
+                                player.preferred_position === pos
+                                  ? 'bg-primary text-primary-foreground'
+                                  : 'bg-muted hover:bg-muted/80 text-foreground'
+                              }`}
+                            >
+                              {POSITION_LABELS[pos]}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </Card>
+                  )
+                })}
+              </div>
+              <button
+                onClick={() => setShowAddPlayerForm(!showAddPlayerForm)}
+                className="flex items-center gap-2 text-sm text-primary cursor-pointer hover:underline"
+              >
+                <Plus className="h-4 w-4" />
+                {showAddPlayerForm ? 'Cancel' : 'Add Member'}
+              </button>
+              <AnimatePresence>
+                {showAddPlayerForm && (
+                  <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.2 }} className="overflow-hidden">
+                    <Card className="p-4 space-y-3">
+                      <div className="flex gap-2">
+                        <Button variant={newPlayerForm.type === 'existing' ? 'default' : 'outline'} size="sm" onClick={() => setNewPlayerForm(p => ({ ...p, type: 'existing' }))}>Existing Player</Button>
+                        <Button variant={newPlayerForm.type === 'guest' ? 'default' : 'outline'} size="sm" onClick={() => setNewPlayerForm(p => ({ ...p, type: 'guest' }))}>Guest</Button>
+                      </div>
+                      {newPlayerForm.type === 'existing' ? (
+                        <div className="space-y-2">
+                          <div className="relative">
+                            <input type="text" placeholder="Search by name or email..." value={searchQuery} onChange={e => handleSearchUsers(e.target.value)} className="w-full px-3 py-2 text-sm border rounded bg-background" />
+                            {searching && <p className="text-xs text-muted-foreground mt-1">Searching...</p>}
+                            {searchResults.length > 0 && (
+                              <div className="absolute top-full left-0 right-0 mt-1 bg-popover border rounded shadow-lg z-50">
+                                {searchResults.map(result => (
+                                  <button key={result.id} onClick={() => handleAddExistingPlayer(result)} className="w-full text-left px-3 py-2 hover:bg-muted text-sm border-b last:border-b-0 transition-colors">
+                                    <p className="font-medium">{result.first_name} {result.last_name}</p>
+                                    <p className="text-xs text-muted-foreground">{result.email}</p>
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          <input type="text" placeholder="First name" value={newPlayerForm.first_name} onChange={e => setNewPlayerForm(p => ({ ...p, first_name: e.target.value }))} className="w-full px-3 py-2 text-sm border rounded bg-background" />
+                          <input type="text" placeholder="Last name" value={newPlayerForm.last_name} onChange={e => setNewPlayerForm(p => ({ ...p, last_name: e.target.value }))} className="w-full px-3 py-2 text-sm border rounded bg-background" />
+                          <input type="email" placeholder="Email" value={newPlayerForm.email} onChange={e => setNewPlayerForm(p => ({ ...p, email: e.target.value }))} className="w-full px-3 py-2 text-sm border rounded bg-background" />
+                          <input type="text" placeholder="Gender" value={newPlayerForm.gender || ''} onChange={e => setNewPlayerForm(p => ({ ...p, gender: e.target.value || null }))} className="w-full px-3 py-2 text-sm border rounded bg-background" />
+                          <select value={newPlayerForm.skill_level || ''} onChange={e => setNewPlayerForm(p => ({ ...p, skill_level: e.target.value || null }))} className="w-full px-3 py-2 text-sm border rounded bg-background">
+                            <option value="">Select skill level</option>
+                            <option value="developmental">Developmental</option>
+                            <option value="developmental_plus">Developmental+</option>
+                            <option value="intermediate">Intermediate</option>
+                            <option value="intermediate_plus">Intermediate+</option>
+                            <option value="advanced">Advanced</option>
+                          </select>
+                          <input type="tel" placeholder="Phone (optional)" value={newPlayerForm.phone} onChange={e => setNewPlayerForm(p => ({ ...p, phone: e.target.value }))} className="w-full px-3 py-2 text-sm border rounded bg-background" />
+                          <Button className="w-full" size="sm" onClick={handleAddGuestPlayer}>Add Guest Member</Button>
+                        </div>
+                      )}
+                    </Card>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+              {/* Position requirements checklist */}
+              <Card className="p-4 space-y-3 border-yellow-500/30 bg-yellow-500/5">
+                <p className="text-sm font-medium">Team Position Requirements</p>
+                {(() => {
+                  const counts = countPositions(groupPlayers)
+                  return (
+                    <div className="space-y-2">
+                      {Object.entries(TEAM_REQUIRED_POSITIONS).map(([pos, req]) => {
+                        const provided = counts[pos] || 0
+                        const met = provided >= req
+                        return (
+                          <div key={pos} className="flex items-center justify-between">
+                            <span className="text-sm capitalize">{pos.replace('_', ' ')}</span>
+                            <div className="flex items-center gap-2">
+                              <span className={`text-sm font-medium ${met ? 'text-green-500' : 'text-yellow-500'}`}>{provided}/{req}</span>
+                              {met ? <CheckCircle className="h-4 w-4 text-green-500" /> : <AlertCircle className="h-4 w-4 text-yellow-500" />}
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )
+                })()}
+                <p className="text-xs text-muted-foreground pt-2">Extra players beyond the minimum are allowed (bench players)</p>
+              </Card>
+            </div>
+          </motion.div>
+        )}
+
+        {/* ── Section: Payment ── */}
+        <motion.div
+          initial={hasAnimated.current ? false : 'hidden'}
+          animate="visible"
+          variants={fadeUpVariants}
+          custom={3}
+          className="mb-6"
+        >
+          <div className="border border-border rounded-xl p-4 space-y-3">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Payment</p>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setShowPaymentChannelsModal(true)}
+              className="gap-2"
+            >
+              <CreditCard size={16} />
+              View Payment Channels ↗
+            </Button>
+            {paymentFile ? (
+              <Card className="p-3 bg-muted/50 flex items-center justify-between">
+                <div className="flex items-center gap-2 min-w-0">
+                  <Upload className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <p className="text-sm truncate">{paymentFile.name}</p>
+                </div>
+                <button onClick={handleRemovePaymentFile} className="text-muted-foreground hover:text-foreground transition-colors shrink-0 cursor-pointer">
+                  <X className="h-4 w-4" />
+                </button>
+              </Card>
+            ) : (
+              <label className="block">
+                <div className="border border-dashed border-border rounded-lg p-6 cursor-pointer hover:bg-muted/50 transition-colors text-center">
+                  <Upload className="h-6 w-6 text-muted-foreground mx-auto mb-2" />
+                  <p className="text-sm font-medium"><span className="text-primary">Click to upload</span> your payment screenshot</p>
+                  <p className="text-xs text-muted-foreground mt-1">PNG, JPG up to 10MB</p>
+                </div>
+                <input type="file" accept="image/*" onChange={handlePaymentFileChange} className="hidden" />
+              </label>
+            )}
+          </div>
+        </motion.div>
       </main>
 
       {/* ── MOBILE: Fixed footer bar ── */}
@@ -882,7 +1257,26 @@ export function RegisterClient({
           <p className="text-[11px] text-slate-500">{scheduleCount} {scheduleCount === 1 ? 'game' : 'games'} selected</p>
           <p className="text-sm font-extrabold text-sky-400">₱{totalAmount.toFixed(0)}</p>
         </div>
-        {/* register button — Task 5 */}
+        <Button
+          onClick={handleRegister}
+          disabled={
+            !paymentFile ||
+            isSubmitting ||
+            (mode === 'solo' && !position) ||
+            ((mode === 'group' || mode === 'team') && groupPlayers.some(p => !p.preferred_position)) ||
+            (mode === 'team' && (() => {
+              const counts = countPositions(groupPlayers)
+              return Object.entries(TEAM_REQUIRED_POSITIONS).some(([pos, req]) => (counts[pos] || 0) < req)
+            })())
+          }
+          size="sm"
+        >
+          {isSubmitting
+            ? 'Registering...'
+            : mode === 'solo'
+              ? `Register → (${scheduleCount})`
+              : `Register ${groupPlayers.length} →`}
+        </Button>
       </div>
 
       {/* ── MOBILE: Cart modal (bottom sheet) ── */}
