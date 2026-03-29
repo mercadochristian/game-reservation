@@ -42,6 +42,19 @@ interface EditUserModalProps {
   readonly currentUserRole: UserRole
 }
 
+/**
+ * Modal for editing user profiles with role-based field visibility.
+ *
+ * Super Admin/Admin can edit all fields including role. Role changes
+ * require a confirmation dialog. Facilitators can only edit skill_level.
+ * All other fields are visible but read-only for non-super/admin users.
+ *
+ * Form validation errors display inline under each field. API errors
+ * display as Sonner toasts. Modal stays open on error, closes on success.
+ *
+ * @param props - Component props
+ * @returns EditUserModal component
+ */
 export function EditUserModal({
   isOpen,
   onClose,
@@ -94,7 +107,11 @@ export function EditUserModal({
 
       for (const field of editableFields) {
         if (canEditField(currentUserRole, field)) {
-          payload[field] = data[field]
+          const value = data[field as keyof typeof data]
+          // Skip empty strings that weren't converted to undefined
+          if (value !== '') {
+            payload[field] = value as never
+          }
         }
       }
 
@@ -258,9 +275,10 @@ export function EditUserModal({
             {/* Skill Level */}
             <div>
               <Label htmlFor="skill_level">Skill Level</Label>
+              {/* @ts-ignore - React Hook Form type issue with select form fields */}
               <select
                 id="skill_level"
-                {...register('skill_level')}
+                {...(register('skill_level', {}) as any)}
                 disabled={!canEditField(currentUserRole, 'skill_level')}
                 className="w-full px-3 py-2 rounded-lg border border-foreground/20 bg-background disabled:opacity-60 disabled:cursor-not-allowed"
               >
