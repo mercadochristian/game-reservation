@@ -12,7 +12,7 @@ npm run lint     # Run ESLint
 
 ## Architecture
 
-**Tech**: Next.js 15 (app router) + React 19 + TypeScript 5. Styling with Tailwind v4, animations with Framer Motion v12. Forms via React Hook Form + Zod. Backend is Supabase (PostgreSQL + Auth via magic link).
+**Tech**: Next.js 15 (app router) + React 19 + TypeScript 5. Styling with Tailwind v4, animations with Framer Motion v12. Forms via React Hook Form + Zod. Backend is Supabase (PostgreSQL + Auth via email/password).
 
 **Directory structure:**
 - `src/app/` — Role-based pages and layouts (`admin/`, `player/`, `facilitator/`, `auth/`, `create-profile/`, `api/profile/complete/`)
@@ -21,7 +21,7 @@ npm run lint     # Run ESLint
 - `/docs/` — `CODEBASE.md` (technical reference) and `FUNCTIONAL.md` (stakeholder reference)
 
 **Auth flow** enforced by middleware (`src/middleware.ts`):
-1. Unauthenticated → `/auth` (magic link)
+1. Unauthenticated → `/auth` (email/password sign in or sign up)
 2. Authenticated + no profile → `/create-profile` (players only)
 3. Authenticated + profile complete → role dashboard (`/admin`, `/facilitator`, `/player`)
 
@@ -33,7 +33,7 @@ npm run lint     # Run ESLint
 
 **Mobile-first, scale beautifully** — Start with mobile layouts (single column, stacked) and progressively enhance for larger screens (tablets, desktops). Ensure layouts adapt gracefully across all breakpoints with readable text and accessible spacing.
 
-**Magic link auth** — Supabase auth via `@supabase/ssr` middleware. Use `createClient()` for browser context, `createServiceClient()` for server-side operations.
+**Email/password auth** — Supabase auth via `@supabase/ssr` middleware. Users sign up with email + password, or sign in with existing credentials. Use `createClient()` for browser context, `createServiceClient()` for server-side operations.
 
 **Framer Motion animation pattern** — All staggered animations use a consistent `fadeUpVariants` object with `custom` prop for delay control. Ensures visual consistency across the app.
 
@@ -68,7 +68,8 @@ npm run lint     # Run ESLint
 3. Use `senior-code-reviewer` after significant code changes
 4. Always write unit tests (use `unit-test-engineer` agent)
 5. Update `/docs/CODEBASE.md` (technical) and `/docs/FUNCTIONAL.md` (stakeholder-facing) with feature details
-6. Add a row to the Feature Log table in both docs
+6. Add test cases to Notion (`Game Reservation Tests` database) — see [TEST_PLAN_SYNC.md](docs/TEST_PLAN_SYNC.md) for workflow
+7. Add a row to the Feature Log table in both docs
 
 ## Rules & Standards
 
@@ -79,3 +80,11 @@ Core rules files:
 - [`.claude/rules/testing.md`](.claude/rules/testing.md) — Testing principles, mocking strategies, test structure, and coverage expectations
 - [`.claude/rules/error-handling.md`](.claude/rules/error-handling.md) — Error classification, logging, promise handling, and API responses
 - [`.claude/rules/database.md`](.claude/rules/database.md) — Migration safety, schema design, reversibility, and data management
+
+## Test Plans & Quality Assurance
+
+Test plans are maintained in **Notion** for visibility and traceability:
+- **Database:** [Game Reservation Tests](https://www.notion.so/33289f8b28e4807c96f9e75cb23a87c3)
+- **Process:** [TEST_PLAN_SYNC.md](docs/TEST_PLAN_SYNC.md) — How to keep test plans in sync with feature development
+- Covers 12+ implemented features with 100+ test cases across E2E, Unit, and Integration tests
+- Test status tracked by feature (Ready, In Progress, Deferred, Blocked)
