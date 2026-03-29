@@ -1,10 +1,13 @@
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
-import { adminRegistrationSchema, AdminRegistrationRequest } from '@/lib/validations/admin-registration'
-import { groupPlayerSchema, GroupPlayer } from '@/lib/validations/group-registration'
+import { adminRegistrationSchema } from '@/lib/validations/admin-registration'
+import { GroupPlayer } from '@/lib/validations/group-registration'
 import { logError } from '@/lib/logger'
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
+import { revalidatePath } from 'next/cache'
+import { createGuestUser } from '@/lib/services/guest-user'
+import { computeSoloAmount, computeGroupAmount, computeTeamAmount } from '@/lib/utils/pricing'
 
 interface PlayerResolution {
   index: number
@@ -50,6 +53,20 @@ export async function POST(request: NextRequest) {
     // Use service client for admin operations
     const serviceClient = createServiceClient()
 
+    // Fetch schedule with pricing
+    const { data: schedule, error: scheduleError } = await (serviceClient
+      .from('schedules')
+      .select('position_prices, team_price')
+      .eq('id', validated.schedule_id)
+      .single() as any)
+
+    if (scheduleError || !schedule) {
+      return NextResponse.json(
+        { error: 'Schedule not found' },
+        { status: 404 }
+      )
+    }
+
     // Step 1: Resolve all players (existing or create stub for guests)
     const resolvedPlayers: PlayerResolution[] = []
 
@@ -77,61 +94,19 @@ export async function POST(request: NextRequest) {
             resolution.user_id = player.user_id
           }
         } else if (player.type === 'guest') {
-          // Check if email already exists in users table
-          const { data: existingUser } = await supabase
-            .from('users')
-            .select('id')
-            .eq('email', player.email)
-            .single() as { data: { id: string } | null; error: any }
+          // Create or reuse guest user
+          const result = await createGuestUser(serviceClient, supabase, {
+            email: player.email,
+            first_name: player.first_name,
+            last_name: player.last_name,
+            phone: player.phone,
+          }, {
+            userId: authUser?.id,
+            operationName: 'admin.register',
+          })
 
-          if (existingUser) {
-            // Reuse existing user (could be a real user or another guest)
-            resolution.user_id = existingUser.id
-          } else {
-            // Create stub auth user and public user record
-            try {
-              const { data: authData, error: authError } =
-                await serviceClient.auth.admin.createUser({
-                  email: player.email,
-                  email_confirm: true,
-                  user_metadata: {
-                    first_name: player.first_name,
-                    last_name: player.last_name,
-                  },
-                })
-
-              if (authError || !authData.user) {
-                void logError('admin.register.guest_create', authError || new Error('Unknown auth error'), authUser?.id)
-                resolution.error = 'Failed to create account. Please try again.'
-              } else {
-                const newUserId = authData.user.id
-
-                // Insert public.users record
-                const { error: insertError } = await (serviceClient
-                  .from('users') as any)
-                  .insert({
-                    id: newUserId,
-                    email: player.email,
-                    first_name: player.first_name,
-                    last_name: player.last_name,
-                    player_contact_number: player.phone || null,
-                    profile_completed: false,
-                    is_guest: true,
-                    role: 'player',
-                  })
-
-                if (insertError) {
-                  void logError('admin.register.user_insert', insertError, authUser?.id, { email: player.email })
-                  resolution.error = 'Failed to add player. Please try again.'
-                } else {
-                  resolution.user_id = newUserId
-                }
-              }
-            } catch (err) {
-              void logError('admin.register.guest_exception', err instanceof Error ? err : new Error(String(err)), authUser?.id, { email: player.email })
-              resolution.error = 'Failed to add guest player. Please try again.'
-            }
-          }
+          resolution.user_id = result.user_id
+          resolution.error = result.error
         }
       } catch (err) {
         void logError('admin.register.player_resolve', err instanceof Error ? err : new Error(String(err)), authUser?.id)
@@ -215,9 +190,7 @@ export async function POST(request: NextRequest) {
         player_id: r.user_id!,
         registered_by: authUser.id,
         preferred_position: r.player.preferred_position,
-        payment_proof_url: null,
         team_preference: validated.team_preference,
-        payment_status: validated.payment_status,
       }))
 
     const { data: insertedRegistrations, error: insertError } = await (serviceClient
@@ -235,6 +208,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Step 5: Create team and assign members only if registration_mode is 'group' or 'team'
+    let teamId: string | null = null
     if (validated.registration_mode === 'group' || validated.registration_mode === 'team') {
       const { data: registrantUser } = await supabase
         .from('users')
@@ -258,6 +232,8 @@ export async function POST(request: NextRequest) {
           { status: 500 }
         )
       }
+
+      teamId = team.id
 
       // Map inserted registrations by player_id for team member creation
       const regsByPlayerId = new Map((insertedRegistrations || []).map((r: any) => [r.player_id, r.id]))
@@ -285,7 +261,70 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Step 6: Return success response
+    // Step 6: Create registration_payments record(s)
+    if (validated.registration_mode === 'single') {
+      // Solo mode: create one payment per registration
+      for (const reg of insertedRegistrations || []) {
+        const requiredAmount = computeSoloAmount(
+          schedule,
+          resolvedPlayers.find(r => r.user_id === reg.player_id)?.player.preferred_position || null
+        )
+
+        const { error: paymentError } = await (serviceClient
+          .from('registration_payments') as any)
+          .insert({
+            registration_id: reg.id,
+            payer_id: authUser.id,
+            schedule_id: validated.schedule_id,
+            registration_type: 'solo',
+            required_amount: requiredAmount,
+            payment_status: validated.payment_status,
+          })
+
+        if (paymentError) {
+          console.error('User payment insert error:', paymentError)
+          void logError('admin.register.user_payment', paymentError, authUser.id, { registrationId: reg.id })
+        }
+      }
+    } else {
+      // Group or Team mode: create one payment for the entire team
+      const requiredAmount =
+        validated.registration_mode === 'team'
+          ? computeTeamAmount(schedule)
+          : computeGroupAmount(
+              schedule,
+              resolvedPlayers
+                .filter(r => r.user_id)
+                .map(r => r.player.preferred_position)
+            )
+
+      // Use the first inserted registration as the reference for team payment
+      if (!insertedRegistrations || insertedRegistrations.length === 0) {
+        throw new Error('No registrations were created for team payment')
+      }
+
+      const { error: paymentError } = await (serviceClient
+        .from('registration_payments') as any)
+        .insert({
+          team_id: teamId,
+          registration_id: insertedRegistrations[0].id,
+          payer_id: authUser.id,
+          schedule_id: validated.schedule_id,
+          registration_type: validated.registration_mode,
+          required_amount: requiredAmount,
+          payment_status: validated.payment_status,
+        })
+
+      if (paymentError) {
+        console.error('User payment insert error:', paymentError)
+        void logError('admin.register.user_payment', paymentError, authUser.id, { teamId })
+      }
+    }
+
+    // Step 7: Revalidate home page cache to reflect updated slot counts
+    revalidatePath('/')
+
+    // Step 8: Return success response
     return NextResponse.json({
       results: resolvedPlayers.map((r) => ({
         player_index: r.index,

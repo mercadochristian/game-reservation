@@ -1,0 +1,299 @@
+# Initial Setup Guide — Volleyball Reservation App
+
+## Quick Start (5 min)
+
+### 1. Create Supabase Projects
+- Go to [supabase.com](https://supabase.com)
+- Create two projects: `volleyball-staging` and `volleyball-prod`
+
+### 2. Run Migrations
+In Supabase Dashboard → SQL Editor, run all migrations in order:
+```bash
+supabase/migrations/20240101000000_create_enums.sql
+supabase/migrations/20240101000001_create_tables.sql
+supabase/migrations/20240101000002_create_triggers.sql
+supabase/migrations/20240101000003_create_rls_policies.sql
+supabase/migrations/20240101000004_create_storage.sql
+```
+
+### 3. Environment Variables
+Create `.env.local`:
+```env
+NEXT_PUBLIC_SUPABASE_URL=https://your-staging-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-staging-anon-key
+NEXT_PUBLIC_SITE_URL=http://localhost:3000
+```
+
+### 4. Run Dev Server
+```bash
+npm run dev
+# Open http://localhost:3000
+```
+
+You'll be redirected to `/auth` automatically.
+
+---
+
+## Detailed Setup
+
+### Foundation Setup Complete ✅
+- Next.js 14 project with TypeScript & Tailwind CSS
+- 5 SQL migrations (5,000+ lines of production code)
+- Supabase client setup with session refresh
+- Auth flow with 3 methods (email+password, magic link, OAuth)
+- Role-based routing (admin → `/admin`, facilitator → `/facilitator`, player → `/player`)
+- TypeScript types matching DB schema
+- Dashboard placeholders for all 3 roles
+
+### File Structure Overview
+```
+src/
+├── app/
+│   ├── auth/page.tsx           # Login page (2 tabs + OAuth)
+│   ├── callback/route.ts       # OAuth & magic link callback
+│   ├── admin/page.tsx          # Admin dashboard
+│   ├── player/page.tsx         # Player dashboard
+│   ├── facilitator/page.tsx    # Facilitator dashboard
+│   └── layout.tsx              # Root layout
+├── components/ui/              # shadcn/ui components
+├── lib/
+│   ├── supabase/
+│   │   ├── client.ts           # Browser client
+│   │   ├── server.ts           # Server client
+│   │   └── middleware.ts       # Session refresh
+│   └── validations/auth.ts     # Zod schemas
+└── middleware.ts               # Route protection & role redirects
+
+supabase/migrations/
+├── 20240101000000_create_enums.sql
+├── 20240101000001_create_tables.sql
+├── 20240101000002_create_triggers.sql
+├── 20240101000003_create_rls_policies.sql
+└── 20240101000004_create_storage.sql
+```
+
+### Security Features ✅
+- RLS on all tables (admins via inline subquery checks)
+- Storage bucket scoped to user ID paths
+- Session refresh on every protected request
+- PKCE OAuth flow
+- Unique constraints on registrations (no double-booking)
+- Trigger-based role assignment from whitelist
+
+### OAuth Configuration
+
+1. Supabase Dashboard → Authentication → Providers → Google
+2. Enable Google provider
+3. In URL Configuration → Redirect URLs, add:
+   - `http://localhost:3000/auth/callback` (dev)
+   - `https://your-production-domain/auth/callback` (prod)
+
+### Role Whitelist (Optional)
+
+To create admin/facilitator accounts, insert into `role_whitelist`:
+
+```sql
+INSERT INTO public.role_whitelist (email, role) VALUES
+  ('admin@example.com', 'admin'),
+  ('facilitator@example.com', 'facilitator');
+```
+
+Any other signup defaults to `player`.
+
+---
+
+## Testing the Auth Flow
+
+### Test 1: Email + Password
+1. Go to `/auth`
+2. Sign up with `test@example.com` / `password123`
+3. Should redirect to `/player`
+
+### Test 2: Magic Link
+1. Go to `/auth`, switch to "Magic Link" tab
+2. Enter `test2@example.com`
+3. Check email for link
+4. Click link → redirects to `/auth/callback` → `/player`
+
+### Test 3: Google OAuth
+1. Go to `/auth`
+2. Click "Continue with Google"
+3. Should redirect through Google → `/auth/callback` → `/player`
+
+### Test 4: Admin Redirect
+1. Add your email to `role_whitelist` with role = `admin`
+2. Sign up / log in with that email
+3. Should redirect to `/admin`
+
+---
+
+## Common Issues
+
+| Issue | Solution |
+|-------|----------|
+| "Cannot find module '@radix-ui/react-tabs'" | Run `npm install @radix-ui/react-tabs` |
+| "NEXT_PUBLIC_SUPABASE_URL is required" | Check `.env.local` — both keys must be set |
+| "OAuth redirect URL mismatch" | Add redirect URL in Supabase → Auth → URL Configuration |
+| "User created but role is undefined" | Check `handle_new_user` trigger fired (look at `public.users` table) |
+| "User stuck in auth loop" | Clear Supabase cookies in browser DevTools → Application → Cookies |
+
+---
+
+## Database Quick Reference
+
+### Create a Schedule (admin only)
+```sql
+INSERT INTO public.schedules (
+  title, start_time, end_time, venue, max_players, required_level, created_by
+) VALUES (
+  'Friday Night Volleyball',
+  '2024-03-22 19:00:00+0',
+  '2024-03-22 21:00:00+0',
+  'City Sports Center',
+  12,
+  'intermediate',
+  'your-user-id'
+);
+```
+
+### Register a Player (player or admin)
+```sql
+INSERT INTO public.registrations (
+  schedule_id, registered_by, player_id, team_preference
+) VALUES (
+  'schedule-uuid',
+  'registering-user-id',
+  'player-id',
+  'shuffle'
+);
+-- qr_token auto-generated by trigger
+```
+
+### Check User Role in DB
+```sql
+SELECT id, email, role FROM public.users WHERE email = 'your@email.com';
+```
+
+---
+
+## Dev Commands
+
+```bash
+npm run dev       # Start dev server (http://localhost:3000)
+npm run build     # Production build
+npm run start     # Start production server
+npm run lint      # Run ESLint
+npm run test      # Run unit tests
+npm run test:watch   # Watch mode for tests
+npm run test:coverage # Generate coverage report
+```
+
+---
+
+## Next: Feature Implementation
+
+The foundation is complete. Start building features in this order:
+
+### Phase 1: Registration (High Priority)
+- `/player/register` — Browse schedules, register for games
+- List open schedules with skill filtering
+- Create registration record
+- Select team preference
+
+### Phase 2: Schedule Management (High Priority)
+- `/admin/schedules` — CRUD schedules
+- Create, list, edit, delete games
+
+### Phase 3: Payment Processing (High Priority)
+- `/player/payment` — Upload payment proofs
+- `/admin/payments` — Review & approve proofs
+
+### Phase 4: Team Management (Nice to Have)
+- `/admin/team-shuffler` — Assign teams
+
+### Phase 5: QR Scanner (Nice to Have)
+- `/facilitator/scan` — Mark attendance
+
+### Phase 6: Polish (Nice to Have)
+- MVP awards system
+- Player history view
+- Badges & achievements
+
+---
+
+## Database Schema
+
+```
+users (from auth.users)
+  ├─ id (PK, fk auth)
+  ├─ email (unique)
+  ├─ role (admin|facilitator|player)
+  └─ skill_level (developmental...advanced)
+
+role_whitelist
+  └─ email → role (admin/facilitator)
+
+schedules
+  ├─ id
+  ├─ title, start_time, end_time, venue
+  ├─ max_players, required_level
+  ├─ status (open|full|cancelled|completed)
+  └─ created_by (fk users)
+
+registrations
+  ├─ id
+  ├─ schedule_id (fk)
+  ├─ registered_by, player_id (fk users)
+  ├─ team_preference (shuffle|teammate)
+  ├─ payment_status (pending|review|paid|rejected)
+  ├─ payment_proof_url (→ storage)
+  ├─ qr_token (UUID, auto-generated)
+  ├─ attended (bool)
+  └─ unique(schedule_id, player_id)
+
+teams
+  ├─ id
+  ├─ schedule_id (fk)
+  └─ name
+
+team_members
+  ├─ team_id (fk)
+  └─ player_id (fk)
+
+mvp_awards
+  ├─ schedule_id (fk)
+  ├─ player_id (fk)
+  ├─ awarded_by (fk users)
+  └─ note
+
+storage.buckets
+  └─ payment-proofs (private)
+     └─ {user_id}/{filename}
+```
+
+---
+
+## Deployment to Vercel
+
+```bash
+# 1. Push to GitHub
+git push origin main
+
+# 2. In Vercel dashboard:
+#    - Connect repo
+#    - Set environment variables:
+#      - NEXT_PUBLIC_SUPABASE_URL (prod)
+#      - NEXT_PUBLIC_SUPABASE_ANON_KEY (prod)
+#      - NEXT_PUBLIC_SITE_URL (your domain)
+
+# 3. Configure OAuth redirect URLs in Supabase prod:
+#    - Add https://your-domain/auth/callback
+```
+
+---
+
+## Need Help?
+
+- **Project Instructions:** See [CLAUDE.md](../../CLAUDE.md)
+- **Technical Reference:** See [docs/CODEBASE.md](../CODEBASE.md)
+- **Stakeholder Overview:** See [docs/FUNCTIONAL.md](../FUNCTIONAL.md)

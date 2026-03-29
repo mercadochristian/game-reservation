@@ -1,109 +1,150 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import { updateSession } from '@/lib/supabase/middleware'
+import { logError } from '@/lib/logger'
 
-// Auth guard: URLs listed here bypass authentication.
-// All other routes require a valid session.
-const PUBLIC_ROUTES = ['/auth', '/auth/callback', '/']
+const PUBLIC_ROUTES = ['/auth', '/auth/callback', '/', '/api/registrations/counts', '/api/registrations/by-position']
 
-// Role-to-path prefix mapping
-const ROLE_PATH_MAP: Record<string, string> = {
-  admin: '/admin',
-  super_admin: '/admin',
-  facilitator: '/facilitator',
-  player: '/player',
+// Exempt from profile-completion redirect: the API that completes the profile
+// and the page itself (prevents a redirect loop).
+const PROFILE_CHECK_EXEMPT = ['/api/profile/complete', '/create-profile']
+
+type Role = 'admin' | 'super_admin' | 'facilitator' | 'player'
+
+// Dashboard sub-paths restricted to specific roles.
+// Paths not listed here are accessible to all authenticated users (e.g. /dashboard itself).
+const ROLE_PROTECTED_PAGES: Record<string, Role[]> = {
+  '/dashboard/users': ['admin', 'super_admin'],
+  '/dashboard/registrations': ['admin', 'super_admin'],
+  '/dashboard/payments': ['admin', 'super_admin'],
+  '/dashboard/schedules': ['admin', 'super_admin'],
+  '/dashboard/locations': ['admin', 'super_admin'],
+  '/dashboard/payment-channels': ['admin', 'super_admin'],
+  '/dashboard/logs': ['super_admin'],
+  '/dashboard/lineups': ['admin', 'super_admin'],
+  // '/dashboard/scanner': ['facilitator'],
+  // '/dashboard/teams': ['facilitator'],
+  // '/dashboard/mvp': ['facilitator'],
+  // '/dashboard/register': ['player'],
+  // '/dashboard/my-registrations': ['player'],
+}
+
+// Copies Supabase session cookies onto any redirect response so session
+// refresh tokens are not lost when the middleware redirects.
+function redirectWithSession(
+  url: string,
+  request: NextRequest,
+  supabaseResponse: NextResponse,
+): NextResponse {
+  const dest = request.nextUrl.clone()
+  dest.href = url
+  const response = NextResponse.redirect(dest)
+  supabaseResponse.cookies.getAll().forEach(c => response.cookies.set(c))
+  return response
 }
 
 export async function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl
+  try {
+    const { pathname } = request.nextUrl
 
-  // Always run updateSession to refresh the session cookie
-  const { supabaseResponse, user, supabase } = await updateSession(request)
+    // Must call updateSession before any early return to keep session cookies fresh
+    const { supabaseResponse, user, supabase } = await updateSession(request)
 
-  // Allow public routes and static assets through
-  const isPublicRoute = PUBLIC_ROUTES.some(route =>
-    route === '/' ? pathname === '/' : pathname.startsWith(route)
-  )
-  const isStaticAsset = pathname.startsWith('/_next') || pathname.startsWith('/favicon')
+    // S1: Static assets
+    if (pathname.startsWith('/_next') || pathname.startsWith('/favicon')) {
+      return supabaseResponse
+    }
 
-  if (isStaticAsset) {
-    return supabaseResponse
-  }
+    const isPublicRoute = PUBLIC_ROUTES.some(route =>
+      route === '/' ? pathname === '/' : pathname.startsWith(route),
+    )
+    const isProfileCheckExempt = PROFILE_CHECK_EXEMPT.some(route =>
+      pathname.startsWith(route),
+    )
 
-  // Unauthenticated user accessing protected route
-  if (!user && !isPublicRoute) {
-    const loginUrl = request.nextUrl.clone()
-    loginUrl.pathname = '/auth'
-    return NextResponse.redirect(loginUrl)
-  }
+    // S2/S3: Unauthenticated user
+    if (!user) {
+      if (isPublicRoute) return supabaseResponse
 
-  // Fetch profile once for all authenticated-user checks below
-  let profileRole: string | null = null
-  let profileCompleted: boolean | null = null
+      const loginUrl = new URL('/auth', request.url)
+      loginUrl.searchParams.set('returnUrl', pathname)
+      return redirectWithSession(loginUrl.toString(), request, supabaseResponse)
+    }
 
-  if (user && (isPublicRoute || !isPublicRoute)) {
-    const { data: profile } = await supabase
+    // Authenticated: always fetch fresh profile data from DB
+    const { data, error } = await supabase
       .from('users')
       .select('role, profile_completed')
       .eq('id', user.id)
-      .single()
+      .single() as { data: { role: string; profile_completed: boolean } | null; error: any }
 
-    profileRole = (profile as { role: string; profile_completed: boolean } | null)?.role ?? 'player'
-    profileCompleted = (profile as { role: string; profile_completed: boolean } | null)?.profile_completed ?? false
-  }
-
-  // Authenticated user accessing /auth — redirect to their dashboard or create-profile
-  if (user && isPublicRoute && pathname === '/auth') {
-    const role = profileRole ?? 'player'
-    const completed = profileCompleted ?? false
-
-    // Players who haven't completed profile creation go there first
-    if (role === 'player' && !completed) {
-      const createProfileUrl = request.nextUrl.clone()
-      createProfileUrl.pathname = '/create-profile'
-      return NextResponse.redirect(createProfileUrl)
+    if (error) {
+      void logError('middleware.profile_query_failed', error)
+      // If profile query fails, treat as incomplete to be safe
+      if (!PROFILE_CHECK_EXEMPT.some(route => pathname.startsWith(route))) {
+        const dest = new URL('/create-profile', request.url)
+        dest.searchParams.set('returnUrl', pathname)
+        return redirectWithSession(dest.toString(), request, supabaseResponse)
+      }
     }
 
-    const dashboardUrl = request.nextUrl.clone()
-    dashboardUrl.pathname = '/dashboard'
-    return NextResponse.redirect(dashboardUrl)
-  }
+    const role = data?.role ?? 'player'
+    // profile_completed could be null (legacy data) or false — treat both as incomplete
+    const profileCompleted = data?.profile_completed === true
 
-  // Authenticated user accessing a role-restricted path
-  if (user && !isPublicRoute) {
-    const role = profileRole ?? 'player'
-    const completed = profileCompleted ?? false
+    // S5/S6: Profile incomplete
+    if (!profileCompleted) {
+      if (isProfileCheckExempt) return supabaseResponse
 
-    // Redirect players who haven't completed profile creation
-    if (role === 'player' && !completed && pathname !== '/create-profile') {
-      const createProfileUrl = request.nextUrl.clone()
-      createProfileUrl.pathname = '/create-profile'
-      return NextResponse.redirect(createProfileUrl)
+      const dest = new URL('/create-profile', request.url)
+      dest.searchParams.set('returnUrl', pathname)
+      return redirectWithSession(dest.toString(), request, supabaseResponse)
     }
 
-    // Check if user is on a path they're not allowed to access (skip /dashboard as it's role-agnostic)
-    const allowedPrefix = ROLE_PATH_MAP[role]
-    const isOnWrongRolePath = !allowedPrefix || !pathname.startsWith(allowedPrefix) &&
-      Object.values(ROLE_PATH_MAP).some(prefix => pathname.startsWith(prefix))
+    // Profile complete from here on
 
-    if (isOnWrongRolePath) {
-      const redirectUrl = request.nextUrl.clone()
-      redirectUrl.pathname = '/dashboard'
-      return NextResponse.redirect(redirectUrl)
+    // S4: Authenticated, visiting /auth — redirect to intended destination
+    if (pathname.startsWith('/auth')) {
+      const rawReturnUrl =
+        request.nextUrl.searchParams.get('returnUrl') ?? '/dashboard'
+      const returnUrl = rawReturnUrl.startsWith('/auth')
+        ? '/dashboard'
+        : rawReturnUrl
+      return redirectWithSession(
+        new URL(returnUrl, request.url).toString(),
+        request,
+        supabaseResponse,
+      )
     }
-  }
 
-  return supabaseResponse
+    // S7: Public route (e.g. `/`) — pass through
+    if (isPublicRoute) return supabaseResponse
+
+    // S8: Check role-protected dashboard pages
+    const protectedEntry = Object.entries(ROLE_PROTECTED_PAGES).find(([path]) =>
+      pathname.startsWith(path),
+    )
+    if (protectedEntry) {
+      const [, allowedRoles] = protectedEntry
+      if (!allowedRoles.includes(role as Role)) {
+        return redirectWithSession(
+          new URL('/dashboard', request.url).toString(),
+          request,
+          supabaseResponse,
+        )
+      }
+    }
+
+    // S9: Correct path — pass through
+    return supabaseResponse
+  } catch (err) {
+    // Log the error but don't break middleware — pass through to allow the request to continue
+    void logError('middleware.unhandled', err)
+    return NextResponse.next()
+  }
 }
 
 export const config = {
   matcher: [
-    /*
-     * Match all request paths EXCEPT:
-     * - _next/static (static files)
-     * - _next/image (image optimization)
-     * - favicon.ico
-     * - Public file extensions
-     */
     '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 }

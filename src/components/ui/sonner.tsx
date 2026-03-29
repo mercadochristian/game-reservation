@@ -9,6 +9,7 @@ function Toaster({ ...props }: ToasterProps) {
       theme="dark"
       position="top-right"
       richColors
+      closeButton
       toastOptions={{
         style: {
           background: "var(--card)",
@@ -21,7 +22,7 @@ function Toaster({ ...props }: ToasterProps) {
         classNames: {
           title: "font-medium",
           description: "text-sm",
-          error: "!bg-destructive/10 !text-destructive !border-destructive/30",
+          error: "!bg-destructive !text-destructive-foreground !border-destructive",
         },
       }}
       {...props}

@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
 import { type ScheduleWithLocation } from '@/types'
 import { POSITION_LABELS } from '@/lib/constants/labels'
 import {
@@ -36,18 +35,21 @@ export function PositionModal({
   useEffect(() => {
     if (!open || !schedule || !position) return
 
+    const controller = new AbortController()
     setLoading(true)
-    const supabase = createClient()
-    ;(supabase.from('registrations') as any)
-      .select('users!player_id(first_name, last_name)')
-      .eq('schedule_id', schedule.id)
-      .eq('preferred_position', position)
-      .then(({ data }: { data: any }) => {
-        setPlayers(
-          (data ?? []).map((r: any) => r.users ?? { first_name: null, last_name: null })
-        )
+    fetch(`/api/registrations/by-position?schedule_id=${schedule.id}&position=${position}`, { signal: controller.signal })
+      .then((res) => res.json())
+      .then((data: Array<{ first_name: string | null; last_name: string | null }>) => {
+        setPlayers(Array.isArray(data) ? data : [])
         setLoading(false)
       })
+      .catch((err) => {
+        if (err instanceof DOMException && err.name === 'AbortError') return
+        console.error('[PositionModal] Failed to fetch registered players:', err)
+        setPlayers([])
+        setLoading(false)
+      })
+    return () => controller.abort()
   }, [open, schedule, position])
 
   const handleOpenChange = (newOpen: boolean) => {

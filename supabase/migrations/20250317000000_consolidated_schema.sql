@@ -32,7 +32,7 @@ CREATE TYPE public.payment_status   AS ENUM ('pending', 'review', 'paid', 'rejec
 CREATE TYPE public.team_preference  AS ENUM ('shuffle', 'teammate');
 
 CREATE TYPE public.player_position AS ENUM (
-  'open_spiker', 'opposite_spiker', 'middle_blocker', 'setter', 'middle_setter'
+  'open_spiker', 'opposite_spiker', 'middle_blocker', 'setter'
 );
 
 -- --------------------------------------------------------------------------

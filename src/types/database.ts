@@ -88,6 +88,8 @@ export type Database = {
           created_by: string
           created_at: string
           updated_at: string
+          position_prices: Json
+          team_price: number | null
         }
         Insert: {
           id?: string
@@ -102,6 +104,8 @@ export type Database = {
           created_by: string
           created_at?: string
           updated_at?: string
+          position_prices?: Json
+          team_price?: number | null
         }
         Update: {
           id?: string
@@ -116,6 +120,8 @@ export type Database = {
           created_by?: string
           created_at?: string
           updated_at?: string
+          position_prices?: Json
+          team_price?: number | null
         }
       }
       registrations: {
@@ -125,11 +131,10 @@ export type Database = {
           registered_by: string
           player_id: string
           team_preference: 'shuffle' | 'teammate'
-          payment_status: 'pending' | 'review' | 'paid' | 'rejected'
-          payment_proof_url: string | null
           attended: boolean
           qr_token: string | null
           preferred_position: PlayerPosition | null
+          lineup_team_id: string | null
           created_at: string
           updated_at: string
         }
@@ -139,11 +144,10 @@ export type Database = {
           registered_by: string
           player_id: string
           team_preference?: 'shuffle' | 'teammate'
-          payment_status?: 'pending' | 'review' | 'paid' | 'rejected'
-          payment_proof_url?: string | null
           attended?: boolean
           qr_token?: string | null
           preferred_position?: PlayerPosition | null
+          lineup_team_id?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -153,11 +157,10 @@ export type Database = {
           registered_by?: string
           player_id?: string
           team_preference?: 'shuffle' | 'teammate'
-          payment_status?: 'pending' | 'review' | 'paid' | 'rejected'
-          payment_proof_url?: string | null
           attended?: boolean
           qr_token?: string | null
           preferred_position?: PlayerPosition | null
+          lineup_team_id?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -167,18 +170,21 @@ export type Database = {
           id: string
           schedule_id: string
           name: string
+          team_type: 'registration' | 'lineup'
           created_at: string
         }
         Insert: {
           id?: string
           schedule_id: string
           name: string
+          team_type?: 'registration' | 'lineup'
           created_at?: string
         }
         Update: {
           id?: string
           schedule_id?: string
           name?: string
+          team_type?: 'registration' | 'lineup'
           created_at?: string
         }
       }
@@ -263,6 +269,106 @@ export type Database = {
           updated_at?: string
         }
       }
+      payment_channels: {
+        Row: {
+          id: string
+          name: string
+          provider: string
+          account_number: string
+          account_holder_name: string
+          qr_code_url: string | null
+          is_active: boolean
+          created_by: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          provider: string
+          account_number: string
+          account_holder_name: string
+          qr_code_url?: string | null
+          is_active?: boolean
+          created_by: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          provider?: string
+          account_number?: string
+          account_holder_name?: string
+          qr_code_url?: string | null
+          is_active?: boolean
+          created_by?: string
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      registration_payments: {
+        Row: {
+          id: string
+          registration_id: string | null
+          team_id: string | null
+          payer_id: string
+          schedule_id: string
+          registration_type: 'solo' | 'group' | 'team'
+          required_amount: number
+          payment_status: 'pending' | 'review' | 'paid' | 'rejected'
+          payment_proof_url: string | null
+          payment_channel_id: string | null
+          extracted_amount: number | null
+          extracted_reference: string | null
+          extracted_datetime: string | null
+          extracted_sender: string | null
+          extraction_confidence: 'high' | 'medium' | 'low' | 'failed' | null
+          extracted_raw: Json | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          registration_id?: string | null
+          team_id?: string | null
+          payer_id: string
+          schedule_id: string
+          registration_type: 'solo' | 'group' | 'team'
+          required_amount?: number
+          payment_status?: 'pending' | 'review' | 'paid' | 'rejected'
+          payment_proof_url?: string | null
+          payment_channel_id?: string | null
+          extracted_amount?: number | null
+          extracted_reference?: string | null
+          extracted_datetime?: string | null
+          extracted_sender?: string | null
+          extraction_confidence?: 'high' | 'medium' | 'low' | 'failed' | null
+          extracted_raw?: Json | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          registration_id?: string | null
+          team_id?: string | null
+          payer_id?: string
+          schedule_id?: string
+          registration_type?: 'solo' | 'group' | 'team'
+          required_amount?: number
+          payment_status?: 'pending' | 'review' | 'paid' | 'rejected'
+          payment_proof_url?: string | null
+          payment_channel_id?: string | null
+          extracted_amount?: number | null
+          extracted_reference?: string | null
+          extracted_datetime?: string | null
+          extracted_sender?: string | null
+          extraction_confidence?: 'high' | 'medium' | 'low' | 'failed' | null
+          extracted_raw?: Json | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
       role_whitelist: {
         Row: {
           email: string
@@ -308,10 +414,11 @@ export type Database = {
       }
     }
     Enums: {
-      user_role: 'admin' | 'player' | 'facilitator'
+      user_role: 'super_admin' | 'admin' | 'player' | 'facilitator'
       skill_level: SkillLevel
       schedule_status: 'open' | 'full' | 'cancelled' | 'completed'
       payment_status: 'pending' | 'review' | 'paid' | 'rejected'
+      registration_type: 'solo' | 'group' | 'team'
       team_preference: 'shuffle' | 'teammate'
       player_position: PlayerPosition
     }
@@ -330,4 +437,3 @@ export type PlayerPosition =
   | 'opposite_spiker'
   | 'middle_blocker'
   | 'setter'
-  | 'middle_setter'
