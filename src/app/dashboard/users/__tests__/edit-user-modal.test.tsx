@@ -269,4 +269,65 @@ describe('EditUserModal', () => {
       })
     )
   })
+
+  it('disables save button while submitting', async () => {
+    const user = userEvent.setup()
+    const mockFetch = vi.fn(
+      () =>
+        new Promise((resolve) =>
+          setTimeout(
+            () =>
+              resolve({
+                ok: true,
+                json: async () => mockUser,
+              }),
+            100
+          )
+        )
+    )
+    globalThis.fetch = mockFetch as any
+
+    render(
+      <EditUserModal
+        isOpen={true}
+        onClose={vi.fn()}
+        user={mockUser}
+        currentUserRole="admin"
+      />
+    )
+
+    const saveButton = screen.getByRole('button', { name: 'Save' }) as HTMLButtonElement
+    expect(saveButton).not.toBeDisabled()
+
+    await user.click(saveButton)
+
+    expect(saveButton).toBeDisabled()
+  })
+
+  it('handles network errors gracefully', async () => {
+    const user = userEvent.setup()
+    const mockFetch = vi.fn().mockRejectedValue(new Error('Network error'))
+    globalThis.fetch = mockFetch as any
+
+    const toastErrorSpy = vi.spyOn(toast, 'error')
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    render(
+      <EditUserModal
+        isOpen={true}
+        onClose={vi.fn()}
+        user={mockUser}
+        currentUserRole="admin"
+      />
+    )
+
+    const saveButton = screen.getByRole('button', { name: 'Save' })
+    await user.click(saveButton)
+
+    expect(toastErrorSpy).toHaveBeenCalledWith('Something went wrong. Please try again.')
+    expect(consoleErrorSpy).toHaveBeenCalled()
+
+    consoleErrorSpy.mockRestore()
+    toastErrorSpy.mockRestore()
+  })
 })
