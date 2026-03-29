@@ -67,5 +67,9 @@ describe('user-editing permissions', () => {
     it('should return empty array for facilitator', () => {
       expect(getAssignableRoles('facilitator')).toEqual([])
     })
+
+    it('should return empty array for player', () => {
+      expect(getAssignableRoles('player')).toEqual([])
+    })
   })
 })

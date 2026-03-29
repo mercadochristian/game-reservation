@@ -9,7 +9,7 @@ export function canEditField(userRole: UserRole, field: EditableField): boolean 
   if (userRole === 'super_admin') return true
 
   if (userRole === 'admin') {
-    return field !== 'role' ? true : true // admin can edit all except we check role separately
+    return true
   }
 
   if (userRole === 'facilitator') {
