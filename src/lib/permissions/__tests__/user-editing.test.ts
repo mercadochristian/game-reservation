@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest'
+import type { EditableField } from '../user-editing'
 import { canEditField, canAssignRole, getAssignableRoles } from '../user-editing'
 
 describe('user-editing permissions', () => {
@@ -10,10 +11,20 @@ describe('user-editing permissions', () => {
     })
 
     it('should allow admin to edit all fields', () => {
-      expect(canEditField('admin', 'first_name')).toBe(true)
-      expect(canEditField('admin', 'email')).toBe(true)
-      expect(canEditField('admin', 'skill_level')).toBe(true)
-      expect(canEditField('admin', 'role')).toBe(true)
+      const allEditableFields: EditableField[] = [
+        'first_name',
+        'last_name',
+        'email',
+        'player_contact_number',
+        'emergency_contact_name',
+        'emergency_contact_relationship',
+        'emergency_contact_number',
+        'role',
+        'skill_level',
+      ]
+      allEditableFields.forEach(field => {
+        expect(canEditField('admin', field)).toBe(true)
+      })
     })
 
     it('should allow facilitator to edit only skill_level', () => {

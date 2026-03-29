@@ -1,6 +1,6 @@
 type UserRole = 'super_admin' | 'admin' | 'facilitator' | 'player'
 
-type EditableField = 'first_name' | 'last_name' | 'email' | 'player_contact_number' | 'emergency_contact_name' | 'emergency_contact_relationship' | 'emergency_contact_number' | 'role' | 'skill_level'
+export type EditableField = 'first_name' | 'last_name' | 'email' | 'player_contact_number' | 'emergency_contact_name' | 'emergency_contact_relationship' | 'emergency_contact_number' | 'role' | 'skill_level'
 
 /**
  * Check if a user role can edit a specific field
@@ -8,6 +8,7 @@ type EditableField = 'first_name' | 'last_name' | 'email' | 'player_contact_numb
 export function canEditField(userRole: UserRole, field: EditableField): boolean {
   if (userRole === 'super_admin') return true
 
+  // Admin can edit all fields (role assignments are validated separately)
   if (userRole === 'admin') {
     return true
   }
