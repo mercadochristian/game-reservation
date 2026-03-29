@@ -10,17 +10,20 @@ import { Footer } from '@/components/footer'
 async function getSchedules(): Promise<(ScheduleWithLocation & { registrations_count: number; position_counts: Record<string, number> })[]> {
   const supabase = createServiceClient()
 
-  const { data: schedules } = await supabase
+  const { data: schedules, error } = await supabase
     .from('schedules')
     .select(`
       *,
       locations(id, name, address, google_map_url),
-      registrations(id, position_key)
+      registrations(id, preferred_position)
     `)
     .in('status', ['open', 'full', 'completed'])
     .order('start_time', { ascending: true })
 
-  if (!schedules) return []
+  if (error || !schedules) {
+    console.error('[getSchedules] Failed to fetch schedules:', error)
+    return []
+  }
 
   // Map schedules with registration counts and position counts
   return (schedules as any[]).map((schedule) => {
@@ -28,8 +31,8 @@ async function getSchedules(): Promise<(ScheduleWithLocation & { registrations_c
     const positionCounts: Record<string, number> = {}
 
     registrations.forEach((reg: any) => {
-      if (reg.position_key) {
-        positionCounts[reg.position_key] = (positionCounts[reg.position_key] ?? 0) + 1
+      if (reg.preferred_position) {
+        positionCounts[reg.preferred_position] = (positionCounts[reg.preferred_position] ?? 0) + 1
       }
     })
 

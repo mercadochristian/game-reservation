@@ -29,7 +29,9 @@ npm run lint     # Run ESLint
 
 ## Key Decisions
 
-**Light mode default** — No forced `.dark` class; respects system/browser preferences.
+**Dark mode first** — Design and implement for dark mode as the primary target. All components must be built with dark mode in mind first. Light mode is secondary.
+
+**Mobile-first, scale beautifully** — Start with mobile layouts (single column, stacked) and progressively enhance for larger screens (tablets, desktops). Ensure layouts adapt gracefully across all breakpoints with readable text and accessible spacing.
 
 **Magic link auth** — Supabase auth via `@supabase/ssr` middleware. Use `createClient()` for browser context, `createServiceClient()` for server-side operations.
 

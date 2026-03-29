@@ -64,7 +64,7 @@ export function FeaturedGameCard({ schedule }: FeaturedGameCardProps) {
           </span>
         ) : (
           <Link
-            href={`/register?schedule_id=${schedule.id}`}
+            href={`/register/${schedule.id}`}
             className="cursor-pointer inline-flex items-center justify-center rounded-lg border border-transparent bg-primary text-primary-foreground text-sm font-medium whitespace-nowrap transition-all h-8 px-3 hover:opacity-90"
           >
             Register →
