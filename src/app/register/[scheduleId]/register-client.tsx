@@ -885,7 +885,138 @@ export function RegisterClient({
         {/* register button — Task 5 */}
       </div>
 
-      {/* ── MOBILE: Cart modal ── Task 4 */}
+      {/* ── MOBILE: Cart modal (bottom sheet) ── */}
+      <AnimatePresence>
+        {cartModalOpen && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="lg:hidden fixed inset-0 z-30 bg-black/60"
+              onClick={() => setCartModalOpen(false)}
+            />
+            {/* Sheet */}
+            <motion.div
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 28, stiffness: 300 }}
+              className="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-white rounded-t-2xl max-h-[80vh] flex flex-col"
+            >
+              {/* Drag handle */}
+              <div className="flex justify-center pt-3 pb-1">
+                <div className="w-9 h-1 rounded-full bg-muted" />
+              </div>
+
+              <div className="px-5 py-3">
+                <p className="text-[15px] font-bold">Your Games</p>
+              </div>
+
+              <div className="overflow-y-auto flex-1 px-5 space-y-3 pb-3">
+                {/* Selected game rows */}
+                {Object.entries(selectedSchedules).map(([id, slot], idx) => {
+                  const isPrimary = idx === 0
+                  const s = slot.schedule
+                  return (
+                    <div key={id} className="border border-border rounded-lg p-3 flex justify-between items-start">
+                      <div>
+                        <p className="text-[13px] font-bold">{s.locations?.name}</p>
+                        <p className="text-[11px] text-muted-foreground mt-0.5">
+                          {formatScheduleDateWithWeekday(s.start_time)} · {formatScheduleTime(s.start_time)}
+                        </p>
+                      </div>
+                      <div className="text-right ml-3">
+                        <p className="text-[14px] font-extrabold text-primary">
+                          ₱{computeSoloAmount(
+                            { position_prices: s.position_prices as Record<string, number>, team_price: s.team_price },
+                            position
+                          ).toFixed(0)}
+                        </p>
+                        {!isPrimary && (
+                          <button
+                            onClick={() => handleRemoveSchedule(id)}
+                            className="text-[11px] text-destructive mt-1 cursor-pointer"
+                          >
+                            Remove
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })}
+
+                {/* Inline add-game expand inside modal */}
+                <div className="border border-dashed border-border rounded-lg overflow-hidden">
+                  <button
+                    onClick={() => {
+                      if (!availableLoaded) fetchAvailableSchedules()
+                      setPanelOpen(!panelOpen)
+                    }}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-[12px] text-primary hover:text-primary/80 transition-colors cursor-pointer"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                    {panelOpen ? 'Hide games' : '＋ Add another game'}
+                  </button>
+
+                  <AnimatePresence>
+                    {panelOpen && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="overflow-hidden border-t border-border"
+                      >
+                        {availableLoading ? (
+                          <div className="p-3 space-y-2">
+                            {[...Array(2)].map((_, i) => (
+                              <div key={i} className="h-8 bg-muted rounded animate-pulse" />
+                            ))}
+                          </div>
+                        ) : availableSchedules.length === 0 ? (
+                          <p className="text-[11px] text-muted-foreground text-center py-4">No additional games available</p>
+                        ) : (
+                          <div>
+                            {availableSchedules.map(s => (
+                              <div key={s.id} className="flex items-center justify-between gap-2 px-3 py-2 border-b border-border last:border-b-0">
+                                <div className="min-w-0">
+                                  <p className="text-[12px] font-semibold truncate">{s.locations?.name}</p>
+                                  <p className="text-[10px] text-muted-foreground">
+                                    {formatScheduleDateWithWeekday(s.start_time)} · ₱{computeSoloAmount(
+                                      { position_prices: s.position_prices as Record<string, number>, team_price: s.team_price },
+                                      position
+                                    ).toFixed(0)}
+                                  </p>
+                                </div>
+                                <Button size="xs" onClick={() => { handleAddSchedule(s); setPanelOpen(false) }} className="shrink-0">
+                                  Add
+                                </Button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              </div>
+
+              {/* Total + Done */}
+              <div className="px-5 py-4 border-t border-border">
+                <div className="flex justify-between items-center mb-3">
+                  <p className="text-[13px] text-muted-foreground">Total</p>
+                  <p className="text-xl font-black">₱{totalAmount.toFixed(0)}</p>
+                </div>
+                <Button className="w-full" variant="outline" onClick={() => setCartModalOpen(false)}>
+                  Done
+                </Button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       {/* Payment Channels Modal (unchanged) */}
       <PaymentChannelsModal
