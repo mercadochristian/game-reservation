@@ -70,7 +70,7 @@ export async function PATCH(
     // Fetch target user to edit
     const { data: targetUser, error: targetUserError } = await serviceClient
       .from('users')
-      .select('id, role')
+      .select('id, role, email')
       .eq('id', userId)
       .single()
 
@@ -110,6 +110,28 @@ export async function PATCH(
             { status: 403 }
           )
         }
+      }
+    }
+
+    // Check email uniqueness if email is being updated and differs from current
+    if (validation.data.email && validation.data.email !== targetUser.email) {
+      const { data: existingUser, error: emailError } = await serviceClient
+        .from('users')
+        .select('id')
+        .eq('email', validation.data.email)
+
+      if (emailError) {
+        return NextResponse.json(
+          { error: 'SERVER_ERROR', message: 'An error occurred while updating user' },
+          { status: 500 }
+        )
+      }
+
+      if (existingUser && existingUser.length > 0) {
+        return NextResponse.json(
+          { error: 'EMAIL_IN_USE', message: 'Email is already in use' },
+          { status: 400 }
+        )
       }
     }
 
