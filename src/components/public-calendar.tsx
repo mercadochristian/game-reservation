@@ -290,11 +290,14 @@ export function PublicCalendar({ schedules }: PublicCalendarProps) {
 
   return (
     <>
-      <div className="pt-8 pb-12 px-4 sm:px-6 max-w-4xl mx-auto" id="schedule">
-        {/* Calendar Section Header */}
-        <div className="mb-6">
-          <p className="text-xs font-semibold text-muted-foreground tracking-widest uppercase border-l-2 border-primary pl-3">Schedule</p>
-        </div>
+      <section className="py-16 px-4 sm:px-6 bg-background" id="schedule">
+        <div className="max-w-7xl mx-auto">
+          <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-12">All Games</h2>
+
+          {/* Calendar Section Header */}
+          <div className="mb-6">
+            <p className="text-xs font-semibold text-muted-foreground tracking-widest uppercase border-l-2 border-primary pl-3">Schedule</p>
+          </div>
 
         {/* Calendar Header */}
         <div className="flex items-center justify-between mb-8">
@@ -319,7 +322,7 @@ export function PublicCalendar({ schedules }: PublicCalendarProps) {
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: monthDirection * -20 }}
             transition={{ duration: 0.25 }}
-            className="rounded-2xl bg-card ring-1 ring-foreground/8 p-6 shadow-sm mb-8"
+            className="border border-border rounded-lg bg-background p-6 mb-8"
           >
             {/* Day labels */}
             <div className="grid grid-cols-7 gap-3 mb-6">
@@ -390,7 +393,7 @@ export function PublicCalendar({ schedules }: PublicCalendarProps) {
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -20 }}
                     transition={{ duration: 0.25 }}
-                    className="rounded-2xl bg-card ring-1 ring-foreground/8 shadow-sm p-12 text-center"
+                    className="border border-border rounded-lg bg-background p-12 text-center"
                   >
                     <CalendarX className="mx-auto h-8 w-8 mb-3 text-muted-foreground/40" />
                     <p className="text-sm font-medium text-foreground">No games scheduled for this day</p>
@@ -418,8 +421,8 @@ export function PublicCalendar({ schedules }: PublicCalendarProps) {
                         animate="visible"
                         variants={fadeUpVariants}
                       >
-                        <div className="rounded-2xl bg-card ring-1 ring-foreground/8 shadow-sm overflow-hidden">
-                          <div className="p-5 space-y-4">
+                        <div className="border border-border rounded-lg bg-background overflow-hidden hover:bg-muted/50 transition-colors">
+                          <div className="p-6 space-y-4">
                             <ScheduleInfo schedule={schedule} />
 
                             {/* Divider */}
@@ -558,8 +561,7 @@ export function PublicCalendar({ schedules }: PublicCalendarProps) {
                       animate="visible"
                       variants={fadeUpVariants}
                       onClick={() => setSelectedDate(toManilaDateKey(schedule.start_time))}
-                      className="text-left rounded-xl bg-card ring-1 ring-foreground/8 p-3
-                                 hover:bg-muted/50 transition-colors cursor-pointer"
+                      className="text-left border border-border rounded-lg bg-background p-4 hover:bg-muted/50 transition-colors cursor-pointer"
                     >
                       <p className="text-xs text-muted-foreground">
                         {new Date(schedule.start_time).toLocaleDateString('en-US', {
@@ -594,7 +596,8 @@ export function PublicCalendar({ schedules }: PublicCalendarProps) {
             )}
           </motion.div>
         )}
-      </div>
+        </div>
+      </section>
 
       {/* Modals */}
       <LoginModal
