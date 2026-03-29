@@ -66,6 +66,50 @@ function countPositions(players: GroupPlayer_[]): Record<string, number> {
   return counts
 }
 
+function computeCartTotal(
+  selectedSchedules: Record<string, ScheduleSlot>,
+  mode: 'solo' | 'group' | 'team',
+  position: PlayerPosition | null,
+  groupPlayers: GroupPlayer_[]
+): { totalAmount: number; costLines: Array<{ label: string; amount: number }> } {
+  const costLines: Array<{ label: string; amount: number }> = []
+  let totalAmount = 0
+
+  if (mode === 'solo') {
+    Object.values(selectedSchedules).forEach(slot => {
+      const amount = computeSoloAmount(
+        {
+          position_prices: slot.schedule.position_prices as Record<string, number>,
+          team_price: slot.schedule.team_price,
+        },
+        position
+      )
+      costLines.push({ label: slot.schedule.locations?.name || 'Game', amount })
+      totalAmount += amount
+    })
+  } else if (mode === 'group') {
+    const primarySlot = Object.values(selectedSchedules)[0]
+    groupPlayers.forEach(player => {
+      const amount = computeSoloAmount(
+        {
+          position_prices: primarySlot.schedule.position_prices as Record<string, number>,
+          team_price: primarySlot.schedule.team_price,
+        },
+        player.preferred_position
+      )
+      costLines.push({ label: `${player.first_name} ${player.last_name}`, amount })
+      totalAmount += amount
+    })
+  } else {
+    const primarySlot = Object.values(selectedSchedules)[0]
+    const teamPrice = primarySlot.schedule.team_price || 0
+    costLines.push({ label: 'Team Registration', amount: teamPrice })
+    totalAmount = teamPrice
+  }
+
+  return { totalAmount, costLines }
+}
+
 export interface RegisterClientProps {
   scheduleId: string
   user: User
@@ -110,6 +154,7 @@ export function RegisterClient({
 
   // Group registration state
   const [mode, setMode] = useState<'solo' | 'group' | 'team'>('solo')
+  const [cartModalOpen, setCartModalOpen] = useState(false)
   const [groupPlayers, setGroupPlayers] = useState<GroupPlayer_[]>([
     {
       id: `user-${user.id}`,
@@ -532,6 +577,8 @@ export function RegisterClient({
   }
 
   const primarySchedule = primaryScheduleSlot.schedule
+  const { totalAmount } = computeCartTotal(selectedSchedules, mode, position, groupPlayers)
+  const scheduleCount = Object.keys(selectedSchedules).length
 
   // Error state
   if (skillError || scheduleError) {
