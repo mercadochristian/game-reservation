@@ -49,7 +49,7 @@ export function RegistrationGroupCard({
   }
 
   return (
-    <div className="border border-border rounded-lg bg-card overflow-hidden">
+    <div className={cn('border border-border rounded-lg bg-card overflow-hidden border-l-4', isPastGame ? 'border-l-muted/40' : 'border-l-primary/60')}>
       {/* Header - Clickable to toggle expansion */}
       <button
         onClick={() => onToggleExpand(schedule.id)}
@@ -109,7 +109,7 @@ export function RegistrationGroupCard({
                         reg.team_members && reg.team_members.length > 0 && reg.team_members[0].teams
                           ? reg.team_members[0].teams.name
                           : '—'
-                      const paymentStatus = 'pending' // Default; adjust if your registration type has this field
+                      const paymentStatus = (reg as any).payment_status || 'pending'
 
                       return (
                         <TableRow key={reg.id}>
