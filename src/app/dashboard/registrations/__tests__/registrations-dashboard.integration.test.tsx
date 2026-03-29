@@ -2,7 +2,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { RegistrationsMergedClient } from '@/components/registrations/registrations-merged-client'
+import { RegistrationsClient } from '@/components/registrations/registrations-client'
 import type { Location } from '@/types'
 
 const mockLocations: Location[] = [
@@ -16,7 +16,7 @@ describe('Merged Registrations Dashboard - Integration', () => {
   })
 
   it('should show initial empty state with location selector', () => {
-    render(<RegistrationsMergedClient locations={mockLocations} userRole="admin" />)
+    render(<RegistrationsClient locations={mockLocations} userRole="admin" />)
 
     const headings = screen.getAllByRole('heading', { name: /Registrations/ })
     expect(headings.length).toBeGreaterThan(0)
@@ -25,7 +25,7 @@ describe('Merged Registrations Dashboard - Integration', () => {
 
   it('should render both upcoming and past games sections after location selection', async () => {
     const user = userEvent.setup()
-    render(<RegistrationsMergedClient locations={mockLocations} userRole="admin" />)
+    render(<RegistrationsClient locations={mockLocations} userRole="admin" />)
 
     // Get the location selector
     const comboboxes = screen.getAllByRole('combobox')
@@ -48,7 +48,7 @@ describe('Merged Registrations Dashboard - Integration', () => {
 
   it('should allow filtering by date range', async () => {
     const user = userEvent.setup()
-    render(<RegistrationsMergedClient locations={mockLocations} userRole="admin" />)
+    render(<RegistrationsClient locations={mockLocations} userRole="admin" />)
 
     // Select location first
     const comboboxes = screen.getAllByRole('combobox')
@@ -78,7 +78,7 @@ describe('Merged Registrations Dashboard - Integration', () => {
 
   it('should handle facilitator role without errors', async () => {
     const { container } = render(
-      <RegistrationsMergedClient locations={mockLocations} userRole="facilitator" />
+      <RegistrationsClient locations={mockLocations} userRole="facilitator" />
     )
 
     // Component should render without errors
@@ -90,7 +90,7 @@ describe('Merged Registrations Dashboard - Integration', () => {
   })
 
   it('should handle empty locations list gracefully', () => {
-    render(<RegistrationsMergedClient locations={[]} userRole="admin" />)
+    render(<RegistrationsClient locations={[]} userRole="admin" />)
 
     // Should still render the page header
     const headings = screen.getAllByRole('heading', { name: /Registrations/ })
@@ -99,7 +99,7 @@ describe('Merged Registrations Dashboard - Integration', () => {
 
   it('should display registration count in page header', async () => {
     const user = userEvent.setup()
-    render(<RegistrationsMergedClient locations={mockLocations} userRole="admin" />)
+    render(<RegistrationsClient locations={mockLocations} userRole="admin" />)
 
     // Should render page header initially
     const headings = screen.getAllByRole('heading', { name: /Registrations/ })
@@ -124,7 +124,7 @@ describe('Merged Registrations Dashboard - Integration', () => {
 
   it('should switch between locations', async () => {
     const user = userEvent.setup()
-    render(<RegistrationsMergedClient locations={mockLocations} userRole="admin" />)
+    render(<RegistrationsClient locations={mockLocations} userRole="admin" />)
 
     // Select first location
     const comboboxes = screen.getAllByRole('combobox')
@@ -144,7 +144,7 @@ describe('Merged Registrations Dashboard - Integration', () => {
   })
 
   it('should handle player role correctly', () => {
-    render(<RegistrationsMergedClient locations={mockLocations} userRole="player" />)
+    render(<RegistrationsClient locations={mockLocations} userRole="player" />)
 
     const headings = screen.getAllByRole('heading', { name: /Registrations/ })
     expect(headings.length).toBeGreaterThan(0)
@@ -154,7 +154,7 @@ describe('Merged Registrations Dashboard - Integration', () => {
 
   it('should handle location selection without errors', async () => {
     const user = userEvent.setup()
-    render(<RegistrationsMergedClient locations={mockLocations} userRole="admin" />)
+    render(<RegistrationsClient locations={mockLocations} userRole="admin" />)
 
     // Select a location
     const comboboxes = screen.getAllByRole('combobox')
@@ -174,7 +174,7 @@ describe('Merged Registrations Dashboard - Integration', () => {
 
   it('should maintain selected location when changing date range', async () => {
     const user = userEvent.setup()
-    render(<RegistrationsMergedClient locations={mockLocations} userRole="admin" />)
+    render(<RegistrationsClient locations={mockLocations} userRole="admin" />)
 
     // Select a location
     const comboboxes = screen.getAllByRole('combobox')
@@ -208,7 +208,7 @@ describe('Merged Registrations Dashboard - Integration', () => {
   })
 
   it('should render page header with description', () => {
-    render(<RegistrationsMergedClient locations={mockLocations} userRole="admin" />)
+    render(<RegistrationsClient locations={mockLocations} userRole="admin" />)
 
     // Check for page header title
     const headings = screen.getAllByRole('heading', { name: /Registrations/ })
