@@ -6,7 +6,10 @@ import { FeaturedGameCard } from '@/components/featured-game-card'
 import { fadeUpVariants } from '@/lib/animations'
 
 interface FeaturedGamesSectionProps {
-  schedules: (ScheduleWithLocation & { registrations_count: number })[]
+  schedules: (ScheduleWithLocation & {
+    registrations_count: number
+    position_counts: Record<string, number>
+  })[]
 }
 
 export function FeaturedGamesSection({ schedules }: FeaturedGamesSectionProps) {

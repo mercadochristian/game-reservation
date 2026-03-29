@@ -37,6 +37,12 @@ describe('FeaturedGameCard', () => {
     const gameWithRegistrations = {
       ...mockGame,
       registrations_count: 4,
+      position_counts: {
+        open_spiker: 2,
+        opposite_spiker: 1,
+        middle_blocker: 1,
+        setter: 0,
+      },
     }
     render(<FeaturedGameCard schedule={gameWithRegistrations} />)
     expect(screen.getByText(/Mar/)).toBeInTheDocument()
@@ -44,34 +50,79 @@ describe('FeaturedGameCard', () => {
   })
 
   it('should render location name and address', () => {
-    const gameWithRegistrations = { ...mockGame, registrations_count: 4 }
+    const gameWithRegistrations = {
+      ...mockGame,
+      registrations_count: 4,
+      position_counts: {
+        open_spiker: 2,
+        opposite_spiker: 1,
+        middle_blocker: 1,
+        setter: 0,
+      },
+    }
     render(<FeaturedGameCard schedule={gameWithRegistrations} />)
     expect(screen.getByText('Makati Sports Complex')).toBeInTheDocument()
     expect(screen.getByText('Makati City')).toBeInTheDocument()
   })
 
   it('should display spots remaining', () => {
-    const gameWithRegistrations = { ...mockGame, registrations_count: 4 }
+    const gameWithRegistrations = {
+      ...mockGame,
+      registrations_count: 4,
+      position_counts: {
+        open_spiker: 2,
+        opposite_spiker: 1,
+        middle_blocker: 1,
+        setter: 0,
+      },
+    }
     render(<FeaturedGameCard schedule={gameWithRegistrations} />)
     expect(screen.getByText('8 spots left')).toBeInTheDocument()
   })
 
   it('should highlight low spots in warning color', () => {
-    const gameWithRegistrations = { ...mockGame, registrations_count: 11 } // 1 spot left
+    const gameWithRegistrations = {
+      ...mockGame,
+      registrations_count: 11,
+      position_counts: {
+        open_spiker: 2,
+        opposite_spiker: 1,
+        middle_blocker: 2,
+        setter: 1,
+      },
+    }
     render(<FeaturedGameCard schedule={gameWithRegistrations} />)
     const spotsElement = screen.getByText('1 spot left')
     expect(spotsElement).toHaveClass('text-destructive')
   })
 
   it('should render Register link with correct href', () => {
-    const gameWithRegistrations = { ...mockGame, registrations_count: 4 }
+    const gameWithRegistrations = {
+      ...mockGame,
+      registrations_count: 4,
+      position_counts: {
+        open_spiker: 2,
+        opposite_spiker: 1,
+        middle_blocker: 1,
+        setter: 0,
+      },
+    }
     render(<FeaturedGameCard schedule={gameWithRegistrations} />)
     const registerLink = screen.getByRole('link', { name: /register/i })
     expect(registerLink).toHaveAttribute('href', '/register?schedule_id=1')
   })
 
   it('should display Full and disable register when schedule is full', () => {
-    const fullGame = { ...mockGame, registrations_count: 12 } // All 12 spots taken
+    const fullGame = {
+      ...mockGame,
+      registrations_count: 12,
+      position_counts: {
+        open_spiker: 2,
+        opposite_spiker: 1,
+        middle_blocker: 2,
+        setter: 1,
+      },
+    }
     render(<FeaturedGameCard schedule={fullGame} />)
     const fullButtons = screen.getAllByText('Full')
     expect(fullButtons.length).toBe(2) // One in the text, one in the button

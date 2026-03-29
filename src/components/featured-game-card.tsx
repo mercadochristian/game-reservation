@@ -3,9 +3,13 @@
 import Link from 'next/link'
 import type { ScheduleWithLocation } from '@/types'
 import { formatDateTime } from '@/lib/utils/date'
+import { getPositionBreakdown } from '@/lib/utils/position-slots'
 
 interface FeaturedGameCardProps {
-  schedule: ScheduleWithLocation & { registrations_count: number }
+  schedule: ScheduleWithLocation & {
+    registrations_count: number
+    position_counts: Record<string, number>
+  }
 }
 
 export function FeaturedGameCard({ schedule }: FeaturedGameCardProps) {
@@ -22,6 +26,12 @@ export function FeaturedGameCard({ schedule }: FeaturedGameCardProps) {
     spotText = `${spotsRemaining} spots left`
   }
 
+  // Get position availability
+  const positionBreakdown = getPositionBreakdown(schedule.num_teams ?? 1, schedule.position_counts)
+  const positionText = positionBreakdown
+    .map(pos => `${pos.label.split(' ')[0]}: ${pos.available}`)
+    .join(' • ')
+
   return (
     <div className="border border-border rounded-lg bg-card p-6 hover:bg-muted transition-colors dark:hover:bg-muted/50">
       {/* Date & Time */}
@@ -30,9 +40,17 @@ export function FeaturedGameCard({ schedule }: FeaturedGameCardProps) {
       </h3>
 
       {/* Location */}
-      <div className="mb-6">
+      <div className="mb-4">
         <p className="font-medium text-foreground dark:text-white">{schedule.locations?.name}</p>
         <p className="text-sm text-muted-foreground">{schedule.locations?.address}</p>
+      </div>
+
+      {/* Position Availability */}
+      <div className="mb-6">
+        <p className="text-xs text-muted-foreground mb-1">Available per position:</p>
+        <p className="text-sm font-medium text-foreground dark:text-white">
+          {positionText}
+        </p>
       </div>
 
       {/* Spots & Register */}

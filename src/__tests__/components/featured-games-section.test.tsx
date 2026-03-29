@@ -4,7 +4,10 @@ import { render, screen } from '@testing-library/react'
 import { FeaturedGamesSection } from '@/components/featured-games-section'
 import type { ScheduleWithLocation } from '@/types'
 
-const mockGames: (ScheduleWithLocation & { registrations_count: number })[] = [
+const mockGames: (ScheduleWithLocation & {
+  registrations_count: number
+  position_counts: Record<string, number>
+})[] = [
   {
     id: '1',
     title: 'Thursday Volleyball Game',
@@ -21,6 +24,12 @@ const mockGames: (ScheduleWithLocation & { registrations_count: number })[] = [
     position_prices: {},
     team_price: null,
     registrations_count: 4,
+    position_counts: {
+      open_spiker: 2,
+      opposite_spiker: 1,
+      middle_blocker: 1,
+      setter: 0,
+    },
     locations: {
       id: 'loc1',
       name: 'Makati Sports Complex',

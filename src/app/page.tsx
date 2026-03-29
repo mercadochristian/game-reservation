@@ -7,7 +7,7 @@ import { HeroSection } from '@/components/hero-section'
 import { FeaturedGamesSection } from '@/components/featured-games-section'
 import { Footer } from '@/components/footer'
 
-async function getSchedules(): Promise<(ScheduleWithLocation & { registrations_count: number })[]> {
+async function getSchedules(): Promise<(ScheduleWithLocation & { registrations_count: number; position_counts: Record<string, number> })[]> {
   const supabase = createServiceClient()
 
   const { data: schedules } = await supabase
@@ -15,18 +15,30 @@ async function getSchedules(): Promise<(ScheduleWithLocation & { registrations_c
     .select(`
       *,
       locations(id, name, address, google_map_url),
-      registrations(id)
+      registrations(id, position_key)
     `)
     .in('status', ['open', 'full', 'completed'])
     .order('start_time', { ascending: true })
 
   if (!schedules) return []
 
-  // Map schedules with registration counts
-  return (schedules as any[]).map((schedule) => ({
-    ...schedule,
-    registrations_count: schedule.registrations?.length ?? 0,
-  }))
+  // Map schedules with registration counts and position counts
+  return (schedules as any[]).map((schedule) => {
+    const registrations = schedule.registrations ?? []
+    const positionCounts: Record<string, number> = {}
+
+    registrations.forEach((reg: any) => {
+      if (reg.position_key) {
+        positionCounts[reg.position_key] = (positionCounts[reg.position_key] ?? 0) + 1
+      }
+    })
+
+    return {
+      ...schedule,
+      registrations_count: registrations.length,
+      position_counts: positionCounts,
+    }
+  })
 }
 
 function CalendarLoading() {
