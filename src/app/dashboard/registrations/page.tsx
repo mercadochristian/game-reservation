@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { RegistrationsMergedClient } from '@/components/registrations/registrations-merged-client'
+import { RegistrationsClient } from '@/components/registrations/registrations-client'
 
 export default async function RegistrationsPage() {
   const supabase = await createClient()
@@ -35,6 +35,6 @@ export default async function RegistrationsPage() {
     .order('name')
 
   return (
-    <RegistrationsMergedClient locations={locations || []} userRole={userRole} />
+    <RegistrationsClient locations={locations || []} userRole={userRole} />
   )
 }

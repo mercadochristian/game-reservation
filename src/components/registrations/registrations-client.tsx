@@ -12,15 +12,15 @@ import { UpcomingGamesSection } from './upcoming-games-section'
 import { PastGamesSection } from './past-games-section'
 import type { Location } from '@/types'
 
-interface RegistrationsMergedClientProps {
+interface RegistrationsClientProps {
   locations: Location[]
   userRole: 'admin' | 'facilitator' | 'player'
 }
 
-export function RegistrationsMergedClient({
+export function RegistrationsClient({
   locations,
   userRole,
-}: RegistrationsMergedClientProps) {
+}: RegistrationsClientProps) {
   const router = useRouter()
   const hasAnimated = useHasAnimated()
 
