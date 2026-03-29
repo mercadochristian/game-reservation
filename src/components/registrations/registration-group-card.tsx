@@ -51,7 +51,8 @@ export function RegistrationGroupCard({
   const formatScheduleLabel = () => `${dateLabel} · ${timeLabel}`
 
   return (
-    <div className={cn('border border-border rounded-lg bg-card overflow-hidden border-l-4', isPastGame ? 'border-l-muted/40' : 'border-l-primary/60')}>
+    <div className={cn('border border-border rounded-lg bg-card overflow-hidden border-l-4 relative', isPastGame ? 'border-l-muted/40' : 'border-l-primary/60')}>
+      <div className="absolute left-0 top-0 bottom-0 w-1 bg-linear-to-b from-primary/60 to-primary/40"></div>
       {/* Header - Clickable to toggle expansion */}
       <button
         onClick={() => onToggleExpand(schedule.id)}
