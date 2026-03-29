@@ -35,11 +35,11 @@ interface UserRow {
 }
 
 interface EditUserModalProps {
-  isOpen: boolean
-  onClose: () => void
-  onSuccess?: () => void
-  user: UserRow
-  currentUserRole: UserRole
+  readonly isOpen: boolean
+  readonly onClose: () => void
+  readonly onSuccess?: () => void
+  readonly user: UserRow
+  readonly currentUserRole: UserRole
 }
 
 export function EditUserModal({
@@ -58,7 +58,6 @@ export function EditUserModal({
     handleSubmit,
     formState: { errors },
     reset,
-    watch,
     getValues,
   } = useForm<UserEditData>({
     resolver: zodResolver(userEditSchema),
@@ -70,12 +69,10 @@ export function EditUserModal({
       emergency_contact_name: user.emergency_contact_name || '',
       emergency_contact_relationship: user.emergency_contact_relationship || '',
       emergency_contact_number: user.emergency_contact_number || '',
-      skill_level: (user.skill_level || '') as any,
+      skill_level: user.skill_level || undefined,
       role: user.role as UserRole,
     },
   })
-
-  const currentRole = watch('role')
 
   const submitForm = async (data: UserEditData) => {
     setIsSubmitting(true)

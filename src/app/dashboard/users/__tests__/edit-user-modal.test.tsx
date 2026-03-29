@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest'
+import { describe, it, expect, vi, afterEach } from 'vitest'
 import { render, screen, cleanup } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { toast } from 'sonner'
@@ -147,7 +147,7 @@ describe('EditUserModal', () => {
     const user = userEvent.setup()
     const mockFetch = vi.fn().mockResolvedValue({
       ok: true,
-      json: async () => ({ id: mockUser.id, ...mockUser }),
+      json: async () => ({ ...mockUser }),
     })
     globalThis.fetch = mockFetch as any
 
@@ -231,7 +231,7 @@ describe('EditUserModal', () => {
     const user = userEvent.setup()
     const mockFetch = vi.fn().mockResolvedValue({
       ok: true,
-      json: async () => ({ id: mockUser.id, ...mockUser, role: 'facilitator' }),
+      json: async () => ({ ...mockUser, role: 'facilitator' }),
     })
     globalThis.fetch = mockFetch as any
 
@@ -329,5 +329,37 @@ describe('EditUserModal', () => {
 
     consoleErrorSpy.mockRestore()
     toastErrorSpy.mockRestore()
+  })
+
+  it('calls onClose when Cancel button is clicked', async () => {
+    const user = userEvent.setup()
+    const mockOnClose = vi.fn()
+
+    render(
+      <EditUserModal
+        isOpen={true}
+        onClose={mockOnClose}
+        user={mockUser}
+        currentUserRole="admin"
+      />
+    )
+
+    const cancelButton = screen.getByRole('button', { name: 'Cancel' })
+    await user.click(cancelButton)
+
+    expect(mockOnClose).toHaveBeenCalled()
+  })
+
+  it('displays user name in modal description', () => {
+    render(
+      <EditUserModal
+        isOpen={true}
+        onClose={vi.fn()}
+        user={{ ...mockUser, first_name: 'Jane', last_name: 'Smith' }}
+        currentUserRole="admin"
+      />
+    )
+
+    expect(screen.getByText('Jane Smith')).toBeInTheDocument()
   })
 })
