@@ -49,6 +49,30 @@ export default async function RegisterPage({
 
   const registrationCount: number = sched.registrations?.[0]?.count ?? 0
 
+  // Fetch position registration counts
+  const { data: positionRegistrations } = (await supabase
+    .from('registrations')
+    .select('players(preferred_position)')
+    .eq('schedule_id', scheduleId)) as {
+    data: Array<{ players: { preferred_position: string | null } | null }> | null
+  }
+
+  const positionCounts: Record<string, number> = {
+    open_spiker: 0,
+    opposite_spiker: 0,
+    middle_blocker: 0,
+    setter: 0,
+  }
+
+  if (positionRegistrations) {
+    for (const reg of positionRegistrations) {
+      const pos = reg.players?.preferred_position
+      if (pos && pos in positionCounts) {
+        positionCounts[pos]++
+      }
+    }
+  }
+
   // Compute skill guard
   const requiredLevels: string[] = (sched as any).required_levels ?? []
   const skillError =
@@ -79,6 +103,7 @@ export default async function RegisterPage({
       scheduleError={scheduleError}
       primaryScheduleSlot={primaryScheduleSlot}
       alreadyRegisteredIds={alreadyRegisteredIds}
+      positionCounts={positionCounts}
     />
   )
 }

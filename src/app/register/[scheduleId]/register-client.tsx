@@ -17,6 +17,7 @@ import { SKILL_LEVEL_LABELS, POSITION_LABELS } from '@/lib/constants/labels'
 import { formatScheduleDateWithWeekday, formatScheduleTime } from '@/lib/utils/timezone'
 import { formatScheduleLabel } from '@/lib/utils/schedule-label'
 import { computeSoloAmount } from '@/lib/utils/pricing'
+import { isPositionFull, canCreateFullTeam } from '@/lib/utils/registration-helpers'
 
 type ScheduleSlot = {
   schedule: ScheduleWithLocation
@@ -63,6 +64,7 @@ function countPositions(players: GroupPlayer_[]): Record<string, number> {
   }
   return counts
 }
+
 
 function computeCartTotal(
   selectedSchedules: Record<string, ScheduleSlot>,
@@ -117,6 +119,7 @@ export interface RegisterClientProps {
   scheduleError: 'past' | 'full' | 'closed' | null
   primaryScheduleSlot: ScheduleSlot
   alreadyRegisteredIds: string[]
+  positionCounts: Record<string, number>
 }
 
 export function RegisterClient({
@@ -126,6 +129,7 @@ export function RegisterClient({
   scheduleError,
   primaryScheduleSlot,
   alreadyRegisteredIds,
+  positionCounts,
 }: RegisterClientProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -895,20 +899,33 @@ export function RegisterClient({
           <div className="border border-border rounded-xl p-4">
             <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-3">Registration Mode</p>
             <div className="flex gap-2">
-              {(['solo', 'group', 'team'] as const).map(m => (
-                <button
-                  key={m}
-                  onClick={() => setMode(m)}
-                  className={`flex-1 py-2 rounded-lg text-sm font-semibold border transition-colors cursor-pointer capitalize ${
-                    mode === m
-                      ? 'bg-primary text-primary-foreground border-primary'
-                      : 'bg-background text-muted-foreground border-border hover:border-primary/40'
-                  }`}
-                >
-                  {m.charAt(0).toUpperCase() + m.slice(1)}
-                </button>
-              ))}
+              {(['solo', 'group', 'team'] as const).map(m => {
+                const isTeamModeDisabled = m === 'team' && !canCreateFullTeam(primaryScheduleSlot.schedule.num_teams, positionCounts)
+                return (
+                  <button
+                    key={m}
+                    onClick={() => !isTeamModeDisabled && setMode(m)}
+                    disabled={isTeamModeDisabled}
+                    className={`flex-1 py-2 rounded-lg text-sm font-semibold border transition-colors capitalize ${
+                      isTeamModeDisabled
+                        ? 'cursor-not-allowed bg-muted/50 border-border text-muted-foreground opacity-50'
+                        : `cursor-pointer ${
+                            mode === m
+                              ? 'bg-primary text-primary-foreground border-primary'
+                              : 'bg-background text-muted-foreground border-border hover:border-primary/40'
+                          }`
+                    }`}
+                  >
+                    {m.charAt(0).toUpperCase() + m.slice(1)}
+                  </button>
+                )
+              })}
             </div>
+            {!canCreateFullTeam(primaryScheduleSlot.schedule.num_teams, positionCounts) && (
+              <p className="text-xs text-amber-600 dark:text-amber-500 mt-3">
+                Team mode unavailable: Some positions are already filled to capacity
+              </p>
+            )}
           </div>
         </motion.div>
 
@@ -929,28 +946,49 @@ export function RegisterClient({
                   { value: 'opposite_spiker' as const, label: 'Opposite Spiker' },
                   { value: 'middle_blocker' as const, label: 'Middle Blocker' },
                   { value: 'setter' as const, label: 'Setter' },
-                ].map(opt => (
-                  <div
-                    key={opt.value}
-                    onClick={() => setPosition(opt.value)}
-                    role="radio"
-                    aria-checked={position === opt.value}
-                    tabIndex={0}
-                    onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') setPosition(opt.value) }}
-                    className={`flex items-center gap-2.5 p-3 rounded-lg border cursor-pointer transition-colors ${
-                      position === opt.value
-                        ? 'bg-primary/10 border-primary'
-                        : 'bg-background border-border hover:border-primary/40'
-                    }`}
-                  >
-                    <div className={`h-3.5 w-3.5 rounded-full border-2 shrink-0 ${
-                      position === opt.value ? 'bg-primary border-primary' : 'border-muted-foreground'
-                    }`} />
-                    <span className={`text-sm font-medium ${position === opt.value ? 'text-primary' : 'text-foreground'}`}>
-                      {opt.label}
-                    </span>
-                  </div>
-                ))}
+                ].map(opt => {
+                  const isFull = isPositionFull(
+                    opt.value,
+                    primaryScheduleSlot.schedule.num_teams,
+                    positionCounts[opt.value] ?? 0
+                  )
+                  return (
+                    <div
+                      key={opt.value}
+                      onClick={() => !isFull && setPosition(opt.value)}
+                      role="radio"
+                      aria-checked={position === opt.value}
+                      tabIndex={isFull ? -1 : 0}
+                      onKeyDown={e => {
+                        if (!isFull && (e.key === 'Enter' || e.key === ' ')) {
+                          setPosition(opt.value)
+                        }
+                      }}
+                      className={`flex items-center gap-2.5 p-3 rounded-lg border transition-colors ${
+                        isFull
+                          ? 'cursor-not-allowed bg-muted/50 border-border opacity-50'
+                          : `cursor-pointer ${
+                              position === opt.value
+                                ? 'bg-primary/10 border-primary'
+                                : 'bg-background border-border hover:border-primary/40'
+                            }`
+                      }`}
+                    >
+                      <div className={`h-3.5 w-3.5 rounded-full border-2 shrink-0 ${
+                        position === opt.value ? 'bg-primary border-primary' : 'border-muted-foreground'
+                      }`} />
+                      <span className={`text-sm font-medium ${
+                        position === opt.value
+                          ? 'text-primary'
+                          : isFull
+                            ? 'text-muted-foreground'
+                            : 'text-foreground'
+                      }`}>
+                        {opt.label}
+                      </span>
+                    </div>
+                  )
+                })}
               </div>
             </div>
           </motion.div>
@@ -989,19 +1027,31 @@ export function RegisterClient({
                       <div>
                         <p className="text-xs text-muted-foreground mb-2">Position</p>
                         <div className="grid grid-cols-2 gap-2">
-                          {(['open_spiker', 'opposite_spiker', 'middle_blocker', 'setter'] as const).map(pos => (
-                            <button
-                              key={pos}
-                              onClick={() => handleUpdateGroupPlayerPosition(player.id, pos)}
-                              className={`p-2 rounded text-xs font-medium text-center transition-colors cursor-pointer ${
-                                player.preferred_position === pos
-                                  ? 'bg-primary text-primary-foreground'
-                                  : 'bg-muted hover:bg-muted/80 text-foreground'
-                              }`}
-                            >
-                              {POSITION_LABELS[pos]}
-                            </button>
-                          ))}
+                          {(['open_spiker', 'opposite_spiker', 'middle_blocker', 'setter'] as const).map(pos => {
+                            const isFull = isPositionFull(
+                              pos,
+                              primaryScheduleSlot.schedule.num_teams,
+                              positionCounts[pos] ?? 0
+                            )
+                            return (
+                              <button
+                                key={pos}
+                                onClick={() => !isFull && handleUpdateGroupPlayerPosition(player.id, pos)}
+                                disabled={isFull}
+                                className={`p-2 rounded text-xs font-medium text-center transition-colors ${
+                                  isFull
+                                    ? 'cursor-not-allowed bg-muted/50 text-muted-foreground opacity-50'
+                                    : `cursor-pointer ${
+                                        player.preferred_position === pos
+                                          ? 'bg-primary text-primary-foreground'
+                                          : 'bg-muted hover:bg-muted/80 text-foreground'
+                                      }`
+                                }`}
+                              >
+                                {POSITION_LABELS[pos]}
+                              </button>
+                            )
+                          })}
                         </div>
                       </div>
                     </Card>
@@ -1102,19 +1152,31 @@ export function RegisterClient({
                       <div>
                         <p className="text-xs text-muted-foreground mb-2">Position</p>
                         <div className="grid grid-cols-2 gap-2">
-                          {(['open_spiker', 'opposite_spiker', 'middle_blocker', 'setter'] as const).map(pos => (
-                            <button
-                              key={pos}
-                              onClick={() => handleUpdateGroupPlayerPosition(player.id, pos)}
-                              className={`p-2 rounded text-xs font-medium text-center transition-colors cursor-pointer ${
-                                player.preferred_position === pos
-                                  ? 'bg-primary text-primary-foreground'
-                                  : 'bg-muted hover:bg-muted/80 text-foreground'
-                              }`}
-                            >
-                              {POSITION_LABELS[pos]}
-                            </button>
-                          ))}
+                          {(['open_spiker', 'opposite_spiker', 'middle_blocker', 'setter'] as const).map(pos => {
+                            const isFull = isPositionFull(
+                              pos,
+                              primaryScheduleSlot.schedule.num_teams,
+                              positionCounts[pos] ?? 0
+                            )
+                            return (
+                              <button
+                                key={pos}
+                                onClick={() => !isFull && handleUpdateGroupPlayerPosition(player.id, pos)}
+                                disabled={isFull}
+                                className={`p-2 rounded text-xs font-medium text-center transition-colors ${
+                                  isFull
+                                    ? 'cursor-not-allowed bg-muted/50 text-muted-foreground opacity-50'
+                                    : `cursor-pointer ${
+                                        player.preferred_position === pos
+                                          ? 'bg-primary text-primary-foreground'
+                                          : 'bg-muted hover:bg-muted/80 text-foreground'
+                                      }`
+                                }`}
+                              >
+                                {POSITION_LABELS[pos]}
+                              </button>
+                            )
+                          })}
                         </div>
                       </div>
                     </Card>
