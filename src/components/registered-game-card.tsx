@@ -7,7 +7,7 @@ import { POSITION_LABELS } from '@/lib/constants/labels'
 interface RegisteredGameCardProps {
   schedule: ScheduleWithLocation
   registration: Registration
-  onShowQR: (registration: Registration) => void
+  onShowQR: (schedule: ScheduleWithLocation, registration: Registration) => void
 }
 
 export function RegisteredGameCard({
@@ -40,7 +40,7 @@ export function RegisteredGameCard({
 
       {/* Show QR Button */}
       <button
-        onClick={() => onShowQR(registration)}
+        onClick={() => onShowQR(schedule, registration)}
         className="cursor-pointer inline-flex items-center justify-center rounded-lg border border-transparent bg-primary text-primary-foreground text-sm font-medium whitespace-nowrap transition-all h-8 px-3 hover:opacity-90"
       >
         Show QR →

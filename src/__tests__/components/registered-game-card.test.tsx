@@ -97,6 +97,6 @@ describe('RegisteredGameCard', () => {
     const button = screen.getByRole('button', { name: /Show QR/i })
     await userEvent.click(button)
     expect(onShowQR).toHaveBeenCalledOnce()
-    expect(onShowQR).toHaveBeenCalledWith(mockRegistration)
+    expect(onShowQR).toHaveBeenCalledWith(mockSchedule, mockRegistration)
   })
 })
