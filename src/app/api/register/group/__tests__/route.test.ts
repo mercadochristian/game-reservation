@@ -453,6 +453,8 @@ describe('POST /api/register/group', () => {
       vi.mocked(createServiceClient).mockReturnValue(serviceClient as any)
       serverClient.auth.getUser.mockResolvedValue({ data: { user: { id: AUTH_ID } }, error: null })
 
+      addScheduleMock(tables)
+
       // First player not found; second found
       tables.server.users.single
         .mockResolvedValueOnce({ data: null, error: null })
@@ -474,6 +476,8 @@ describe('POST /api/register/group', () => {
       vi.mocked(createClient).mockResolvedValue(serverClient as any)
       vi.mocked(createServiceClient).mockReturnValue(serviceClient as any)
       serverClient.auth.getUser.mockResolvedValue({ data: { user: { id: AUTH_ID } }, error: null })
+
+      addScheduleMock(tables)
 
       tables.server.users.single
         .mockResolvedValueOnce({ data: null, error: { message: 'DB timeout' } })
@@ -535,6 +539,7 @@ describe('POST /api/register/group', () => {
       tables.service.team_members.then = vi.fn((onFulfilled: any) =>
         Promise.resolve({ data: null, error: null }).then(onFulfilled)
       )
+      tables.service.registration_payments.single.mockResolvedValueOnce({ data: { id: 'payment-1' }, error: null })
 
       const bodyWithGuest = {
         registration_mode: 'group' as const,
@@ -619,6 +624,8 @@ describe('POST /api/register/group', () => {
       vi.mocked(createServiceClient).mockReturnValue(serviceClient as any)
       serverClient.auth.getUser.mockResolvedValue({ data: { user: { id: AUTH_ID } }, error: null })
 
+      addScheduleMock(tables)
+
       tables.server.users.single
         .mockResolvedValueOnce({ data: { id: USER1_ID }, error: null })
         .mockResolvedValueOnce({ data: { id: USER2_ID }, error: null })
@@ -645,6 +652,8 @@ describe('POST /api/register/group', () => {
       vi.mocked(createClient).mockResolvedValue(serverClient as any)
       vi.mocked(createServiceClient).mockReturnValue(serviceClient as any)
       serverClient.auth.getUser.mockResolvedValue({ data: { user: { id: AUTH_ID } }, error: null })
+
+      addScheduleMock(tables)
 
       tables.server.users.single
         .mockResolvedValueOnce({ data: { id: USER1_ID }, error: null })
@@ -678,6 +687,8 @@ describe('POST /api/register/group', () => {
       vi.mocked(createServiceClient).mockReturnValue(serviceClient as any)
       serverClient.auth.getUser.mockResolvedValue({ data: { user: { id: AUTH_ID } }, error: null })
 
+      addScheduleMock(tables)
+
       tables.server.users.single
         .mockResolvedValueOnce({ data: { id: USER1_ID }, error: null })
         .mockResolvedValueOnce({ data: { id: USER2_ID }, error: null })
@@ -709,6 +720,8 @@ describe('POST /api/register/group', () => {
       vi.mocked(createClient).mockResolvedValue(serverClient as any)
       vi.mocked(createServiceClient).mockReturnValue(serviceClient as any)
       serverClient.auth.getUser.mockResolvedValue({ data: { user: { id: AUTH_ID } }, error: null })
+
+      addScheduleMock(tables)
 
       tables.server.users.single
         .mockResolvedValueOnce({ data: { id: USER1_ID }, error: null })
@@ -742,6 +755,8 @@ describe('POST /api/register/group', () => {
       vi.mocked(createClient).mockResolvedValue(serverClient as any)
       vi.mocked(createServiceClient).mockReturnValue(serviceClient as any)
       serverClient.auth.getUser.mockResolvedValue({ data: { user: { id: AUTH_ID } }, error: null })
+
+      addScheduleMock(tables)
 
       tables.server.users.single
         .mockResolvedValueOnce({ data: { id: USER1_ID }, error: null })
@@ -800,6 +815,8 @@ describe('POST /api/register/group', () => {
       vi.mocked(createServiceClient).mockReturnValue(serviceClient as any)
       serverClient.auth.getUser.mockResolvedValue({ data: { user: { id: AUTH_ID } }, error: null })
 
+      addScheduleMock(tables)
+
       const teamPlayerIds = [USER1_ID, USER2_ID, USER3_ID, USER4_ID, USER5_ID, USER6_ID]
       tables.server.users.single
         .mockResolvedValueOnce({ data: { id: USER1_ID }, error: null })
@@ -824,6 +841,7 @@ describe('POST /api/register/group', () => {
       tables.service.team_members.then = vi.fn((onFulfilled: any) =>
         Promise.resolve({ data: null, error: null }).then(onFulfilled)
       )
+      tables.service.registration_payments.single.mockResolvedValueOnce({ data: { id: 'payment-1' }, error: null })
 
       const request = makeRequest(validTeamBody)
       const response = await POST(request as any)
@@ -863,8 +881,16 @@ describe('POST /api/register/group', () => {
         .mockResolvedValueOnce({ data: { id: USER2_ID }, error: null })
         .mockResolvedValueOnce({ data: { first_name: null }, error: null })
 
+      const futureDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
       tables.service.schedules.single.mockResolvedValueOnce({
-        data: { position_prices: {}, team_price: 1000, current_registrations: 0 },
+        data: {
+          start_time: futureDate,
+          status: 'scheduled',
+          max_players: 100,
+          position_prices: {},
+          team_price: 1000,
+          current_registrations: 0
+        },
         error: null,
       })
 
@@ -881,6 +907,7 @@ describe('POST /api/register/group', () => {
       tables.service.team_members.then = vi.fn((onFulfilled: any) =>
         Promise.resolve({ data: null, error: null }).then(onFulfilled)
       )
+      tables.service.registration_payments.single.mockResolvedValueOnce({ data: { id: 'payment-1' }, error: null })
 
       const request = makeRequest(validGroupBody)
       const response = await POST(request as any)

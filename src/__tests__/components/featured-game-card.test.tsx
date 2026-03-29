@@ -109,7 +109,7 @@ describe('FeaturedGameCard', () => {
     }
     render(<FeaturedGameCard schedule={gameWithRegistrations} />)
     const registerLink = screen.getByRole('link', { name: /register/i })
-    expect(registerLink).toHaveAttribute('href', '/register?schedule_id=1')
+    expect(registerLink).toHaveAttribute('href', '/register/1')
   })
 
   it('should display Full and disable register when schedule is full', () => {
