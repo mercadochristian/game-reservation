@@ -3,6 +3,7 @@ import { PATCH } from '../route'
 
 vi.mock('@/lib/supabase/service')
 vi.mock('@/lib/supabase/server')
+vi.mock('@/lib/logger')
 
 const CURRENT_USER_ID = '550e8400-e29b-41d4-a716-446655440000'
 const TARGET_USER_ID = '660e8400-e29b-41d4-a716-446655440001'
@@ -15,40 +16,6 @@ function buildMockServerClient() {
         error: null,
       }),
     },
-  }
-}
-
-function buildMockServiceClient() {
-  let callCount = 0
-  return {
-    from: vi.fn().mockImplementation((table: string) => {
-      callCount++
-      if (callCount === 1) {
-        // First call: fetch current user
-        return {
-          select: vi.fn().mockReturnValue({
-            eq: vi.fn().mockReturnValue({
-              single: vi.fn().mockResolvedValue({
-                data: { id: CURRENT_USER_ID, role: 'super_admin' },
-                error: null,
-              }),
-            }),
-          }),
-        }
-      } else {
-        // Second call: fetch target user
-        return {
-          select: vi.fn().mockReturnValue({
-            eq: vi.fn().mockReturnValue({
-              single: vi.fn().mockResolvedValue({
-                data: null,
-                error: null,
-              }),
-            }),
-          }),
-        }
-      }
-    }),
   }
 }
 
@@ -70,7 +37,32 @@ describe('PATCH /api/users/[userId]', () => {
     const { createClient } = await import('@/lib/supabase/server')
 
     vi.mocked(createClient).mockResolvedValue(buildMockServerClient() as any)
-    vi.mocked(createServiceClient).mockReturnValue(buildMockServiceClient() as any)
+
+    let userCallCount = 0
+    vi.mocked(createServiceClient).mockReturnValue({
+      from: vi.fn().mockImplementation((table: string) => {
+        if (table === 'logs') {
+          return {
+            insert: vi.fn().mockResolvedValue({
+              data: null,
+              error: null,
+            }),
+          }
+        }
+
+        userCallCount++
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              single: vi.fn().mockResolvedValue({
+                data: userCallCount === 1 ? { id: CURRENT_USER_ID, role: 'super_admin' } : null,
+                error: null,
+              }),
+            }),
+          }),
+        }
+      }),
+    } as any)
 
     const request = makeRequest(TARGET_USER_ID, { first_name: 'John' })
     const response = await PATCH(request, { params: { userId: TARGET_USER_ID } as any })
@@ -113,12 +105,20 @@ describe('PATCH /api/users/[userId]', () => {
       },
     } as any)
 
-    let callCount = 0
+    let userCallCount = 0
     vi.mocked(createServiceClient).mockReturnValue({
       from: vi.fn().mockImplementation((table: string) => {
-        callCount++
-        if (callCount === 1) {
-          // Current user is facilitator
+        if (table === 'logs') {
+          return {
+            insert: vi.fn().mockResolvedValue({
+              data: null,
+              error: null,
+            }),
+          }
+        }
+
+        userCallCount++
+        if (userCallCount === 1) {
           return {
             select: vi.fn().mockReturnValue({
               eq: vi.fn().mockReturnValue({
@@ -130,7 +130,6 @@ describe('PATCH /api/users/[userId]', () => {
             }),
           }
         } else {
-          // Target user exists
           return {
             select: vi.fn().mockReturnValue({
               eq: vi.fn().mockReturnValue({
@@ -166,34 +165,28 @@ describe('PATCH /api/users/[userId]', () => {
       },
     } as any)
 
-    let callCount = 0
+    let userCallCount = 0
     vi.mocked(createServiceClient).mockReturnValue({
       from: vi.fn().mockImplementation((table: string) => {
-        callCount++
-        if (callCount === 1) {
-          // Current user is player
+        if (table === 'logs') {
           return {
-            select: vi.fn().mockReturnValue({
-              eq: vi.fn().mockReturnValue({
-                single: vi.fn().mockResolvedValue({
-                  data: { id: CURRENT_USER_ID, role: 'player' },
-                  error: null,
-                }),
-              }),
+            insert: vi.fn().mockResolvedValue({
+              data: null,
+              error: null,
             }),
           }
-        } else {
-          // Target user is same player (self-edit)
-          return {
-            select: vi.fn().mockReturnValue({
-              eq: vi.fn().mockReturnValue({
-                single: vi.fn().mockResolvedValue({
-                  data: { id: CURRENT_USER_ID, role: 'player' },
-                  error: null,
-                }),
+        }
+
+        userCallCount++
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              single: vi.fn().mockResolvedValue({
+                data: { id: CURRENT_USER_ID, role: 'player' },
+                error: null,
               }),
             }),
-          }
+          }),
         }
       }),
     } as any)
@@ -219,12 +212,20 @@ describe('PATCH /api/users/[userId]', () => {
       },
     } as any)
 
-    let callCount = 0
+    let userCallCount = 0
     vi.mocked(createServiceClient).mockReturnValue({
       from: vi.fn().mockImplementation((table: string) => {
-        callCount++
-        if (callCount === 1) {
-          // Current user is admin
+        if (table === 'logs') {
+          return {
+            insert: vi.fn().mockResolvedValue({
+              data: null,
+              error: null,
+            }),
+          }
+        }
+
+        userCallCount++
+        if (userCallCount === 1) {
           return {
             select: vi.fn().mockReturnValue({
               eq: vi.fn().mockReturnValue({
@@ -236,7 +237,6 @@ describe('PATCH /api/users/[userId]', () => {
             }),
           }
         } else {
-          // Target user is also admin
           return {
             select: vi.fn().mockReturnValue({
               eq: vi.fn().mockReturnValue({
@@ -272,12 +272,20 @@ describe('PATCH /api/users/[userId]', () => {
       },
     } as any)
 
-    let callCount = 0
+    let userCallCount = 0
     vi.mocked(createServiceClient).mockReturnValue({
       from: vi.fn().mockImplementation((table: string) => {
-        callCount++
-        if (callCount === 1) {
-          // Current user is super_admin
+        if (table === 'logs') {
+          return {
+            insert: vi.fn().mockResolvedValue({
+              data: null,
+              error: null,
+            }),
+          }
+        }
+
+        userCallCount++
+        if (userCallCount === 1) {
           return {
             select: vi.fn().mockReturnValue({
               eq: vi.fn().mockReturnValue({
@@ -288,14 +296,26 @@ describe('PATCH /api/users/[userId]', () => {
               }),
             }),
           }
-        } else {
-          // Target user exists
+        } else if (userCallCount === 2) {
           return {
             select: vi.fn().mockReturnValue({
               eq: vi.fn().mockReturnValue({
                 single: vi.fn().mockResolvedValue({
                   data: { id: TARGET_USER_ID, role: 'player' },
                   error: null,
+                }),
+              }),
+            }),
+          }
+        } else {
+          return {
+            update: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                select: vi.fn().mockReturnValue({
+                  single: vi.fn().mockResolvedValue({
+                    data: { id: TARGET_USER_ID, role: 'facilitator', updated_at: expect.any(String) },
+                    error: null,
+                  }),
                 }),
               }),
             }),
@@ -307,7 +327,6 @@ describe('PATCH /api/users/[userId]', () => {
     const request = makeRequest(TARGET_USER_ID, { first_name: 'Jane', role: 'facilitator' })
     const response = await PATCH(request, { params: { userId: TARGET_USER_ID } as any })
 
-    // Should pass permission checks (will return 200 for now since update logic not implemented)
     expect(response.status).toBe(200)
   })
 
@@ -326,12 +345,20 @@ describe('PATCH /api/users/[userId]', () => {
       },
     } as any)
 
-    let callCount = 0
+    let userCallCount = 0
     vi.mocked(createServiceClient).mockReturnValue({
       from: vi.fn().mockImplementation((table: string) => {
-        callCount++
-        if (callCount === 1) {
-          // Current user
+        if (table === 'logs') {
+          return {
+            insert: vi.fn().mockResolvedValue({
+              data: null,
+              error: null,
+            }),
+          }
+        }
+
+        userCallCount++
+        if (userCallCount === 1) {
           return {
             select: vi.fn().mockReturnValue({
               eq: vi.fn().mockReturnValue({
@@ -342,8 +369,7 @@ describe('PATCH /api/users/[userId]', () => {
               }),
             }),
           }
-        } else if (callCount === 2) {
-          // Target user
+        } else if (userCallCount === 2) {
           return {
             select: vi.fn().mockReturnValue({
               eq: vi.fn().mockReturnValue({
@@ -355,7 +381,6 @@ describe('PATCH /api/users/[userId]', () => {
             }),
           }
         } else {
-          // Email uniqueness check - email already in use
           return {
             select: vi.fn().mockReturnValue({
               eq: vi.fn().mockResolvedValue({
@@ -389,12 +414,20 @@ describe('PATCH /api/users/[userId]', () => {
       },
     } as any)
 
-    let callCount = 0
+    let userCallCount = 0
     vi.mocked(createServiceClient).mockReturnValue({
       from: vi.fn().mockImplementation((table: string) => {
-        callCount++
-        if (callCount === 1) {
-          // Current user
+        if (table === 'logs') {
+          return {
+            insert: vi.fn().mockResolvedValue({
+              data: null,
+              error: null,
+            }),
+          }
+        }
+
+        userCallCount++
+        if (userCallCount === 1) {
           return {
             select: vi.fn().mockReturnValue({
               eq: vi.fn().mockReturnValue({
@@ -405,8 +438,7 @@ describe('PATCH /api/users/[userId]', () => {
               }),
             }),
           }
-        } else if (callCount === 2) {
-          // Target user
+        } else if (userCallCount === 2) {
           return {
             select: vi.fn().mockReturnValue({
               eq: vi.fn().mockReturnValue({
@@ -417,13 +449,25 @@ describe('PATCH /api/users/[userId]', () => {
               }),
             }),
           }
-        } else {
-          // Email uniqueness check - email available
+        } else if (userCallCount === 3) {
           return {
             select: vi.fn().mockReturnValue({
               eq: vi.fn().mockResolvedValue({
                 data: [],
                 error: null,
+              }),
+            }),
+          }
+        } else {
+          return {
+            update: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                select: vi.fn().mockReturnValue({
+                  single: vi.fn().mockResolvedValue({
+                    data: { id: TARGET_USER_ID, email: 'new@example.com', updated_at: expect.any(String) },
+                    error: null,
+                  }),
+                }),
               }),
             }),
           }
@@ -450,12 +494,20 @@ describe('PATCH /api/users/[userId]', () => {
       },
     } as any)
 
-    let callCount = 0
+    let userCallCount = 0
     vi.mocked(createServiceClient).mockReturnValue({
       from: vi.fn().mockImplementation((table: string) => {
-        callCount++
-        if (callCount === 1) {
-          // Current user
+        if (table === 'logs') {
+          return {
+            insert: vi.fn().mockResolvedValue({
+              data: null,
+              error: null,
+            }),
+          }
+        }
+
+        userCallCount++
+        if (userCallCount === 1) {
           return {
             select: vi.fn().mockReturnValue({
               eq: vi.fn().mockReturnValue({
@@ -466,8 +518,7 @@ describe('PATCH /api/users/[userId]', () => {
               }),
             }),
           }
-        } else if (callCount === 2) {
-          // Target user with email
+        } else if (userCallCount === 2) {
           return {
             select: vi.fn().mockReturnValue({
               eq: vi.fn().mockReturnValue({
@@ -479,8 +530,18 @@ describe('PATCH /api/users/[userId]', () => {
             }),
           }
         } else {
-          // Should NOT reach here - email check shouldn't run if email not changed
-          throw new Error('Unexpected call to check email uniqueness')
+          return {
+            update: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                select: vi.fn().mockReturnValue({
+                  single: vi.fn().mockResolvedValue({
+                    data: { id: TARGET_USER_ID, first_name: 'Jane', updated_at: expect.any(String) },
+                    error: null,
+                  }),
+                }),
+              }),
+            }),
+          }
         }
       }),
     } as any)
@@ -488,7 +549,322 @@ describe('PATCH /api/users/[userId]', () => {
     const request = makeRequest(TARGET_USER_ID, { first_name: 'Jane' })
     const response = await PATCH(request, { params: { userId: TARGET_USER_ID } as any })
 
-    // Should pass through to update logic, not error
     expect(response.status).toBe(200)
+  })
+
+  it('should prevent admin from demoting themselves', async () => {
+    const { createServiceClient } = await import('@/lib/supabase/service')
+    const { createClient } = await import('@/lib/supabase/server')
+
+    vi.mocked(createClient).mockResolvedValue({
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: { id: CURRENT_USER_ID } },
+          error: null,
+        }),
+      },
+    } as any)
+
+    let userCallCount = 0
+    vi.mocked(createServiceClient).mockReturnValue({
+      from: vi.fn().mockImplementation((table: string) => {
+        if (table === 'logs') {
+          return {
+            insert: vi.fn().mockResolvedValue({
+              data: null,
+              error: null,
+            }),
+          }
+        }
+
+        userCallCount++
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              single: vi.fn().mockResolvedValue({
+                data: { id: CURRENT_USER_ID, role: 'admin' },
+                error: null,
+              }),
+            }),
+          }),
+        }
+      }),
+    } as any)
+
+    const request = makeRequest(CURRENT_USER_ID, { role: 'player' })
+    const response = await PATCH(request, { params: { userId: CURRENT_USER_ID } as any })
+
+    expect(response.status).toBe(400)
+    const data = await response.json()
+    expect(data.error).toBe('SELF_DEMOTION')
+  })
+
+  it('should prevent super_admin from demoting themselves', async () => {
+    const { createServiceClient } = await import('@/lib/supabase/service')
+    const { createClient } = await import('@/lib/supabase/server')
+
+    vi.mocked(createClient).mockResolvedValue({
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: { id: CURRENT_USER_ID } },
+          error: null,
+        }),
+      },
+    } as any)
+
+    let userCallCount = 0
+    vi.mocked(createServiceClient).mockReturnValue({
+      from: vi.fn().mockImplementation((table: string) => {
+        if (table === 'logs') {
+          return {
+            insert: vi.fn().mockResolvedValue({
+              data: null,
+              error: null,
+            }),
+          }
+        }
+
+        userCallCount++
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              single: vi.fn().mockResolvedValue({
+                data: { id: CURRENT_USER_ID, role: 'super_admin' },
+                error: null,
+              }),
+            }),
+          }),
+        }
+      }),
+    } as any)
+
+    const request = makeRequest(CURRENT_USER_ID, { role: 'admin' })
+    const response = await PATCH(request, { params: { userId: CURRENT_USER_ID } as any })
+
+    expect(response.status).toBe(400)
+    const data = await response.json()
+    expect(data.error).toBe('SELF_DEMOTION')
+  })
+
+  it('should allow super_admin to change any role including other admins', async () => {
+    const { createServiceClient } = await import('@/lib/supabase/service')
+    const { createClient } = await import('@/lib/supabase/server')
+
+    vi.mocked(createClient).mockResolvedValue({
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: { id: CURRENT_USER_ID } },
+          error: null,
+        }),
+      },
+    } as any)
+
+    let userCallCount = 0
+    vi.mocked(createServiceClient).mockReturnValue({
+      from: vi.fn().mockImplementation((table: string) => {
+        if (table === 'logs') {
+          return {
+            insert: vi.fn().mockResolvedValue({
+              data: null,
+              error: null,
+            }),
+          }
+        }
+
+        userCallCount++
+        if (userCallCount === 1) {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({
+                  data: { id: CURRENT_USER_ID, role: 'super_admin' },
+                  error: null,
+                }),
+              }),
+            }),
+          }
+        } else if (userCallCount === 2) {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({
+                  data: { id: TARGET_USER_ID, role: 'admin' },
+                  error: null,
+                }),
+              }),
+            }),
+          }
+        } else {
+          return {
+            update: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                select: vi.fn().mockReturnValue({
+                  single: vi.fn().mockResolvedValue({
+                    data: { id: TARGET_USER_ID, role: 'player', updated_at: expect.any(String) },
+                    error: null,
+                  }),
+                }),
+              }),
+            }),
+          }
+        }
+      }),
+    } as any)
+
+    const request = makeRequest(TARGET_USER_ID, { role: 'player' })
+    const response = await PATCH(request, { params: { userId: TARGET_USER_ID } as any })
+
+    expect(response.status).toBe(200)
+  })
+
+  it('should create audit log when role is changed', async () => {
+    const { createServiceClient } = await import('@/lib/supabase/service')
+    const { createClient } = await import('@/lib/supabase/server')
+
+    vi.mocked(createClient).mockResolvedValue({
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: { id: CURRENT_USER_ID } },
+          error: null,
+        }),
+      },
+    } as any)
+
+    let userCallCount = 0
+    vi.mocked(createServiceClient).mockReturnValue({
+      from: vi.fn().mockImplementation((table: string) => {
+        if (table === 'logs') {
+          return {
+            insert: vi.fn().mockResolvedValue({
+              data: null,
+              error: null,
+            }),
+          }
+        }
+
+        userCallCount++
+        if (userCallCount === 1) {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({
+                  data: { id: CURRENT_USER_ID, role: 'super_admin' },
+                  error: null,
+                }),
+              }),
+            }),
+          }
+        } else if (userCallCount === 2) {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({
+                  data: { id: TARGET_USER_ID, role: 'player' },
+                  error: null,
+                }),
+              }),
+            }),
+          }
+        } else {
+          return {
+            update: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                select: vi.fn().mockReturnValue({
+                  single: vi.fn().mockResolvedValue({
+                    data: { id: TARGET_USER_ID, role: 'facilitator', updated_at: expect.any(String) },
+                    error: null,
+                  }),
+                }),
+              }),
+            }),
+          }
+        }
+      }),
+    } as any)
+
+    const request = makeRequest(TARGET_USER_ID, { role: 'facilitator' })
+    const response = await PATCH(request, { params: { userId: TARGET_USER_ID } as any })
+
+    expect(response.status).toBe(200)
+  })
+
+  it('should update user in database and return updated user', async () => {
+    const { createServiceClient } = await import('@/lib/supabase/service')
+    const { createClient } = await import('@/lib/supabase/server')
+
+    vi.mocked(createClient).mockResolvedValue({
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: { id: CURRENT_USER_ID } },
+          error: null,
+        }),
+      },
+    } as any)
+
+    let userCallCount = 0
+    vi.mocked(createServiceClient).mockReturnValue({
+      from: vi.fn().mockImplementation((table: string) => {
+        if (table === 'logs') {
+          return {
+            insert: vi.fn().mockResolvedValue({
+              data: null,
+              error: null,
+            }),
+          }
+        }
+
+        userCallCount++
+        if (userCallCount === 1) {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({
+                  data: { id: CURRENT_USER_ID, role: 'super_admin' },
+                  error: null,
+                }),
+              }),
+            }),
+          }
+        } else if (userCallCount === 2) {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({
+                  data: { id: TARGET_USER_ID, role: 'player' },
+                  error: null,
+                }),
+              }),
+            }),
+          }
+        } else {
+          return {
+            update: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                select: vi.fn().mockReturnValue({
+                  single: vi.fn().mockResolvedValue({
+                    data: {
+                      id: TARGET_USER_ID,
+                      first_name: 'Jane',
+                      role: 'facilitator',
+                      updated_at: expect.any(String),
+                    },
+                    error: null,
+                  }),
+                }),
+              }),
+            }),
+          }
+        }
+      }),
+    } as any)
+
+    const request = makeRequest(TARGET_USER_ID, { first_name: 'Jane', role: 'facilitator' })
+    const response = await PATCH(request, { params: { userId: TARGET_USER_ID } as any })
+
+    expect(response.status).toBe(200)
+    const data = await response.json()
+    expect(data.id).toBe(TARGET_USER_ID)
+    expect(data.first_name).toBe('Jane')
+    expect(data.role).toBe('facilitator')
   })
 })

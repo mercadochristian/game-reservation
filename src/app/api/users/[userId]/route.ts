@@ -4,6 +4,7 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { createClient } from '@/lib/supabase/server'
 import { validateUserEditData } from '@/lib/validations/user-edit'
 import { canEditField, canAssignRole } from '@/lib/permissions/user-editing'
+import { logActivity } from '@/lib/logger'
 
 function isUserRole(value: string): value is UserRole {
   return ['super_admin', 'admin', 'player', 'facilitator'].includes(value)
@@ -86,6 +87,23 @@ export async function PATCH(
       key => validation.data[key as keyof typeof validation.data] !== undefined
     )
 
+    // Check for self-demotion first (before general permissions)
+    if (fieldsToEdit.includes('role') && validation.data.role) {
+      if (
+        (currentUser.role === 'admin' || currentUser.role === 'super_admin') &&
+        currentUser.id === targetUser.id &&
+        (validation.data.role !== 'admin' && validation.data.role !== 'super_admin')
+      ) {
+        return NextResponse.json(
+          {
+            error: 'SELF_DEMOTION',
+            message: 'You cannot change your own role to a lower privilege level',
+          },
+          { status: 400 }
+        )
+      }
+    }
+
     for (const field of fieldsToEdit) {
       if (!canEditField(currentUser.role, field as any)) {
         return NextResponse.json(
@@ -135,11 +153,57 @@ export async function PATCH(
       }
     }
 
-    // Database update will be implemented in Task 5
-    return NextResponse.json(
-      { id: targetUser.id, message: 'Success' },
-      { status: 200 }
-    )
+    // Check for role change and self-demotion
+    const isRoleChanging = validation.data.role && validation.data.role !== targetUser.role
+    if (isRoleChanging && validation.data.role) {
+      // Prevent self-demotion: user trying to remove their own admin/super_admin status
+      if (
+        (currentUser.role === 'admin' || currentUser.role === 'super_admin') &&
+        currentUser.id === targetUser.id &&
+        (validation.data.role !== 'admin' && validation.data.role !== 'super_admin')
+      ) {
+        return NextResponse.json(
+          {
+            error: 'SELF_DEMOTION',
+            message: 'You cannot change your own role to a lower privilege level',
+          },
+          { status: 400 }
+        )
+      }
+    }
+
+    // Build update object from validated fields
+    const updateData: Record<string, any> = {}
+    for (const field of fieldsToEdit) {
+      updateData[field] = validation.data[field as keyof typeof validation.data]
+    }
+    updateData.updated_at = new Date().toISOString()
+
+    // Update user in database
+    const { data: updatedUser, error: updateError } = await serviceClient
+      .from('users')
+      .update(updateData)
+      .eq('id', userId)
+      .select()
+      .single()
+
+    if (updateError || !updatedUser) {
+      return NextResponse.json(
+        { error: 'SERVER_ERROR', message: 'An error occurred while updating user' },
+        { status: 500 }
+      )
+    }
+
+    // Create audit log entry if role changed
+    if (isRoleChanging && validation.data.role) {
+      await logActivity('role_change', userId, {
+        changed_by: currentUser.id,
+        old_role: targetUser.role,
+        new_role: validation.data.role,
+      })
+    }
+
+    return NextResponse.json(updatedUser, { status: 200 })
   } catch (error) {
     console.error('Error updating user:', error)
     return NextResponse.json(

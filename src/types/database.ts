@@ -414,7 +414,7 @@ export type Database = {
       }
     }
     Enums: {
-      user_role: 'admin' | 'player' | 'facilitator'
+      user_role: 'super_admin' | 'admin' | 'player' | 'facilitator'
       skill_level: SkillLevel
       schedule_status: 'open' | 'full' | 'cancelled' | 'completed'
       payment_status: 'pending' | 'review' | 'paid' | 'rejected'

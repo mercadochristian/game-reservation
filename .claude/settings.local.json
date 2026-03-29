@@ -1,7 +1,13 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npm pack:*)"
+      "Bash(npm pack:*)",
+      "Bash(git diff:*)",
+      "Bash(npm test:*)",
+      "Bash(npx tsc:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(xargs cat:*)"
     ]
   }
 }

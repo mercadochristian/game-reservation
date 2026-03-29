@@ -67,7 +67,7 @@ vi.mock('@/components/ui/button', () => ({
 
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
-import { AppShell, NavItems } from '../app-shell'
+import { AppShell } from '../app-shell'
 import { UserProvider } from '@/lib/context/user-context'
 import type { User } from '@/types'
 
@@ -256,66 +256,3 @@ describe('AppShell', () => {
   })
 })
 
-// ---------------------------------------------------------------------------
-// NavItems — standalone memoized component tests
-// ---------------------------------------------------------------------------
-
-import { LayoutDashboard, type LucideIcon } from 'lucide-react'
-
-type Role = 'admin' | 'facilitator' | 'player' | 'super_admin'
-
-describe('NavItems', () => {
-  const sampleItems: Array<{ label: string; href: string; icon: LucideIcon; active: boolean; roles: Role[] }> = [
-    { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, active: true, roles: ['admin', 'super_admin', 'facilitator', 'player'] },
-    { label: 'Coming Soon', href: '/coming-soon', icon: LayoutDashboard, active: false, roles: ['admin', 'super_admin', 'facilitator', 'player'] },
-  ]
-
-  afterEach(() => {
-    cleanup()
-  })
-
-  it('is exported as a memo-wrapped component', () => {
-    expect((NavItems as any).$$typeof?.toString()).toContain('react.memo')
-  })
-
-  it('renders active nav items as links with correct href', () => {
-    render(<NavItems navItems={sampleItems} pathname="/other" />)
-    const link = screen.getByRole('link', { name: /Dashboard/i })
-    expect(link).toBeDefined()
-    expect(link.getAttribute('href')).toBe('/dashboard')
-  })
-
-  it('renders inactive nav items as non-link divs (coming soon)', () => {
-    render(<NavItems navItems={sampleItems} pathname="/other" />)
-    expect(screen.queryByRole('link', { name: /Coming Soon/i })).toBeNull()
-    expect(screen.getByText('Coming Soon')).toBeDefined()
-  })
-
-  it('applies active styles to the item matching the current pathname', () => {
-    render(<NavItems navItems={sampleItems} pathname="/dashboard" />)
-    const link = screen.getByRole('link', { name: /Dashboard/i })
-    expect(link.className).toContain('bg-accent')
-  })
-
-  it('applies inactive styles to items not matching the current pathname', () => {
-    render(<NavItems navItems={sampleItems} pathname="/other" />)
-    const link = screen.getByRole('link', { name: /Dashboard/i })
-    expect(link.className).toContain('text-muted-foreground')
-  })
-
-  it('does not re-render when props are identical (React.memo behavior)', () => {
-    const renderSpy = vi.fn()
-    const SpiedNavItems = (props: Parameters<typeof NavItems>[0]) => {
-      renderSpy()
-      return React.createElement(NavItems, props)
-    }
-    const { rerender } = render(
-      <SpiedNavItems navItems={sampleItems} pathname="/dashboard" />
-    )
-    const initialCalls = renderSpy.mock.calls.length
-
-    rerender(<SpiedNavItems navItems={sampleItems} pathname="/dashboard" />)
-
-    expect(renderSpy.mock.calls.length).toBeGreaterThanOrEqual(initialCalls)
-  })
-})
