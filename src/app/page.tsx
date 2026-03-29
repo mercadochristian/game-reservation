@@ -4,6 +4,7 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { PublicNav } from '@/components/public-nav'
 import { PublicCalendar } from '@/components/public-calendar'
 import { HeroSection } from '@/components/hero-section'
+import { RegisteredGamesSection } from '@/components/registered-games-section'
 import { FeaturedGamesSection } from '@/components/featured-games-section'
 import { Footer } from '@/components/footer'
 
@@ -63,6 +64,10 @@ export default async function Home() {
     <div className="min-h-screen bg-background">
       <PublicNav />
       <HeroSection />
+      <div className="h-px max-w-4xl mx-auto px-4 sm:px-6">
+        <div className="h-px bg-linear-to-r from-transparent via-border to-transparent" />
+      </div>
+      <RegisteredGamesSection />
       <div className="h-px max-w-4xl mx-auto px-4 sm:px-6">
         <div className="h-px bg-linear-to-r from-transparent via-border to-transparent" />
       </div>
