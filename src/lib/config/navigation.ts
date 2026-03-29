@@ -70,7 +70,7 @@ export const NAVIGATION_CONFIG: NavigationConfig = {
       label: 'Player',
       pages: [
         { label: 'Register', href: '/dashboard/register', icon: CalendarDays, roles: ['player'], isComingSoon: true },
-        { label: 'My Registrations', href: '/dashboard/my-registrations', icon: CalendarDays, roles: ['player'], isComingSoon: true },
+        { label: 'My Registrations', href: '/dashboard/my-registrations', icon: CalendarDays, roles: ['player'] },
       ],
     },
   ],

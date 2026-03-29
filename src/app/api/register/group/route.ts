@@ -383,7 +383,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Step 7: Trigger AI extraction for registration_payments (non-blocking)
-    fetch(new URL('/api/payment-proof/extract', process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'), {
+    const origin = new URL(request.url).origin
+    fetch(new URL('/api/payment-proof/extract', origin), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
