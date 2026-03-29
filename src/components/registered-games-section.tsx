@@ -216,15 +216,16 @@ export function RegisteredGamesSection({ includePastGames = false }: RegisteredG
             <motion.div
               className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
               variants={{
+                hidden: { opacity: 0 },
                 visible: {
+                  opacity: 1,
                   transition: {
                     staggerChildren: 0.1,
                   },
                 },
               }}
               initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true }}
+              animate="visible"
             >
               {filteredRegistrations.map((reg, index) => (
                 <motion.div
