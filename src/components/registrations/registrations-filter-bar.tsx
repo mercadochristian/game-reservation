@@ -38,11 +38,9 @@ export function RegistrationsFilterBar({
           <Label className="text-sm font-semibold mb-2 block">Location</Label>
           <Select value={selectedLocationId} onValueChange={onLocationChange}>
             <SelectTrigger>
-              {selectedLocationName ? (
-                <span>{selectedLocationName}</span>
-              ) : (
-                <span className="text-muted-foreground">Select A Location</span>
-              )}
+              <SelectValue placeholder="Select A Location">
+                {selectedLocationName}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               {locations.map((loc) => (
