@@ -121,6 +121,7 @@ export function SchedulesClient({ initialSchedules, initialLocations }: Schedule
           end_time: manilaInputToUTC(formData.end_time),
           location_id: formData.location_id,
           num_teams: formData.num_teams,
+          max_players: formData.num_teams * 6,
           required_levels: formData.required_levels,
           status: formData.status,
           position_prices: formData.position_prices,
