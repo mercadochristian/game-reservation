@@ -13,6 +13,7 @@ const validGuestPlayer = {
   last_name: 'Doe',
   email: 'john@example.com',
   preferred_position: 'open_spiker',
+  skill_level: 'intermediate',
 }
 
 const validAdminRegistration = {
@@ -283,6 +284,7 @@ describe('adminRegistrationSchema', () => {
             last_name: 'Doe',
             email: 'jane@example.com',
             preferred_position: 'open_spiker',
+            skill_level: 'advanced',
           },
           validExistingPlayer,
         ],
@@ -313,6 +315,7 @@ describe('adminRegistrationSchema', () => {
             last_name: 'Doe',
             email: 'not-an-email',
             preferred_position: 'setter',
+            skill_level: 'intermediate',
           },
           validExistingPlayer,
         ],
@@ -334,6 +337,44 @@ describe('adminRegistrationSchema', () => {
         ],
       })
       expect(result.success).toBe(false)
+    })
+
+    it('rejects guest player without skill_level', () => {
+      const result = adminRegistrationSchema.safeParse({
+        schedule_id: '550e8400-e29b-41d4-a716-446655440001',
+        registration_mode: 'single',
+        players: [
+          {
+            type: 'guest',
+            first_name: 'John',
+            last_name: 'Doe',
+            email: 'john@example.com',
+            preferred_position: 'open_spiker',
+          },
+        ],
+      })
+      expect(result.success).toBe(false)
+    })
+
+    it('accepts all valid skill levels for guest players', () => {
+      const skillLevels = ['developmental', 'developmental_plus', 'intermediate', 'intermediate_plus', 'advanced']
+      skillLevels.forEach(skillLevel => {
+        const result = adminRegistrationSchema.safeParse({
+          schedule_id: '550e8400-e29b-41d4-a716-446655440001',
+          registration_mode: 'single',
+          players: [
+            {
+              type: 'guest',
+              first_name: 'John',
+              last_name: 'Doe',
+              email: 'john@example.com',
+              preferred_position: 'open_spiker',
+              skill_level: skillLevel,
+            },
+          ],
+        })
+        expect(result.success).toBe(true)
+      })
     })
   })
 

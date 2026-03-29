@@ -190,6 +190,7 @@ export async function POST(request: NextRequest) {
             first_name: player.first_name,
             last_name: player.last_name,
             phone: player.phone,
+            skill_level: player.skill_level,
           }, {
             userId: authUser?.id,
             operationName: 'register.group',

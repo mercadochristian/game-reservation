@@ -2,7 +2,11 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { RegistrationsClient } from '@/components/registrations/registrations-client'
 
-export default async function RegistrationsPage() {
+interface RegistrationsPageProps {
+  readonly searchParams?: Promise<Record<string, string | string[] | undefined>>
+}
+
+export default async function RegistrationsPage({ searchParams }: RegistrationsPageProps) {
   const supabase = await createClient()
 
   // Get current user session
@@ -34,7 +38,9 @@ export default async function RegistrationsPage() {
     .select('id, name, address, google_map_url')
     .order('name')
 
+  const params = await searchParams
+
   return (
-    <RegistrationsClient locations={locations || []} userRole={userRole} />
+    <RegistrationsClient locations={locations || []} userRole={userRole} initialSearchParams={params} />
   )
 }

@@ -172,4 +172,42 @@ describe('RegistrationGroupCard', () => {
     expect(container.textContent).toContain('Skill Level')
     expect(container.textContent).toContain('Payment')
   })
+
+  it('should call onRegisterPlayer when Register Player button is clicked', () => {
+    const onRegisterPlayer = vi.fn()
+    const { container } = render(
+      <RegistrationGroupCard
+        schedule={mockSchedule}
+        registrations={mockRegistrations}
+        isExpanded={true}
+        onToggleExpand={() => {}}
+        isPastGame={false}
+        onRegisterPlayer={onRegisterPlayer}
+      />
+    )
+    const buttons = Array.from(container.querySelectorAll('button'))
+    const registerButton = buttons.find((b) => b.textContent?.includes('Register Player'))
+    if (!registerButton) throw new Error('Register Player button not found')
+    fireEvent.click(registerButton)
+    expect(onRegisterPlayer).toHaveBeenCalledWith('sch-123')
+  })
+
+  it('should call onManageLineups when Manage Lineups button is clicked', () => {
+    const onManageLineups = vi.fn()
+    const { container } = render(
+      <RegistrationGroupCard
+        schedule={mockSchedule}
+        registrations={mockRegistrations}
+        isExpanded={true}
+        onToggleExpand={() => {}}
+        isPastGame={false}
+        onManageLineups={onManageLineups}
+      />
+    )
+    const buttons = Array.from(container.querySelectorAll('button'))
+    const manageButton = buttons.find((b) => b.textContent?.includes('Manage Lineups'))
+    if (!manageButton) throw new Error('Manage Lineups button not found')
+    fireEvent.click(manageButton)
+    expect(onManageLineups).toHaveBeenCalledWith('sch-123')
+  })
 })

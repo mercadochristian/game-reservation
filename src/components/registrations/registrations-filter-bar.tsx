@@ -1,6 +1,5 @@
 'use client'
 
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Label } from '@/components/ui/label'
 import type { Location } from '@/types'
 
@@ -21,10 +20,6 @@ export function RegistrationsFilterBar({
   onLocationChange,
   onDateRangeChange,
 }: RegistrationsFilterBarProps) {
-  const selectedLocationName = selectedLocationId
-    ? locations.find((loc) => loc.id === selectedLocationId)?.name
-    : null
-
   const dateRangeLabels: Record<'all' | 'last30' | 'last7', string> = {
     all: 'All',
     last7: 'Last 7 Days',
@@ -36,34 +31,35 @@ export function RegistrationsFilterBar({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
         <div>
           <Label className="text-sm font-semibold mb-2 block">Location</Label>
-          <Select value={selectedLocationId} onValueChange={onLocationChange}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select A Location">
-                {selectedLocationName}
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent>
+          <div className="flex h-9 w-full rounded-md border border-input bg-transparent px-2.5 py-1 text-sm text-foreground items-center">
+            <select
+              value={selectedLocationId}
+              onChange={(e) => onLocationChange(e.target.value)}
+              className="h-full w-full bg-transparent outline-none cursor-pointer"
+            >
+              <option value="">Select a location...</option>
               {locations.map((loc) => (
-                <SelectItem key={loc.id} value={loc.id}>
+                <option key={loc.id} value={loc.id}>
                   {loc.name}
-                </SelectItem>
+                </option>
               ))}
-            </SelectContent>
-          </Select>
+            </select>
+          </div>
         </div>
 
         <div>
           <Label className="text-sm font-semibold mb-2 block">Date Range</Label>
-          <Select value={selectedDateRange} onValueChange={(val) => onDateRangeChange(val as any)}>
-            <SelectTrigger>
-              <SelectValue>{dateRangeLabels[selectedDateRange]}</SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All</SelectItem>
-              <SelectItem value="last7">Last 7 Days</SelectItem>
-              <SelectItem value="last30">Last 30 Days</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="flex h-9 w-full rounded-md border border-input bg-transparent px-2.5 py-1 text-sm text-foreground items-center">
+            <select
+              value={selectedDateRange}
+              onChange={(e) => onDateRangeChange(e.target.value as 'all' | 'last30' | 'last7')}
+              className="h-full w-full bg-transparent outline-none cursor-pointer"
+            >
+              <option value="all">All</option>
+              <option value="last7">Last 7 Days</option>
+              <option value="last30">Last 30 Days</option>
+            </select>
+          </div>
         </div>
       </div>
 

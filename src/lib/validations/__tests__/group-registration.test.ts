@@ -13,6 +13,7 @@ const validGuestPlayer = {
   last_name: 'Doe',
   email: 'john@example.com',
   preferred_position: 'open_spiker',
+  skill_level: 'intermediate',
 }
 
 const validGroupRegistration = {
@@ -74,6 +75,7 @@ describe('groupPlayerSchema', () => {
       const result = groupPlayerSchema.safeParse({
         ...validGuestPlayer,
         phone: '+639123456789',
+        skill_level: 'intermediate',
       })
       expect(result.success).toBe(true)
     })
@@ -90,6 +92,7 @@ describe('groupPlayerSchema', () => {
         last_name: 'Doe',
         email: 'not-an-email',
         preferred_position: 'setter',
+        skill_level: 'intermediate',
       })
       expect(result.success).toBe(false)
       if (!result.success) {
@@ -105,6 +108,7 @@ describe('groupPlayerSchema', () => {
         last_name: 'Doe',
         email: 'john@example.com',
         preferred_position: 'setter',
+        skill_level: 'intermediate',
       })
       expect(result.success).toBe(false)
       if (!result.success) {
@@ -120,6 +124,7 @@ describe('groupPlayerSchema', () => {
         last_name: '',
         email: 'john@example.com',
         preferred_position: 'setter',
+        skill_level: 'intermediate',
       })
       expect(result.success).toBe(false)
       if (!result.success) {
@@ -135,6 +140,7 @@ describe('groupPlayerSchema', () => {
         last_name: 'Doe',
         email: 'john@example.com',
         preferred_position: 'setter',
+        skill_level: 'intermediate',
       })
       expect(result.success).toBe(false)
     })
@@ -146,8 +152,47 @@ describe('groupPlayerSchema', () => {
         last_name: 'a'.repeat(101),
         email: 'john@example.com',
         preferred_position: 'setter',
+        skill_level: 'intermediate',
       })
       expect(result.success).toBe(false)
+    })
+
+    it('rejects guest player without skill_level', () => {
+      const result = groupPlayerSchema.safeParse({
+        type: 'guest',
+        first_name: 'John',
+        last_name: 'Doe',
+        email: 'john@example.com',
+        preferred_position: 'setter',
+      })
+      expect(result.success).toBe(false)
+    })
+
+    it('rejects invalid skill_level', () => {
+      const result = groupPlayerSchema.safeParse({
+        type: 'guest',
+        first_name: 'John',
+        last_name: 'Doe',
+        email: 'john@example.com',
+        preferred_position: 'setter',
+        skill_level: 'invalid',
+      })
+      expect(result.success).toBe(false)
+    })
+
+    it('accepts all valid skill levels for guest players', () => {
+      const skillLevels = ['developmental', 'developmental_plus', 'intermediate', 'intermediate_plus', 'advanced']
+      skillLevels.forEach(skillLevel => {
+        const result = groupPlayerSchema.safeParse({
+          type: 'guest',
+          first_name: 'John',
+          last_name: 'Doe',
+          email: 'john@example.com',
+          preferred_position: 'setter',
+          skill_level: skillLevel,
+        })
+        expect(result.success).toBe(true)
+      })
     })
   })
 

@@ -10,8 +10,10 @@ export async function GET(req: NextRequest) {
     }
 
     const supabase = createServiceClient()
+    const now = new Date()
+    const twoMonthsAgo = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000)
 
-    // Fetch all schedules at this location
+    // 1. Fetch schedules without registrations array (use count() instead)
     const { data: schedules, error: schedulesError } = await supabase
       .from('schedules')
       .select(
@@ -23,46 +25,65 @@ export async function GET(req: NextRequest) {
         max_players,
         created_at,
         updated_at,
-        locations (id, name, address, google_map_url),
-        registrations (id)
+        locations (id, name, address, google_map_url)
       `
       )
       .eq('location_id', locationId)
+      .gte('start_time', twoMonthsAgo.toISOString())
       .order('start_time', { ascending: false })
 
     if (schedulesError) throw schedulesError
 
-    // Calculate registration count for each schedule
+    const scheduleIds = (schedules || []).map((s: any) => s.id)
     const schedulesWithCount = (schedules || []).map((s: any) => ({
       ...s,
-      registration_count: s.registrations?.length || 0,
+      registration_count: 0, // Will be updated below
     }))
 
-    // Fetch all registrations for these schedules with full details
-    const scheduleIds = schedulesWithCount.map((s: any) => s.id)
-
     let registrations: any[] = []
+
     if (scheduleIds.length > 0) {
-      const { data, error: regsError } = await supabase
+      // 2. Fetch registrations (payment/team details fetched on-demand per schedule)
+      const { data: regsData, error: regsError } = await supabase
         .from('registrations')
-        .select(
-          `
-          id,
-          user_id,
-          schedule_id,
-          preferred_position,
-          created_at,
-          updated_at,
-          payment_status,
-          users (id, first_name, last_name, email, skill_level, is_guest)
-        `
-        )
+        .select('id, player_id, registered_by, schedule_id, preferred_position, created_at, updated_at')
         .in('schedule_id', scheduleIds)
         .order('created_at', { ascending: false })
 
       if (regsError) throw regsError
-      registrations = (data || []).map((reg: any) => ({
+
+      const regArray = regsData || []
+      const playerIds = [...new Set(regArray.map((r: any) => r.player_id))]
+
+      // 3. Update schedule counts
+      const regCountBySchedule = regArray.reduce((acc: Record<string, number>, reg: any) => {
+        acc[reg.schedule_id] = (acc[reg.schedule_id] || 0) + 1
+        return acc
+      }, {})
+
+      schedulesWithCount.forEach((s: any) => {
+        s.registration_count = regCountBySchedule[s.id] || 0
+      })
+
+      // 4. Fetch users for player names
+      let userMap: Record<string, any> = {}
+      if (playerIds.length > 0) {
+        const { data: usersData, error: usersError } = await supabase
+          .from('users')
+          .select('id, first_name, last_name, email, skill_level, is_guest')
+          .in('id', playerIds)
+
+        if (usersError) throw usersError
+        userMap = (usersData || []).reduce((acc: any, user: any) => {
+          acc[user.id] = user
+          return acc
+        }, {})
+      }
+
+      // 5. Combine registrations with user data
+      registrations = regArray.map((reg: any) => ({
         ...reg,
+        users: userMap[reg.player_id] || null,
         team_members: [],
       }))
     }
@@ -73,8 +94,13 @@ export async function GET(req: NextRequest) {
     })
   } catch (error) {
     console.error('[API] Registrations fetch error:', error)
+    const errorMessage = error instanceof Error ? error.message : JSON.stringify(error)
+    console.error('[API] Full error:', errorMessage)
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to fetch registrations' },
+      {
+        error: errorMessage,
+        details: error instanceof Error ? error.stack : undefined
+      },
       { status: 500 }
     )
   }

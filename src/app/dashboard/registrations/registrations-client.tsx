@@ -194,6 +194,20 @@ export function RegistrationsClient({
     dispatch({ type: 'CLOSE_REGISTER' })
   }, [])
 
+  const handleRegisterPlayerFromCard = useCallback((scheduleId: string) => {
+    // Update URL to select this schedule
+    const params = new URLSearchParams()
+    if (filterDate) params.set('date', filterDate)
+    if (filterLocationId) params.set('locationId', filterLocationId)
+    params.set('scheduleId', scheduleId)
+    router.push(`${pathname}?${params.toString()}`)
+
+    // Open the registration dialog
+    setTimeout(() => {
+      dispatch({ type: 'OPEN_REGISTER' })
+    }, 0)
+  }, [filterDate, filterLocationId, pathname, router])
+
   const handleAddPlayer = () => {
     dispatch({ type: 'SET_PLAYERS', players: [...players, { type: 'empty' }] })
   }
