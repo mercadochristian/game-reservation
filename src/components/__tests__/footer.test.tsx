@@ -24,26 +24,36 @@ describe('Footer', () => {
   it('should render copyright text', () => {
     render(<Footer />)
     const copyrightText = screen.getByText(/© 2026/)
-    expect(copyrightText).toBeTruthy()
+    expect(copyrightText).toBeDefined()
   })
 
-  it('should render Facebook social link', () => {
+  it('should render Facebook social link with correct URL from branding config', () => {
     render(<Footer />)
     const links = screen.getAllByRole('link', { name: /facebook/i })
-    expect(links[0].getAttribute('href')).toContain('facebook.com')
+    expect(links[0].getAttribute('href')).toBe('https://facebook.com/dreamersvc')
   })
 
-  it('should render Instagram social link', () => {
+  it('should render Instagram social link with correct URL from branding config', () => {
     render(<Footer />)
     const links = screen.getAllByRole('link', { name: /instagram/i })
-    expect(links[0].getAttribute('href')).toContain('instagram.com')
+    expect(links[0].getAttribute('href')).toBe('https://instagram.com/dreamersvc')
   })
 
   it('should have correct aria-labels for accessibility', () => {
     render(<Footer />)
     const fbLinks = screen.getAllByRole('link', { name: /facebook/i })
     const igLinks = screen.getAllByRole('link', { name: /instagram/i })
-    expect(fbLinks[0].getAttribute('aria-label')).toBeTruthy()
-    expect(igLinks[0].getAttribute('aria-label')).toBeTruthy()
+    expect(fbLinks[0].getAttribute('aria-label')).toBe('Visit our Facebook page')
+    expect(igLinks[0].getAttribute('aria-label')).toBe('Visit our Instagram page')
+  })
+
+  it('should have security attributes on social links', () => {
+    render(<Footer />)
+    const fbLinks = screen.getAllByRole('link', { name: /facebook/i })
+    const igLinks = screen.getAllByRole('link', { name: /instagram/i })
+    expect(fbLinks[0].getAttribute('target')).toBe('_blank')
+    expect(fbLinks[0].getAttribute('rel')).toBe('noopener noreferrer')
+    expect(igLinks[0].getAttribute('target')).toBe('_blank')
+    expect(igLinks[0].getAttribute('rel')).toBe('noopener noreferrer')
   })
 })

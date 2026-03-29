@@ -17,20 +17,20 @@ export function Footer() {
           {/* Social Links */}
           <div className="flex gap-4">
             <Link
-              href="https://facebook.com"
+              href={branding.social?.facebook || 'https://facebook.com'}
               target="_blank"
               rel="noopener noreferrer"
               aria-label="Visit our Facebook page"
-              className="text-muted-foreground hover:text-foreground transition-colors"
+              className="cursor-pointer text-muted-foreground hover:text-foreground transition-colors"
             >
               <Facebook className="h-5 w-5" />
             </Link>
             <Link
-              href="https://instagram.com"
+              href={branding.social?.instagram || 'https://instagram.com'}
               target="_blank"
               rel="noopener noreferrer"
               aria-label="Visit our Instagram page"
-              className="text-muted-foreground hover:text-foreground transition-colors"
+              className="cursor-pointer text-muted-foreground hover:text-foreground transition-colors"
             >
               <Instagram className="h-5 w-5" />
             </Link>
