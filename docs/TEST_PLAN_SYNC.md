@@ -121,10 +121,20 @@ Create a feature spec doc in `docs/superpowers/specs/`:
 | **Steps** | Text | How to reproduce the test |
 | **Expected Result** | Text | What should happen |
 
-## Notion Database Link
+## Notion Databases (Modular Organization)
 
-**URL:** https://www.notion.so/33289f8b28e4807c96f9e75cb23a87c3
-**Database ID:** `33289f8b28e4807c96f9e75cb23a87c3`
+Test cases organized by feature module for easier management:
+
+| Module | Tests | Status |
+|--------|-------|--------|
+| [Module 1: Auth & Profile](https://www.notion.so/725f6b61104e483ab80cf9a649147dd1) | 9 | Implemented |
+| [Module 2: Game Management](https://www.notion.so/e64fd4c861da4ddaa481b2171d695ac1) | 8 | Implemented |
+| [Module 3: Registrations & Payments](https://www.notion.so/4361f9d660af48da9a0de3415cc01c93) | 14 | Implemented |
+| [Module 4: Team Management](https://www.notion.so/63e91eeb868d46b7a18c17509e7cf8aa) | 5 | Implemented |
+| [Module 5: Admin Features](https://www.notion.so/6370ab4e19284655899234bd24995023) | 16 | Implemented |
+| [Module 6: Coming Soon](https://www.notion.so/82601c0c0fb248849a03df551e784d5e) | 7 | Deferred |
+
+**Total:** 60 test cases across 6 modules
 
 ## Integration with Development
 
