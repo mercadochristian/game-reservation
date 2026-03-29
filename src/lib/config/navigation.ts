@@ -26,6 +26,13 @@ export interface NavigationConfig {
 export const NAVIGATION_CONFIG: NavigationConfig = {
   categories: [
     {
+      id: 'my-games',
+      label: 'My Games',
+      pages: [
+        { label: 'My Registrations', href: '/dashboard/my-registrations', icon: CalendarDays, roles: ['admin', 'super_admin', 'facilitator', 'player'] },
+      ],
+    },
+    {
       id: 'management',
       label: 'Management',
       pages: [
@@ -70,7 +77,6 @@ export const NAVIGATION_CONFIG: NavigationConfig = {
       label: 'Player',
       pages: [
         { label: 'Register', href: '/dashboard/register', icon: CalendarDays, roles: ['player'], isComingSoon: true },
-        { label: 'My Registrations', href: '/dashboard/my-registrations', icon: CalendarDays, roles: ['player'] },
       ],
     },
   ],
