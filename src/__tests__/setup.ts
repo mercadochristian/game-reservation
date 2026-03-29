@@ -7,6 +7,14 @@ import '@testing-library/jest-dom/vitest'
  * Tests then configure these mocks using vi.mocked(...).mockReturnValue(...).
  */
 
+// Mock IntersectionObserver for Framer Motion's whileInView
+class MockIntersectionObserver {
+  observe = vi.fn()
+  unobserve = vi.fn()
+  disconnect = vi.fn()
+}
+globalThis.IntersectionObserver = MockIntersectionObserver as any
+
 vi.mock('@/lib/supabase/service')
 vi.mock('@/lib/supabase/server')
 vi.mock('@/lib/supabase/middleware')
