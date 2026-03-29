@@ -747,7 +747,128 @@ export function RegisterClient({
 
       {/* ── DESKTOP: Left cart panel ── */}
       <aside className="hidden lg:flex flex-col w-[300px] shrink-0 bg-[#0f172a] sticky top-0 h-screen overflow-y-auto">
-        {/* cart panel content — Task 3 */}
+        {/* Header */}
+        <div className="px-5 pt-6 pb-2">
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-500">Your Games</p>
+        </div>
+
+        {/* Selected game cards */}
+        <div className="flex-1 overflow-y-auto px-5 space-y-3 pb-4">
+          {Object.entries(selectedSchedules).map(([id, slot], idx) => {
+            const isPrimary = idx === 0
+            const s = slot.schedule
+            return (
+              <div key={id} className="relative bg-[#1e293b] rounded-lg p-3">
+                {!isPrimary && (
+                  <button
+                    onClick={() => handleRemoveSchedule(id)}
+                    className="absolute top-2 right-2 w-5 h-5 rounded-full bg-[#334155] flex items-center justify-center text-slate-400 hover:text-white transition-colors cursor-pointer"
+                    aria-label="Remove game"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                )}
+                <p className="text-[13px] font-bold text-white pr-6">{s.locations?.name}</p>
+                <p className="text-[11px] text-slate-500 mt-0.5">
+                  {formatScheduleDateWithWeekday(s.start_time)} · {formatScheduleTime(s.start_time)}
+                </p>
+                <p className="text-[11px] text-slate-400 text-xs mt-0.5">{s.locations?.address}</p>
+                <p className="text-[15px] font-extrabold text-sky-400 mt-2">
+                  ₱{computeSoloAmount(
+                    { position_prices: s.position_prices as Record<string, number>, team_price: s.team_price },
+                    position
+                  ).toFixed(0)}
+                </p>
+                <p className="text-[10px] text-slate-600 mt-0.5">
+                  {(s.max_players - slot.registrationCount)} spots remaining
+                </p>
+              </div>
+            )
+          })}
+
+          {/* Inline add-game expand */}
+          <div className="border border-dashed border-[#334155] rounded-lg overflow-hidden">
+            <button
+              onClick={() => {
+                if (!availableLoaded) fetchAvailableSchedules()
+                setPanelOpen(!panelOpen)
+              }}
+              className="w-full flex items-center gap-2 px-3 py-2 text-[12px] text-sky-400 hover:text-sky-300 transition-colors cursor-pointer"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              {panelOpen ? 'Hide games' : 'Add another game'}
+            </button>
+
+            <AnimatePresence>
+              {panelOpen && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="overflow-hidden bg-[#020617] border-t border-[#1e293b]"
+                >
+                  {availableLoading ? (
+                    <div className="p-3 space-y-2">
+                      {[...Array(3)].map((_, i) => (
+                        <div key={i} className="h-8 bg-[#1e293b] rounded animate-pulse" />
+                      ))}
+                    </div>
+                  ) : availableSchedules.length === 0 ? (
+                    <p className="text-[11px] text-slate-500 text-center py-4">No additional games available</p>
+                  ) : (
+                    <div>
+                      {availableSchedules.map(s => (
+                        <div key={s.id} className="flex items-center justify-between gap-2 px-3 py-2 border-b border-[#0f172a] last:border-b-0">
+                          <div className="min-w-0">
+                            <p className="text-[11px] font-semibold text-white truncate">{s.locations?.name}</p>
+                            <p className="text-[10px] text-sky-400">
+                              {formatScheduleDateWithWeekday(s.start_time)} · ₱{computeSoloAmount(
+                                { position_prices: s.position_prices as Record<string, number>, team_price: s.team_price },
+                                position
+                              ).toFixed(0)}
+                            </p>
+                          </div>
+                          <Button size="xs" onClick={() => handleAddSchedule(s)} className="shrink-0">
+                            Add
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </div>
+
+        {/* Spacer + Total + CTA */}
+        <div className="flex-shrink-0 mt-auto border-t border-[#1e293b] px-5 py-4 space-y-3">
+          <div className="flex justify-between items-center">
+            <p className="text-[11px] text-slate-500">Total</p>
+            <p className="text-[18px] font-extrabold text-white">₱{totalAmount.toFixed(0)}</p>
+          </div>
+          <Button
+            onClick={handleRegister}
+            disabled={
+              !paymentFile ||
+              isSubmitting ||
+              (mode === 'solo' && !position) ||
+              ((mode === 'group' || mode === 'team') && groupPlayers.some(p => !p.preferred_position)) ||
+              (mode === 'team' && (() => {
+                const counts = countPositions(groupPlayers)
+                return Object.entries(TEAM_REQUIRED_POSITIONS).some(([pos, req]) => (counts[pos] || 0) < req)
+              })())
+            }
+            className="w-full bg-[#1d4ed8] text-white font-semibold py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            {isSubmitting
+              ? 'Registering...'
+              : mode === 'solo'
+                ? `Register → (${scheduleCount})`
+                : `Register ${groupPlayers.length} →`}
+          </Button>
+        </div>
       </aside>
 
       {/* ── Form panel (right on desktop, full-width on mobile) ── */}
