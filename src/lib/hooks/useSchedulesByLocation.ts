@@ -11,7 +11,10 @@ interface UseSchedulesByLocationResult {
   error?: string
 }
 
-export function useSchedulesByLocation(locationId: string): UseSchedulesByLocationResult {
+export function useSchedulesByLocation(
+  locationId: string,
+  dateRange: 'all' | 'last7' | 'last30' = 'all'
+): UseSchedulesByLocationResult {
   const [upcomingSchedules, setUpcomingSchedules] = useState<ScheduleWithSlots[]>([])
   const [pastSchedules, setPastSchedules] = useState<ScheduleWithSlots[]>([])
   const [registrationsByScheduleId, setRegistrationsByScheduleId] = useState<
@@ -32,7 +35,10 @@ export function useSchedulesByLocation(locationId: string): UseSchedulesByLocati
       setLoading(true)
       setError(undefined)
       try {
-        const res = await fetch(`/api/admin/registrations?locationId=${locationId}`)
+        const params = new URLSearchParams()
+        params.set('locationId', locationId)
+        params.set('dateRange', dateRange)
+        const res = await fetch(`/api/admin/registrations?${params.toString()}`)
         if (!res.ok) throw new Error('Failed to fetch schedules')
 
         const data = await res.json()
@@ -74,7 +80,7 @@ export function useSchedulesByLocation(locationId: string): UseSchedulesByLocati
     }
 
     fetchData()
-  }, [locationId])
+  }, [locationId, dateRange])
 
   return {
     upcomingSchedules,

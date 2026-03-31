@@ -14,7 +14,7 @@ import type { Location } from '@/types'
 
 interface RegistrationsClientProps {
   readonly locations: Location[]
-  readonly userRole: 'admin' | 'facilitator' | 'player'
+  readonly userRole: 'admin'
   readonly initialSearchParams?: Record<string, string | string[] | undefined>
 }
 
@@ -47,7 +47,7 @@ export function RegistrationsClient({
   const [pastPage, setPastPage] = useState(1)
 
   const { upcomingSchedules, pastSchedules, registrationsByScheduleId, loading } =
-    useSchedulesByLocation(selectedLocationId)
+    useSchedulesByLocation(selectedLocationId, selectedDateRange)
 
   const PAGE_SIZE = 10
 
@@ -87,7 +87,7 @@ export function RegistrationsClient({
     router.push(`/dashboard/lineups/${scheduleId}?${params.toString()}`)
   }, [router, selectedLocationId, selectedDateRange, expandedScheduleIds])
 
-  // Sync state to URL whenever filters change
+  // Sync state to URL whenever filters change (use replace to avoid polluting history)
   useEffect(() => {
     const params = new URLSearchParams()
     if (selectedLocationId) params.set('locationId', selectedLocationId)
@@ -96,7 +96,7 @@ export function RegistrationsClient({
       params.set('expanded', Array.from(expandedScheduleIds).join(','))
     }
     const queryString = params.toString()
-    router.push(`/dashboard/registrations${queryString ? '?' + queryString : ''}`)
+    router.replace(`/dashboard/registrations${queryString ? '?' + queryString : ''}`)
   }, [selectedLocationId, selectedDateRange, expandedScheduleIds, router])
 
   const totalRegistrations =

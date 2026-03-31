@@ -155,11 +155,15 @@ export function RegistrationGroupCard({
                   </TableHeader>
                   <TableBody>
                     {registrations.map((reg) => {
-                      const playerName = `${reg.users.first_name} ${reg.users.last_name}`
+                      const playerName = reg.users
+                        ? `${reg.users.first_name} ${reg.users.last_name}`
+                        : 'Unknown Player'
                       const positionLabel = reg.preferred_position
                         ? POSITION_LABELS[reg.preferred_position]
                         : 'Not specified'
-                      const skillLabel = SKILL_LEVEL_LABELS[reg.users.skill_level] || 'Unknown'
+                      const skillLabel = reg.users
+                        ? SKILL_LEVEL_LABELS[reg.users.skill_level] || 'Unknown'
+                        : 'Unknown'
                       const lineupTeamName =
                         reg.team_members && reg.team_members.length > 0 && reg.team_members[0].teams
                           ? reg.team_members[0].teams.name

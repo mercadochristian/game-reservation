@@ -27,8 +27,8 @@ export default async function RegistrationsPage({ searchParams }: RegistrationsP
 
   const userRole = (userProfile?.role || 'player') as 'admin' | 'facilitator' | 'player'
 
-  // Only admin and facilitator can access
-  if (userRole === 'player') {
+  // Only admins can access (enforced by middleware and page)
+  if (userRole !== 'admin' && userRole !== 'super_admin') {
     redirect('/dashboard')
   }
 
