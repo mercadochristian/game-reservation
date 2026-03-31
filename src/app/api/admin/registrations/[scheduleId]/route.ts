@@ -26,7 +26,7 @@ export async function GET(
       .from('users')
       .select('role')
       .eq('id', authUser.id)
-      .single()
+      .single() as { data: { role: string } | null; error: any }
 
     if (adminError || !adminUser || (adminUser.role !== 'admin' && adminUser.role !== 'super_admin')) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
@@ -58,7 +58,7 @@ export async function GET(
             .from('users')
             .select('id, first_name, last_name, email, skill_level, is_guest')
             .in('id', playerIds)
-        : Promise.resolve({ data: [] }),
+        : Promise.resolve({ data: [], error: null } as any),
       supabase
         .from('registration_payments')
         .select('registration_id, payer_id, payment_status')
@@ -67,7 +67,7 @@ export async function GET(
         .from('team_members')
         .select('registration_id, teams(id, name)')
         .in('registration_id', Array.from(registrationIds)),
-    ])
+    ] as const)
 
     if (usersResult.error) throw usersResult.error
 
