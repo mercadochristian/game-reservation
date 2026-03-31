@@ -23,9 +23,9 @@ export default async function RegistrationsPage({ searchParams }: RegistrationsP
     .from('users')
     .select('role')
     .eq('id', authUser.id)
-    .single()
+    .single() as { data: { role: string } | null; error: any }
 
-  const userRole = (userProfile?.role || 'player') as 'admin' | 'facilitator' | 'player'
+  const userRole = (userProfile?.role || 'player') as string
 
   // Only admins can access (enforced by middleware and page)
   if (userRole !== 'admin' && userRole !== 'super_admin') {
@@ -41,6 +41,6 @@ export default async function RegistrationsPage({ searchParams }: RegistrationsP
   const params = await searchParams
 
   return (
-    <RegistrationsClient locations={locations || []} userRole={userRole} initialSearchParams={params} />
+    <RegistrationsClient locations={locations || []} userRole={'admin'} initialSearchParams={params} />
   )
 }

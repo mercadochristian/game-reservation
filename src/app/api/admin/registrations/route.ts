@@ -24,12 +24,13 @@ export async function GET(req: NextRequest) {
       .from('users')
       .select('role')
       .eq('id', authUser.id)
-      .single()
+      .single() as { data: { role: string } | null; error: any }
 
     if (adminError || !adminUser || (adminUser.role !== 'admin' && adminUser.role !== 'super_admin')) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
+    const serviceSubabase = createServiceClient()
     const now = new Date()
 
     // Calculate cutoff date based on dateRange filter
