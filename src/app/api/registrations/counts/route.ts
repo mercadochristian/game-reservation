@@ -1,3 +1,4 @@
+import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { NextRequest, NextResponse } from 'next/server'
 
@@ -6,9 +7,18 @@ import { NextRequest, NextResponse } from 'next/server'
  *
  * Returns registration counts grouped by schedule and position.
  * Uses service client to bypass RLS so all registrations are visible.
+ * Requires authentication to prevent data leakage.
  */
 export async function GET(request: NextRequest) {
   try {
+    // Authenticate user
+    const authSubabase = await createClient()
+    const { data: { user: authUser } } = await authSubabase.auth.getUser()
+
+    if (!authUser) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const raw = request.nextUrl.searchParams.get('schedule_ids')?.trim()
 
     if (!raw) {

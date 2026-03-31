@@ -1,3 +1,4 @@
+import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { NextRequest, NextResponse } from 'next/server'
 
@@ -10,6 +11,25 @@ export async function GET(
 
     if (!scheduleId) {
       return NextResponse.json({ error: 'Schedule ID required' }, { status: 400 })
+    }
+
+    // Authenticate and authorize user
+    const authSubabase = await createClient()
+    const { data: { user: authUser } } = await authSubabase.auth.getUser()
+
+    if (!authUser) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    // Verify admin role
+    const { data: adminUser, error: adminError } = await authSubabase
+      .from('users')
+      .select('role')
+      .eq('id', authUser.id)
+      .single()
+
+    if (adminError || !adminUser || (adminUser.role !== 'admin' && adminUser.role !== 'super_admin')) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
     const supabase = createServiceClient()
@@ -41,10 +61,12 @@ export async function GET(
         : Promise.resolve({ data: [] }),
       supabase
         .from('registration_payments')
-        .select('registration_id, payer_id, payment_status'),
+        .select('registration_id, payer_id, payment_status')
+        .in('registration_id', Array.from(registrationIds)),
       supabase
         .from('team_members')
-        .select('registration_id, teams(id, name)'),
+        .select('registration_id, teams(id, name)')
+        .in('registration_id', Array.from(registrationIds)),
     ])
 
     if (usersResult.error) throw usersResult.error
@@ -108,12 +130,8 @@ export async function GET(
     return NextResponse.json({ registrations })
   } catch (error) {
     console.error('[API] Schedule registrations fetch error:', error)
-    const errorMessage = error instanceof Error ? error.message : JSON.stringify(error)
     return NextResponse.json(
-      {
-        error: errorMessage,
-        details: error instanceof Error ? error.stack : undefined,
-      },
+      { error: 'Failed to fetch schedule registrations' },
       { status: 500 }
     )
   }

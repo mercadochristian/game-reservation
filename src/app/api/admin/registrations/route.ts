@@ -1,20 +1,53 @@
+import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { NextRequest, NextResponse } from 'next/server'
 
 export async function GET(req: NextRequest) {
   try {
     const locationId = req.nextUrl.searchParams.get('locationId')
+    const dateRange = req.nextUrl.searchParams.get('dateRange') || 'all'
 
     if (!locationId) {
       return NextResponse.json({ error: 'Location ID required' }, { status: 400 })
     }
 
-    const supabase = createServiceClient()
+    // Authenticate and authorize user
+    const supabase = await createClient()
+    const { data: { user: authUser } } = await supabase.auth.getUser()
+
+    if (!authUser) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    // Verify admin role
+    const { data: adminUser, error: adminError } = await supabase
+      .from('users')
+      .select('role')
+      .eq('id', authUser.id)
+      .single()
+
+    if (adminError || !adminUser || (adminUser.role !== 'admin' && adminUser.role !== 'super_admin')) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+
     const now = new Date()
-    const twoMonthsAgo = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000)
+
+    // Calculate cutoff date based on dateRange filter
+    let cutoffDate: Date
+    switch (dateRange) {
+      case 'last7':
+        cutoffDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+        break
+      case 'last30':
+        cutoffDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
+        break
+      case 'all':
+      default:
+        cutoffDate = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000)
+    }
 
     // 1. Fetch schedules without registrations array (use count() instead)
-    const { data: schedules, error: schedulesError } = await supabase
+    const { data: schedules, error: schedulesError } = await serviceSubabase
       .from('schedules')
       .select(
         `
@@ -29,7 +62,7 @@ export async function GET(req: NextRequest) {
       `
       )
       .eq('location_id', locationId)
-      .gte('start_time', twoMonthsAgo.toISOString())
+      .gte('start_time', cutoffDate.toISOString())
       .order('start_time', { ascending: false })
 
     if (schedulesError) throw schedulesError
@@ -44,7 +77,7 @@ export async function GET(req: NextRequest) {
 
     if (scheduleIds.length > 0) {
       // 2. Fetch registrations (payment/team details fetched on-demand per schedule)
-      const { data: regsData, error: regsError } = await supabase
+      const { data: regsData, error: regsError } = await serviceSubabase
         .from('registrations')
         .select('id, player_id, registered_by, schedule_id, preferred_position, created_at, updated_at')
         .in('schedule_id', scheduleIds)
@@ -68,7 +101,7 @@ export async function GET(req: NextRequest) {
       // 4. Fetch users for player names
       let userMap: Record<string, any> = {}
       if (playerIds.length > 0) {
-        const { data: usersData, error: usersError } = await supabase
+        const { data: usersData, error: usersError } = await serviceSubabase
           .from('users')
           .select('id, first_name, last_name, email, skill_level, is_guest')
           .in('id', playerIds)
@@ -94,13 +127,8 @@ export async function GET(req: NextRequest) {
     })
   } catch (error) {
     console.error('[API] Registrations fetch error:', error)
-    const errorMessage = error instanceof Error ? error.message : JSON.stringify(error)
-    console.error('[API] Full error:', errorMessage)
     return NextResponse.json(
-      {
-        error: errorMessage,
-        details: error instanceof Error ? error.stack : undefined
-      },
+      { error: 'Failed to fetch registrations' },
       { status: 500 }
     )
   }
