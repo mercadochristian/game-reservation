@@ -88,9 +88,6 @@ export async function GET(
         if (payment.registration_id && registrationIds.has(payment.registration_id)) {
           paymentMap[payment.registration_id] = payment.payment_status
         }
-        if (payment.payer_id && registrationIds.has(payment.payer_id)) {
-          paymentMap[payment.payer_id] = payment.payment_status
-        }
       })
     }
 

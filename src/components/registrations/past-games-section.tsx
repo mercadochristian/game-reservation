@@ -12,6 +12,8 @@ interface PastGamesSectionProps {
   isExpanded: boolean
   onToggleSectionExpand: () => void
   onToggleGameExpand: (scheduleId: string) => void
+  onRegisterPlayer: (scheduleId: string) => void
+  onManageLineups: (scheduleId: string) => void
   currentPage: number
   pageSize: number
   onPageChange: (page: number) => void
@@ -24,6 +26,8 @@ export function PastGamesSection({
   isExpanded,
   onToggleSectionExpand,
   onToggleGameExpand,
+  onRegisterPlayer,
+  onManageLineups,
   currentPage,
   pageSize,
   onPageChange,
@@ -60,6 +64,8 @@ export function PastGamesSection({
                     isExpanded={expandedScheduleIds.has(schedule.id)}
                     onToggleExpand={onToggleGameExpand}
                     isPastGame={true}
+                    onRegisterPlayer={onRegisterPlayer}
+                    onManageLineups={onManageLineups}
                   />
                 ))}
               </div>

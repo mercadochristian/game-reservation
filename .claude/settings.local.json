@@ -19,7 +19,8 @@
       "Bash(npx eslint:*)",
       "Bash(find /Users/christianmercado/Documents/Work/Personal/game-reservation -name vitest.config* -o -name vite.config*)",
       "Bash(find /Users/christianmercado/Documents/Work/Personal/game-reservation -name *edit-user* -type f)",
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "Bash(grep -ao TODO[^]* /private/tmp/claude-501/-Users-christianmercado-Documents-Work-Personal-game-reservation/c3560c6c-b35e-4fb3-bcbf-76125801be14/tasks/a82f19f48521bb925.output)"
     ]
   }
 }
