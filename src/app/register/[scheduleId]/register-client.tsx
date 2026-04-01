@@ -149,6 +149,7 @@ export function RegisterClient({
   // Form state
   const [position, setPosition] = useState<PlayerPosition | null>(null)
   const [paymentFile, setPaymentFile] = useState<File | null>(null)
+  const [registrationNote, setRegistrationNote] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitResults, setSubmitResults] = useState<SubmitResult[]>([])
 
@@ -408,6 +409,7 @@ export function RegisterClient({
               player_id: user.id,
               registered_by: user.id,
               preferred_position: position,
+              registration_note: registrationNote.trim() || null,
             })
             .select('id')
 
@@ -513,6 +515,7 @@ export function RegisterClient({
         payment_proof_path: paymentProofPath,
         registration_mode: mode as 'group' | 'team',
         payment_channel_id: selectedChannelId || null,
+        registration_note: registrationNote.trim() || null,
         players: groupPlayers.map(p => {
           const basePlayer = {
             preferred_position: p.preferred_position as PlayerPosition,
@@ -1266,12 +1269,40 @@ export function RegisterClient({
           </motion.div>
         )}
 
+        {/* ── Section: Registration Note ── */}
+        <motion.div
+          custom={3}
+          initial="hidden"
+          animate="visible"
+          variants={fadeUpVariants}
+          className="space-y-2"
+        >
+          <label className="block text-sm font-medium text-foreground">
+            Add a note <span className="text-xs text-muted-foreground">(optional)</span>
+          </label>
+          <textarea
+            value={registrationNote}
+            onChange={(e) => {
+              const value = e.target.value
+              if (value.length <= 200) {
+                setRegistrationNote(value)
+              }
+            }}
+            placeholder="Any details we should know? (max 200 chars)"
+            className="w-full px-3 py-2 text-sm border rounded bg-background text-foreground border-input resize-none"
+            rows={3}
+          />
+          <div className="text-xs text-muted-foreground text-right">
+            {registrationNote.length} / 200
+          </div>
+        </motion.div>
+
         {/* ── Section: Payment ── */}
         <motion.div
           initial={hasAnimated.current ? false : 'hidden'}
           animate="visible"
           variants={fadeUpVariants}
-          custom={3}
+          custom={4}
           className="mb-6"
         >
           <div className="border border-border rounded-xl p-4 space-y-3">
@@ -1321,6 +1352,7 @@ export function RegisterClient({
           disabled={
             !paymentFile ||
             isSubmitting ||
+            registrationNote.length > 200 ||
             (mode === 'solo' && !position) ||
             ((mode === 'group' || mode === 'team') && groupPlayers.some(p => !p.preferred_position)) ||
             (mode === 'team' && (() => {
