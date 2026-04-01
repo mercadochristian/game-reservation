@@ -460,4 +460,44 @@ describe('POST /api/scanner/scan', () => {
     expect(body.payment_status).toBe('rejected')
     expect(body.payment_note).toBe('Amount does not match required fee')
   })
+
+  it('returns 500 when database query fails', async () => {
+    const { createClient } = await import('@/lib/supabase/server')
+    const { createServiceClient } = await import('@/lib/supabase/service')
+
+    const mockServerClient = createMockServerClient()
+    mockServerClient.auth.getUser.mockResolvedValue({
+      data: { user: { id: 'admin-1', email: 'admin@example.com' } },
+      error: null,
+    })
+    mockServerClient.from('users').single.mockResolvedValue({
+      data: { role: 'admin' },
+      error: null,
+    })
+    vi.mocked(createClient).mockResolvedValue(mockServerClient as any)
+
+    const mockServiceClient = createMockServiceClient()
+    mockServiceClient.from = vi.fn().mockReturnValue({
+      select: vi.fn().mockReturnValue({
+        eq: vi.fn().mockReturnValue({
+          maybeSingle: vi.fn().mockResolvedValue({
+            data: null,
+            error: { code: 'PGRST001', message: 'Database connection error' },
+          }),
+        }),
+      }),
+    }) as any
+    vi.mocked(createServiceClient).mockReturnValue(mockServiceClient as any)
+
+    const request = createMockRequest('/api/scanner/scan', {
+      method: 'POST',
+      body: { qr_token: '123e4567-e89b-12d3-a456-426614174000', schedule_id: '223e4567-e89b-12d3-a456-426614174000' },
+    })
+
+    const response = await POST(request)
+    const body = await response.json()
+
+    expect(response.status).toBe(500)
+    expect(body.error).toContain('error')
+  })
 })

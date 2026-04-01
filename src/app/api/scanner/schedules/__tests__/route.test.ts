@@ -99,4 +99,46 @@ describe('GET /api/scanner/schedules', () => {
     expect(response.status).toBe(200)
     expect(body).toEqual([])
   })
+
+  it('returns 500 when database query fails', async () => {
+    const { createClient } = await import('@/lib/supabase/server')
+    const { createServiceClient } = await import('@/lib/supabase/service')
+
+    const mockServerClient = createMockServerClient()
+    mockServerClient.auth.getUser.mockResolvedValue({
+      data: { user: { id: 'admin-1', email: 'admin@example.com' } },
+      error: null,
+    })
+    mockServerClient.from('users').single.mockResolvedValue({
+      data: { role: 'admin' },
+      error: null,
+    })
+    vi.mocked(createClient).mockResolvedValue(mockServerClient as any)
+
+    const mockServiceClient = createMockServerClient()
+    const scheduleQuery = mockServiceClient.from('schedules')
+    scheduleQuery.select.mockReturnValue({
+      gte: vi.fn().mockReturnValue({
+        lte: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            order: vi.fn().mockResolvedValue({
+              data: null,
+              error: { code: 'PGRST001', message: 'Database connection error' },
+            }),
+          }),
+        }),
+      }),
+    } as any)
+    vi.mocked(createServiceClient).mockReturnValue(mockServiceClient as any)
+
+    const request = createMockRequest('/api/scanner/schedules?locationId=loc-1&dateRange=date:2026-04-01', {
+      method: 'GET',
+    })
+
+    const response = await GET(request)
+    const body = await response.json()
+
+    expect(response.status).toBe(500)
+    expect(body.error).toContain('error')
+  })
 })

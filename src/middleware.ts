@@ -106,7 +106,10 @@ export async function middleware(request: NextRequest) {
     if (pathname.startsWith('/auth')) {
       const rawReturnUrl =
         request.nextUrl.searchParams.get('returnUrl') ?? '/dashboard'
-      const returnUrl = rawReturnUrl.startsWith('/auth')
+      // Validate redirect is safe (internal path, not protocol-relative or absolute)
+      const isSafeRedirect = (url: string): boolean =>
+        url.startsWith('/') && !url.startsWith('//')
+      const returnUrl = rawReturnUrl.startsWith('/auth') || !isSafeRedirect(rawReturnUrl)
         ? '/dashboard'
         : rawReturnUrl
       return redirectWithSession(
@@ -137,9 +140,9 @@ export async function middleware(request: NextRequest) {
     // S9: Correct path — pass through
     return supabaseResponse
   } catch (err) {
-    // Log the error but don't break middleware — pass through to allow the request to continue
+    // Fail closed on unhandled errors (auth bypass prevention)
     void logError('middleware.unhandled', err)
-    return NextResponse.next()
+    return NextResponse.redirect(new URL('/auth?error=service_unavailable', request.url))
   }
 }
 

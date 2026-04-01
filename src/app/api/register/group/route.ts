@@ -296,8 +296,7 @@ export async function POST(request: NextRequest) {
       .select('id, player_id')
 
     if (insertError) {
-      console.error('Batch registration insert error:', insertError)
-      void logError('register.group.batch_insert', insertError, authUser.id, { playerCount: registrationInserts.length })
+      logError('register.group.batch_insert', insertError, authUser.id, { playerCount: registrationInserts.length })
       return NextResponse.json(
         { error: 'Registration failed. Please try again.' },
         { status: 500 }
@@ -320,8 +319,7 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (teamError || !team) {
-      console.error('Team creation error:', teamError)
-      void logError('register.group.team_create', teamError || new Error('Unknown team error'), authUser.id, { teamName })
+      logError('register.group.team_create', teamError || new Error('Unknown team error'), authUser.id, { teamName })
       return NextResponse.json(
         { error: 'Team creation failed. Please try again.' },
         { status: 500 }
@@ -345,8 +343,7 @@ export async function POST(request: NextRequest) {
       .insert(teamMemberInserts)
 
     if (teamMemberError) {
-      console.error('Team members insert error:', teamMemberError)
-      void logError('register.group.team_members', teamMemberError, authUser.id, { teamId: team?.id, memberCount: teamMemberInserts.length })
+      logError('register.group.team_members', teamMemberError, authUser.id, { teamId: team?.id, memberCount: teamMemberInserts.length })
       return NextResponse.json(
         { error: 'Team member assignment failed. Please try again.' },
         { status: 500 }
@@ -380,8 +377,7 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (userPaymentError || !userPayment) {
-      console.error('User payment insert error:', userPaymentError)
-      void logError('register.group.user_payment', userPaymentError || new Error('Unknown payment error'), authUser.id, { teamId: team?.id })
+      logError('register.group.user_payment', userPaymentError || new Error('Unknown payment error'), authUser.id, { teamId: team?.id })
       return NextResponse.json(
         { error: 'Payment record creation failed. Please try again.' },
         { status: 500 }
@@ -405,8 +401,7 @@ export async function POST(request: NextRequest) {
         })
       })
       .catch((err) => {
-        console.warn('[Group Register] Extraction failed silently:', err)
-        void logError('payment_proof.extract_failed', err, authUser.id, {
+        logError('payment_proof.extract_failed', err, authUser.id, {
           registration_mode: validated.registration_mode,
         })
       })
@@ -434,8 +429,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.error('Group registration exception:', err)
-    void logError('register.group.unhandled', err instanceof Error ? err : new Error(String(err)))
+    logError('register.group.unhandled', err instanceof Error ? err : new Error(String(err)))
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
