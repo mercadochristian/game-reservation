@@ -8,14 +8,14 @@
 -- ==========================================================================
 
 -- Add registration_note column to registrations table
-ALTER TABLE public.registrations ADD COLUMN registration_note TEXT;
+ALTER TABLE public.registrations ADD COLUMN IF NOT EXISTS registration_note TEXT;
 
 -- Add check constraint for registration_note (max 200 chars)
 ALTER TABLE public.registrations ADD CONSTRAINT registration_note_max_length
   CHECK (registration_note IS NULL OR LENGTH(registration_note) <= 200);
 
 -- Add payment_note column to registration_payments table
-ALTER TABLE public.registration_payments ADD COLUMN payment_note TEXT;
+ALTER TABLE public.registration_payments ADD COLUMN IF NOT EXISTS payment_note TEXT;
 
 -- Add check constraint for payment_note (max 200 chars)
 ALTER TABLE public.registration_payments ADD CONSTRAINT payment_note_max_length
@@ -24,9 +24,7 @@ ALTER TABLE public.registration_payments ADD CONSTRAINT payment_note_max_length
 -- ==========================================================================
 -- Rollback
 -- ==========================================================================
-/*
 ALTER TABLE public.registration_payments DROP CONSTRAINT payment_note_max_length;
 ALTER TABLE public.registration_payments DROP COLUMN payment_note;
 ALTER TABLE public.registrations DROP CONSTRAINT registration_note_max_length;
 ALTER TABLE public.registrations DROP COLUMN registration_note;
-*/
