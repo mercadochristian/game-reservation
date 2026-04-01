@@ -35,7 +35,6 @@ yarn-error.log*
 lerna-debug.log*
 
 # Generated files
-src/types/database.ts
 next-env.d.ts
 tsconfig.tsbuildinfo
 dist/
