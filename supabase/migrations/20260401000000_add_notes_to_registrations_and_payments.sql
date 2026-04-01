@@ -10,13 +10,21 @@
 -- Add registration_note column to registrations table
 ALTER TABLE public.registrations ADD COLUMN IF NOT EXISTS registration_note TEXT;
 
--- Add check constraint for registration_note (max 200 chars)
-ALTER TABLE public.registrations ADD CONSTRAINT registration_note_max_length
-  CHECK (registration_note IS NULL OR LENGTH(registration_note) <= 200);
+-- Add check constraint for registration_note (max 200 chars) - idempotent
+DO $$
+BEGIN
+  ALTER TABLE public.registrations ADD CONSTRAINT registration_note_max_length
+    CHECK (registration_note IS NULL OR LENGTH(registration_note) <= 200);
+EXCEPTION WHEN duplicate_object THEN null;
+END $$;
 
 -- Add payment_note column to registration_payments table
 ALTER TABLE public.registration_payments ADD COLUMN IF NOT EXISTS payment_note TEXT;
 
--- Add check constraint for payment_note (max 200 chars)
-ALTER TABLE public.registration_payments ADD CONSTRAINT payment_note_max_length
-  CHECK (payment_note IS NULL OR LENGTH(payment_note) <= 200);
+-- Add check constraint for payment_note (max 200 chars) - idempotent
+DO $$
+BEGIN
+  ALTER TABLE public.registration_payments ADD CONSTRAINT payment_note_max_length
+    CHECK (payment_note IS NULL OR LENGTH(payment_note) <= 200);
+EXCEPTION WHEN duplicate_object THEN null;
+END $$;

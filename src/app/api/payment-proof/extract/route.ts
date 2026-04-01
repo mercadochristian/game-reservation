@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
       .download(payment_proof_url)
 
     if (downloadError || !fileData) {
-      console.error('[Payment Extraction] Download error:', downloadError)
+      logError('payment_proof.extract.download_failed', downloadError)
       // Don't fail the user - just mark as failed extraction
       const extractedData: ExtractedData = {
         amount: null,
@@ -119,7 +119,7 @@ export async function POST(req: NextRequest) {
         .eq('id', paymentId)
 
       if (mockUpdateError) {
-        console.error('[Payment Extraction] Mock update error:', mockUpdateError)
+        logError('payment_proof.extract_mock_update_failed', mockUpdateError)
         await logError(
           'payment_proof.extract_mock_update_failed',
           mockUpdateError,
@@ -220,7 +220,7 @@ Rules:
           : 'low',
       }
     } catch (parseError) {
-      console.warn('[Payment Extraction] JSON parse failed:', parseError)
+      logError('payment_proof.extract.json_parse_failed', parseError)
       extractedData.confidence = 'failed'
     }
 
@@ -241,7 +241,7 @@ Rules:
       .eq('id', paymentId)
 
     if (updateError) {
-      console.error('[Payment Extraction] Update error:', updateError)
+      logError('payment_proof.extract.update_failed', updateError)
       await logError(
         'payment_proof.extract.update_failed',
         updateError,
@@ -264,11 +264,11 @@ Rules:
       extracted: extractedData,
     })
   } catch (error) {
-    console.error('[Payment Extraction] Unexpected error:', error)
+    logError('payment_proof.extract.unhandled', error)
 
     // Log the error but don't fail the response
     if (error instanceof Error) {
-      void logError(
+      logError(
         'payment_proof.extract.unhandled',
         error,
         undefined,

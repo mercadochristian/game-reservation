@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import { logError } from '@/lib/logger'
 import { NextRequest, NextResponse } from 'next/server'
 
 export interface PaymentWithExtraction {
@@ -82,7 +83,7 @@ export async function GET(
 
     return NextResponse.json(registrations)
   } catch (error) {
-    console.error('[API] Payment records fetch error:', error)
+    logError('admin.payments.fetch_failed', error)
     return NextResponse.json(
       { error: 'Failed to fetch payment records' },
       { status: 500 }
