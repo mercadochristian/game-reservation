@@ -52,17 +52,21 @@ export async function GET(
     // Fetch all registrations for the schedule
     const { data: registrations, error: registrationsError } = await service
       .from('registrations')
-      .select(`
-        id,
-        player_id,
-        payment_status,
-        attended
-      `)
+      .select('id, player_id, payment_status, attended')
       .eq('schedule_id', scheduleId)
 
     if (registrationsError) {
-      void logError('scanner.players.query_failed', registrationsError, authUser.id, { scheduleId })
-      return NextResponse.json({ error: 'Failed to fetch players' }, { status: 500 })
+      const errorDetails = {
+        code: registrationsError?.code,
+        message: registrationsError?.message,
+        details: registrationsError?.details,
+        hint: registrationsError?.hint,
+      }
+      void logError('scanner.players.query_failed', errorDetails, authUser.id, { scheduleId })
+      return NextResponse.json(
+        { error: `Failed to fetch players: ${registrationsError?.message || 'Unknown error'}` },
+        { status: 500 }
+      )
     }
 
     if (!registrations || !Array.isArray(registrations)) {
