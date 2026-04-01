@@ -49,10 +49,10 @@ export async function GET(
 
     const service = createServiceClient()
 
-    // Fetch all registrations for the schedule
+    // Fetch all registrations for the schedule with payment status
     const { data: registrations, error: registrationsError } = await service
       .from('registrations')
-      .select('id, player_id, payment_status, attended')
+      .select('id, player_id, attended, registration_payments(payment_status)')
       .eq('schedule_id', scheduleId)
 
     if (registrationsError) {
@@ -96,6 +96,12 @@ export async function GET(
 
     registrations.forEach((reg: any) => {
       const playerData = playerMap.get(reg.player_id)
+      // Get payment_status from the joined registration_payments, or default to 'unknown'
+      const paymentData = Array.isArray(reg.registration_payments)
+        ? reg.registration_payments[0]
+        : reg.registration_payments
+      const paymentStatus = paymentData?.payment_status || 'unknown'
+
       const player: PlayerInfo = {
         registration_id: reg.id,
         player: {
@@ -103,7 +109,7 @@ export async function GET(
           first_name: playerData?.first_name || null,
           last_name: playerData?.last_name || null,
         },
-        payment_status: reg.payment_status,
+        payment_status: paymentStatus,
       }
 
       if (reg.attended) {
