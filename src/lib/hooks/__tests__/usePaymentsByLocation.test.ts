@@ -121,7 +121,7 @@ describe('usePaymentsByLocation', () => {
   })
 
   it('should support date range with specific date', async () => {
-    const mockSchedules = []
+    const mockSchedules: Array<never> = []
 
     vi.mocked(globalThis.fetch).mockResolvedValueOnce({
       ok: true,

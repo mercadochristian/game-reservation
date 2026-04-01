@@ -15,9 +15,14 @@ vi.mock('@/lib/logger')
 
 function buildServerClientMock({
   authUser = { id: 'admin-1', email: 'admin@test.com' },
-  authError = null,
+  authError,
   roleData = { role: 'admin' },
-  roleError = null,
+  roleError,
+}: {
+  authUser?: { id: string; email: string } | undefined
+  authError?: Error | undefined
+  roleData?: { role: string } | undefined
+  roleError?: Error | undefined
 } = {}) {
   return {
     auth: {
@@ -34,8 +39,11 @@ function buildServerClientMock({
 }
 
 function buildServiceClientMock({
-  updateData = null,
-  updateError = null,
+  updateData,
+  updateError,
+}: {
+  updateData?: any
+  updateError?: Error | undefined
 } = {}) {
   return {
     from: vi.fn().mockReturnValue({
@@ -57,7 +65,7 @@ describe('PATCH /api/admin/payments/[id]/edit', () => {
 
   it('returns 401 when user is not authenticated', async () => {
     vi.mocked(createClient).mockResolvedValue(
-      buildServerClientMock({ authUser: null, authError: new Error('No session') }) as any
+      buildServerClientMock({ authUser: undefined, authError: new Error('No session') }) as any
     )
 
     const req = createMockRequest('/api/admin/payments/payment-1/edit', {
@@ -65,7 +73,7 @@ describe('PATCH /api/admin/payments/[id]/edit', () => {
       body: { payment_note: 'Test note' },
     })
 
-    const response = await PATCH(req, { params: { id: 'payment-1' } })
+    const response = await PATCH(req, { params: Promise.resolve({ id: 'payment-1' }) })
     const body = await response.json()
 
     expect(response.status).toBe(401)
@@ -82,7 +90,7 @@ describe('PATCH /api/admin/payments/[id]/edit', () => {
       body: { payment_note: 'Test note' },
     })
 
-    const response = await PATCH(req, { params: { id: 'payment-1' } })
+    const response = await PATCH(req, { params: Promise.resolve({ id: 'payment-1' }) })
     const body = await response.json()
 
     expect(response.status).toBe(403)
@@ -94,7 +102,7 @@ describe('PATCH /api/admin/payments/[id]/edit', () => {
       buildServerClientMock({ roleData: { role: 'super_admin' } }) as any
     )
     vi.mocked(createServiceClient).mockReturnValue(
-      buildServiceClientMock({ updateData: {}, updateError: null }) as any
+      buildServiceClientMock({ updateData: {}, updateError: undefined }) as any
     )
 
     const req = createMockRequest('/api/admin/payments/payment-1/edit', {
@@ -102,7 +110,7 @@ describe('PATCH /api/admin/payments/[id]/edit', () => {
       body: { extracted_amount: 100, payment_note: 'Test note' },
     })
 
-    const response = await PATCH(req, { params: { id: 'payment-1' } })
+    const response = await PATCH(req, { params: Promise.resolve({ id: 'payment-1' }) })
 
     expect(response.status).toBe(200)
   })
@@ -120,7 +128,7 @@ describe('PATCH /api/admin/payments/[id]/edit', () => {
       body: 'not valid json',
     })
 
-    const response = await PATCH(invalidReq as any, { params: { id: 'payment-1' } })
+    const response = await PATCH(invalidReq as any, { params: Promise.resolve({ id: 'payment-1' }) })
     const body = await response.json()
 
     expect(response.status).toBe(400)
@@ -135,7 +143,7 @@ describe('PATCH /api/admin/payments/[id]/edit', () => {
       body: { extracted_amount: -100 },
     })
 
-    const response = await PATCH(req, { params: { id: 'payment-1' } })
+    const response = await PATCH(req, { params: Promise.resolve({ id: 'payment-1' }) })
     const body = await response.json()
 
     expect(response.status).toBe(422)
@@ -150,7 +158,7 @@ describe('PATCH /api/admin/payments/[id]/edit', () => {
       body: { extracted_amount: 0 },
     })
 
-    const response = await PATCH(req, { params: { id: 'payment-1' } })
+    const response = await PATCH(req, { params: Promise.resolve({ id: 'payment-1' }) })
     const body = await response.json()
 
     expect(response.status).toBe(422)
@@ -166,7 +174,7 @@ describe('PATCH /api/admin/payments/[id]/edit', () => {
       body: { payment_note: longNote },
     })
 
-    const response = await PATCH(req, { params: { id: 'payment-1' } })
+    const response = await PATCH(req, { params: Promise.resolve({ id: 'payment-1' }) })
     const body = await response.json()
 
     expect(response.status).toBe(422)
@@ -180,7 +188,7 @@ describe('PATCH /api/admin/payments/[id]/edit', () => {
   it('successfully updates payment with all fields', async () => {
     vi.mocked(createClient).mockResolvedValue(buildServerClientMock() as any)
     vi.mocked(createServiceClient).mockReturnValue(
-      buildServiceClientMock({ updateData: {}, updateError: null }) as any
+      buildServiceClientMock({ updateData: {}, updateError: undefined }) as any
     )
 
     const req = createMockRequest('/api/admin/payments/payment-1/edit', {
@@ -194,7 +202,7 @@ describe('PATCH /api/admin/payments/[id]/edit', () => {
       },
     })
 
-    const response = await PATCH(req, { params: { id: 'payment-1' } })
+    const response = await PATCH(req, { params: Promise.resolve({ id: 'payment-1' }) })
     const body = await response.json()
 
     expect(response.status).toBe(200)
@@ -204,7 +212,7 @@ describe('PATCH /api/admin/payments/[id]/edit', () => {
   it('successfully updates only payment_note field', async () => {
     vi.mocked(createClient).mockResolvedValue(buildServerClientMock() as any)
     vi.mocked(createServiceClient).mockReturnValue(
-      buildServiceClientMock({ updateData: {}, updateError: null }) as any
+      buildServiceClientMock({ updateData: {}, updateError: undefined }) as any
     )
 
     const req = createMockRequest('/api/admin/payments/payment-1/edit', {
@@ -212,7 +220,7 @@ describe('PATCH /api/admin/payments/[id]/edit', () => {
       body: { payment_note: 'Admin note here' },
     })
 
-    const response = await PATCH(req, { params: { id: 'payment-1' } })
+    const response = await PATCH(req, { params: Promise.resolve({ id: 'payment-1' }) })
     const body = await response.json()
 
     expect(response.status).toBe(200)
@@ -220,7 +228,7 @@ describe('PATCH /api/admin/payments/[id]/edit', () => {
   })
 
   it('trims payment_note before storing', async () => {
-    const serviceClientMock = buildServiceClientMock({ updateData: {}, updateError: null })
+    const serviceClientMock = buildServiceClientMock({ updateData: {}, updateError: undefined })
     const updateEqFn = vi.fn().mockResolvedValue({ data: {}, error: null })
     const updateFn = vi.fn().mockReturnValue({ eq: updateEqFn })
     serviceClientMock.from = vi.fn().mockReturnValue({ update: updateFn })
@@ -233,7 +241,7 @@ describe('PATCH /api/admin/payments/[id]/edit', () => {
       body: { payment_note: '  Test note with spaces  ' },
     })
 
-    const response = await PATCH(req, { params: { id: 'payment-1' } })
+    const response = await PATCH(req, { params: Promise.resolve({ id: 'payment-1' }) })
 
     expect(response.status).toBe(200)
     const updateCall = updateFn.mock.calls[0][0]
@@ -241,7 +249,7 @@ describe('PATCH /api/admin/payments/[id]/edit', () => {
   })
 
   it('converts empty payment_note to null', async () => {
-    const serviceClientMock = buildServiceClientMock({ updateData: {}, updateError: null })
+    const serviceClientMock = buildServiceClientMock({ updateData: {}, updateError: undefined })
     const updateEqFn = vi.fn().mockResolvedValue({ data: {}, error: null })
     const updateFn = vi.fn().mockReturnValue({ eq: updateEqFn })
     serviceClientMock.from = vi.fn().mockReturnValue({ update: updateFn })
@@ -254,7 +262,7 @@ describe('PATCH /api/admin/payments/[id]/edit', () => {
       body: { payment_note: '   ' },
     })
 
-    const response = await PATCH(req, { params: { id: 'payment-1' } })
+    const response = await PATCH(req, { params: Promise.resolve({ id: 'payment-1' }) })
 
     expect(response.status).toBe(200)
     const updateCall = updateFn.mock.calls[0][0]
@@ -267,10 +275,11 @@ describe('PATCH /api/admin/payments/[id]/edit', () => {
 
   it('returns 500 when Supabase update fails', async () => {
     vi.mocked(createClient).mockResolvedValue(buildServerClientMock() as any)
+    const error = new Error('DB constraint violation')
     vi.mocked(createServiceClient).mockReturnValue(
       buildServiceClientMock({
-        updateData: null,
-        updateError: { message: 'DB constraint violation' }
+        updateData: undefined,
+        updateError: error
       }) as any
     )
 
@@ -279,7 +288,7 @@ describe('PATCH /api/admin/payments/[id]/edit', () => {
       body: { extracted_amount: 500, payment_note: 'Test' },
     })
 
-    const response = await PATCH(req, { params: { id: 'payment-1' } })
+    const response = await PATCH(req, { params: Promise.resolve({ id: 'payment-1' }) })
     const body = await response.json()
 
     expect(response.status).toBe(500)
@@ -293,7 +302,7 @@ describe('PATCH /api/admin/payments/[id]/edit', () => {
   it('logs activity on successful update', async () => {
     vi.mocked(createClient).mockResolvedValue(buildServerClientMock() as any)
     vi.mocked(createServiceClient).mockReturnValue(
-      buildServiceClientMock({ updateData: {}, updateError: null }) as any
+      buildServiceClientMock({ updateData: {}, updateError: undefined }) as any
     )
 
     const req = createMockRequest('/api/admin/payments/payment-1/edit', {
@@ -305,7 +314,7 @@ describe('PATCH /api/admin/payments/[id]/edit', () => {
       },
     })
 
-    await PATCH(req, { params: { id: 'payment-1' } })
+    await PATCH(req, { params: Promise.resolve({ id: 'payment-1' }) })
 
     expect(logActivity).toHaveBeenCalledWith(
       'payment.edit',
@@ -321,10 +330,11 @@ describe('PATCH /api/admin/payments/[id]/edit', () => {
 
   it('logs error on update failure', async () => {
     vi.mocked(createClient).mockResolvedValue(buildServerClientMock() as any)
+    const error = new Error('DB error')
     vi.mocked(createServiceClient).mockReturnValue(
       buildServiceClientMock({
-        updateData: null,
-        updateError: { message: 'DB error' }
+        updateData: undefined,
+        updateError: error
       }) as any
     )
 
@@ -333,11 +343,11 @@ describe('PATCH /api/admin/payments/[id]/edit', () => {
       body: { payment_note: 'Test' },
     })
 
-    await PATCH(req, { params: { id: 'payment-1' } })
+    await PATCH(req, { params: Promise.resolve({ id: 'payment-1' }) })
 
     expect(logError).toHaveBeenCalledWith(
       'payment.edit',
-      { message: 'DB error' },
+      error,
       'admin-1',
       expect.objectContaining({
         payment_id: 'payment-1',
