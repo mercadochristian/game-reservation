@@ -379,8 +379,7 @@ export function PaymentsClient({
 
     dispatch({ type: 'SET_EDIT_SUBMITTING', submitting: true })
     try {
-      const updatePayload = {
-        payment_status: targetStatus,
+      const requestPayload = {
         extracted_amount: editForm.extracted_amount
           ? parseFloat(editForm.extracted_amount)
           : null,
@@ -392,21 +391,23 @@ export function PaymentsClient({
         payment_note: editForm.payment_note.trim() || null,
       }
 
-      const { error } = await (supabase.from('registration_payments') as any)
-        .update(updatePayload)
+      const response = await fetch(`/api/admin/payments/${editingPayment.id}/edit`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestPayload),
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to update payment')
+      }
+
+      // Update payment status in Supabase after successful API call
+      const { error: statusError } = await (supabase.from('registration_payments') as any)
+        .update({ payment_status: targetStatus })
         .eq('id', editingPayment.id)
 
-      if (error) throw error
-
-      if (currentUser?.id) {
-        await logActivity('payment.edit', currentUser.id, {
-          user_payment_id: editingPayment.id,
-          player_id: editingPayment.player_id,
-          new_status: targetStatus,
-          extracted_amount: updatePayload.extracted_amount,
-          extracted_reference: updatePayload.extracted_reference,
-        })
-      }
+      if (statusError) throw statusError
 
       // Optimistic update
       setRegistrations((prev) =>
@@ -415,11 +416,11 @@ export function PaymentsClient({
             ? {
                 ...r,
                 payment_status: targetStatus,
-                extracted_amount: updatePayload.extracted_amount as number | null,
-                extracted_reference: updatePayload.extracted_reference as string | null,
-                extracted_datetime: updatePayload.extracted_datetime as string | null,
-                extracted_sender: updatePayload.extracted_sender as string | null,
-                payment_note: updatePayload.payment_note as string | null,
+                extracted_amount: requestPayload.extracted_amount as number | null,
+                extracted_reference: requestPayload.extracted_reference as string | null,
+                extracted_datetime: requestPayload.extracted_datetime as string | null,
+                extracted_sender: requestPayload.extracted_sender as string | null,
+                payment_note: requestPayload.payment_note as string | null,
               }
             : r
         )
@@ -431,11 +432,6 @@ export function PaymentsClient({
       )
       router.refresh()
     } catch (error) {
-      if (currentUser?.id) {
-        await logError('payment.edit_failed', error, currentUser.id, {
-          user_payment_id: editingPayment.id,
-        })
-      }
       console.error('[Payments] Failed to edit payment:', error)
       toast.error('Failed to save payment', {
         description: getUserFriendlyMessage(error),
