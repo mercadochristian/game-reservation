@@ -577,8 +577,8 @@ export function PaymentsClient({
           >
             {registrations.length === 0 ? (
               <div className="p-12 text-center">
-                <ImageIcon size={48} className="text-muted-foreground/40 mx-auto mb-4" />
-                <p className="text-muted-foreground">No registrations for this schedule</p>
+                <ImageIcon size={48} className="mx-auto text-muted-foreground/40 mb-4" />
+                <p className="text-muted-foreground">No payments for this schedule.</p>
               </div>
             ) : (
               <Table>
