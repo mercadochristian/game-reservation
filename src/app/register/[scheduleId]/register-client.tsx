@@ -857,6 +857,7 @@ export function RegisterClient({
             disabled={
               !paymentFile ||
               isSubmitting ||
+              registrationNote.length > 200 ||
               (mode === 'solo' && !position) ||
               ((mode === 'group' || mode === 'team') && groupPlayers.some(p => !p.preferred_position)) ||
               (mode === 'team' && (() => {
