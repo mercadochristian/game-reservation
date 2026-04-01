@@ -20,6 +20,7 @@ function makeRegistration(overrides: Partial<RegistrationWithDetails> = {}): Reg
     extracted_sender: null,
     extraction_confidence: null,
     extracted_raw: null,
+    registration_note: null,
     attended: false,
     qr_token: null,
     lineup_team_id: null,

@@ -292,7 +292,7 @@ describe('Registration Note Integration Flow', () => {
     const registrationWithNoteAndUpdates: Registration = {
       ...baseRegistration,
       registration_note: testNote,
-      preferred_position: 'libero',
+      preferred_position: 'open_spiker',
     }
 
     const mockClient = {
@@ -310,10 +310,10 @@ describe('Registration Note Integration Flow', () => {
     // Simulate updating other field while preserving note
     const result = await mockClient
       .from('registrations')
-      .update({ preferred_position: 'libero' })
+      .update({ preferred_position: 'open_spiker' })
       .eq('id', 'reg-1')
 
     expect(result.data.registration_note).toBe(testNote)
-    expect(result.data.preferred_position).toBe('libero')
+    expect(result.data.preferred_position).toBe('open_spiker')
   })
 })

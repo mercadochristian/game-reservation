@@ -92,14 +92,14 @@ describe('useSchedulePlayers', () => {
 
     const { result, rerender } = renderHook(
       ({ scheduleId }: { scheduleId: string | null }) => useSchedulePlayers(scheduleId),
-      { initialProps: { scheduleId: 'sched-123' } }
+      { initialProps: { scheduleId: 'sched-123' as string | null } }
     )
 
     await waitFor(() => {
       expect(result.current.attended).toHaveLength(1)
     })
 
-    rerender({ scheduleId: null })
+    rerender({ scheduleId: null as string | null })
 
     expect(result.current.attended).toEqual([])
     expect(result.current.pending).toEqual([])

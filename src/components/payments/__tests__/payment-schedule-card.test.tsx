@@ -40,6 +40,7 @@ describe('PaymentScheduleCard', () => {
       <PaymentScheduleCard
         schedule={mockSchedule}
         isExpanded={false}
+        extractionEnabled={true}
         {...mockHandlers}
       />
     )
@@ -52,6 +53,7 @@ describe('PaymentScheduleCard', () => {
       <PaymentScheduleCard
         schedule={mockSchedule}
         isExpanded={false}
+        extractionEnabled={true}
         {...mockHandlers}
       />
     )
@@ -69,6 +71,7 @@ describe('PaymentScheduleCard', () => {
       <PaymentScheduleCard
         schedule={mockSchedule}
         isExpanded={false}
+        extractionEnabled={true}
         {...mockHandlers}
       />
     )
@@ -83,6 +86,7 @@ describe('PaymentScheduleCard', () => {
       <PaymentScheduleCard
         schedule={mockSchedule}
         isExpanded={false}
+        extractionEnabled={true}
         {...mockHandlers}
       />
     )
@@ -97,6 +101,7 @@ describe('PaymentScheduleCard', () => {
       <PaymentScheduleCard
         schedule={mockSchedule}
         isExpanded={false}
+        extractionEnabled={true}
         {...mockHandlers}
       />
     )
@@ -111,6 +116,7 @@ describe('PaymentScheduleCard', () => {
       <PaymentScheduleCard
         schedule={mockSchedule}
         isExpanded={false}
+        extractionEnabled={true}
         {...mockHandlers}
       />
     )
@@ -123,6 +129,7 @@ describe('PaymentScheduleCard', () => {
       <PaymentScheduleCard
         schedule={mockSchedule}
         isExpanded={true}
+        extractionEnabled={true}
         {...mockHandlers}
       />
     )

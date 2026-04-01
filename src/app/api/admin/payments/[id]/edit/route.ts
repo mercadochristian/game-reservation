@@ -7,8 +7,9 @@ import { logActivity, logError } from '@/lib/logger'
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params
   const supabase = await createClient()
   const { data: { user }, error: authError } = await supabase.auth.getUser()
 
@@ -61,17 +62,17 @@ export async function PATCH(
       extracted_sender,
       payment_note,
     })
-    .eq('id', params.id)
+    .eq('id', id)
 
   if (updateError) {
     await logError('payment.edit', updateError, user.id, {
-      payment_id: params.id,
+      payment_id: id,
     })
     return NextResponse.json({ error: 'Failed to update payment. Please try again.' }, { status: 500 })
   }
 
   await logActivity('payment.edit', user.id, {
-    payment_id: params.id,
+    payment_id: id,
     extracted_amount,
     extracted_reference,
     extracted_datetime,
