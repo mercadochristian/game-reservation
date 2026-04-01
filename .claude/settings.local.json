@@ -20,7 +20,22 @@
       "Bash(find /Users/christianmercado/Documents/Work/Personal/game-reservation -name vitest.config* -o -name vite.config*)",
       "Bash(find /Users/christianmercado/Documents/Work/Personal/game-reservation -name *edit-user* -type f)",
       "Bash(npm install:*)",
-      "Bash(grep -ao TODO[^]* /private/tmp/claude-501/-Users-christianmercado-Documents-Work-Personal-game-reservation/c3560c6c-b35e-4fb3-bcbf-76125801be14/tasks/a82f19f48521bb925.output)"
+      "Bash(grep -ao TODO[^]* /private/tmp/claude-501/-Users-christianmercado-Documents-Work-Personal-game-reservation/c3560c6c-b35e-4fb3-bcbf-76125801be14/tasks/a82f19f48521bb925.output)",
+      "Bash(xargs ls:*)",
+      "Bash(grep -E \"\\\\.\\(sql|ts\\)$\")",
+      "Bash(/tmp/test-whitespace.tsx:*)",
+      "Read(//tmp/**)",
+      "Bash(git reset:*)",
+      "Bash(curl -s http://localhost:3000)",
+      "Bash(grep -n \"registrationNote\\\\|Add a note\" /Users/christianmercado/Documents/Work/Personal/game-reservation/src/app/register/[scheduleId]/register-client.tsx)",
+      "Bash(ls -la /Users/christianmercado/Documents/Work/Personal/game-reservation/src/app/api/admin/payments/[id]/edit/)",
+      "Bash(grep -A 20 \"paymentEditSchema\" /Users/christianmercado/Documents/Work/Personal/game-reservation/src/lib/validations/*.ts)",
+      "Bash(supabase db:*)",
+      "Bash(npm list:*)",
+      "Bash(curl -s http://localhost:3000/auth)",
+      "Bash(/tmp/final_summary.txt:*)",
+      "Read(//private/tmp/**)",
+      "Bash(grep -A 20 \"CREATE TABLE.*registration_payments\" /Users/christianmercado/Documents/Work/Personal/game-reservation/supabase/migrations/*.sql)"
     ]
   }
 }

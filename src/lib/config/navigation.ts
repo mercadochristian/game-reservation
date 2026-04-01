@@ -67,7 +67,7 @@ export const NAVIGATION_CONFIG: NavigationConfig = {
       id: 'facilitator',
       label: 'Facilitator',
       pages: [
-        { label: 'QR Scanner', href: '/dashboard/scanner', icon: QrCode, roles: ['facilitator'], isComingSoon: true },
+        { label: 'QR Scanner', href: '/dashboard/scanner', icon: QrCode, roles: ['admin', 'super_admin', 'facilitator'] },
         { label: 'Team Management', href: '/dashboard/teams', icon: Users, roles: ['facilitator'], isComingSoon: true },
         { label: 'Award MVP', href: '/dashboard/mvp', icon: Users, roles: ['facilitator'], isComingSoon: true },
       ],

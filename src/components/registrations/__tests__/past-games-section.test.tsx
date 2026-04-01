@@ -6,15 +6,26 @@ import type { ScheduleWithSlots } from '@/types'
 
 const mockSchedules: ScheduleWithSlots[] = Array.from({ length: 5 }, (_, i) => ({
   id: `sch-${i}`,
+  title: `Past Game ${i + 1}`,
   start_time: new Date(Date.now() - (i + 1) * 86400000).toISOString(),
   end_time: new Date(Date.now() - (i + 1) * 86400000 + 7200000).toISOString(),
   location_id: 'loc-1',
   max_players: 12,
+  num_teams: 2,
+  required_levels: ['developmental'],
+  status: 'completed' as const,
+  position_prices: {},
+  team_price: 20,
+  created_by: 'user-1',
   registration_count: i + 1,
-  price: 20,
   created_at: new Date().toISOString(),
   updated_at: new Date().toISOString(),
-  locations: { id: 'loc-1', name: 'North Court', address: '123 Main St', google_map_url: null },
+  locations: {
+    id: 'loc-1',
+    name: 'North Court',
+    address: '123 Main St',
+    google_map_url: null,
+  },
 }))
 
 describe('PastGamesSection', () => {
@@ -31,6 +42,8 @@ describe('PastGamesSection', () => {
         isExpanded={false}
         onToggleSectionExpand={() => {}}
         onToggleGameExpand={() => {}}
+        onRegisterPlayer={() => {}}
+        onManageLineups={() => {}}
         currentPage={1}
         pageSize={10}
         onPageChange={() => {}}
@@ -49,6 +62,8 @@ describe('PastGamesSection', () => {
         isExpanded={false}
         onToggleSectionExpand={() => {}}
         onToggleGameExpand={() => {}}
+        onRegisterPlayer={() => {}}
+        onManageLineups={() => {}}
         currentPage={1}
         pageSize={10}
         onPageChange={() => {}}
@@ -67,6 +82,8 @@ describe('PastGamesSection', () => {
         isExpanded={false}
         onToggleSectionExpand={onToggle}
         onToggleGameExpand={() => {}}
+        onRegisterPlayer={() => {}}
+        onManageLineups={() => {}}
         currentPage={1}
         pageSize={10}
         onPageChange={() => {}}
@@ -86,6 +103,8 @@ describe('PastGamesSection', () => {
         isExpanded={true}
         onToggleSectionExpand={() => {}}
         onToggleGameExpand={() => {}}
+        onRegisterPlayer={() => {}}
+        onManageLineups={() => {}}
         currentPage={1}
         pageSize={10}
         onPageChange={() => {}}
@@ -105,6 +124,8 @@ describe('PastGamesSection', () => {
         isExpanded={true}
         onToggleSectionExpand={() => {}}
         onToggleGameExpand={() => {}}
+        onRegisterPlayer={() => {}}
+        onManageLineups={() => {}}
         currentPage={1}
         pageSize={10}
         onPageChange={() => {}}

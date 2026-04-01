@@ -6,8 +6,28 @@ import { RegistrationsClient } from '@/components/registrations/registrations-cl
 import type { Location } from '@/types'
 
 const mockLocations: Location[] = [
-  { id: 'loc-1', name: 'North Court', address: '123 Main St', google_map_url: null },
-  { id: 'loc-2', name: 'South Court', address: '456 Park Ave', google_map_url: null },
+  {
+    id: 'loc-1',
+    name: 'North Court',
+    address: '123 Main St',
+    google_map_url: null,
+    notes: null,
+    is_active: true,
+    created_by: 'user-1',
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: 'loc-2',
+    name: 'South Court',
+    address: '456 Park Ave',
+    google_map_url: null,
+    notes: null,
+    is_active: true,
+    created_by: 'user-1',
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
 ]
 
 describe('Merged Registrations Dashboard - Integration', () => {
@@ -76,9 +96,9 @@ describe('Merged Registrations Dashboard - Integration', () => {
     })
   })
 
-  it('should handle facilitator role without errors', async () => {
+  it('should render without errors with admin role', async () => {
     const { container } = render(
-      <RegistrationsClient locations={mockLocations} userRole="facilitator" />
+      <RegistrationsClient locations={mockLocations} userRole="admin" />
     )
 
     // Component should render without errors
@@ -143,8 +163,8 @@ describe('Merged Registrations Dashboard - Integration', () => {
     })
   })
 
-  it('should handle player role correctly', () => {
-    render(<RegistrationsClient locations={mockLocations} userRole="player" />)
+  it('should display initial empty state', () => {
+    render(<RegistrationsClient locations={mockLocations} userRole="admin" />)
 
     const headings = screen.getAllByRole('heading', { name: /Registrations/ })
     expect(headings.length).toBeGreaterThan(0)

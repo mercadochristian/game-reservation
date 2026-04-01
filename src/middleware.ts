@@ -21,7 +21,7 @@ const ROLE_PROTECTED_PAGES: Record<string, Role[]> = {
   '/dashboard/payment-channels': ['admin', 'super_admin'],
   '/dashboard/logs': ['super_admin'],
   '/dashboard/lineups': ['admin', 'super_admin'],
-  // '/dashboard/scanner': ['facilitator'],
+  '/dashboard/scanner': ['admin', 'super_admin', 'facilitator'],
   // '/dashboard/teams': ['facilitator'],
   // '/dashboard/mvp': ['facilitator'],
   // '/dashboard/register': ['player'],

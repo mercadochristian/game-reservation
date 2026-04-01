@@ -22,7 +22,7 @@ import { ConfirmDeleteDialog } from '@/components/confirm-delete-dialog'
 import { createClient } from '@/lib/supabase/client'
 import { useUser } from '@/lib/context/user-context'
 import { scheduleSchema, ScheduleFormData } from '@/lib/validations/schedule'
-import type { ScheduleWithLocation, Location } from '@/types'
+import type { ScheduleWithLocation, Location, SkillLevel } from '@/types'
 import { ScheduleInfo } from '@/components/schedule-info'
 import { fadeUpVariants } from '@/lib/animations'
 import { SKILL_LEVEL_LABELS, STATUS_LABELS } from '@/lib/constants/labels'
@@ -185,7 +185,7 @@ export function SchedulesClient({ initialSchedules, initialLocations }: Schedule
     setValue('end_time', utcToManilaInput(schedule.end_time))
     setValue('location_id', schedule.location_id)
     setValue('num_teams', schedule.num_teams)
-    setValue('required_levels', schedule.required_levels || [])
+    setValue('required_levels', (schedule.required_levels as unknown as SkillLevel[]) || [])
     setValue('status', schedule.status)
     setValue('position_prices', (schedule.position_prices as any) || {
       open_spiker: 0,

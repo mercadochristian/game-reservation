@@ -46,3 +46,6 @@ dist/
 
 # Package archives
 *.tgz
+
+.superpowers
+docs/superpowers
