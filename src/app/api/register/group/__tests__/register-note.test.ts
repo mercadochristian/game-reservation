@@ -1,33 +1,68 @@
 import { describe, it, expect } from 'vitest'
+import { groupRegistrationSchema } from '@/lib/validations/group-registration'
 
-describe('POST /api/register/group - registration_note validation', () => {
+describe('groupRegistrationSchema - registration_note validation', () => {
+  const basePayload = {
+    schedule_id: '550e8400-e29b-41d4-a716-446655440000',
+    payment_proof_path: '/proof/payment.jpg',
+    registration_mode: 'group' as const,
+    players: [
+      {
+        type: 'existing' as const,
+        user_id: '550e8400-e29b-41d4-a716-446655440001',
+        preferred_position: 'open_spiker' as const,
+      },
+      {
+        type: 'guest' as const,
+        first_name: 'John',
+        last_name: 'Doe',
+        email: 'john@example.com',
+        preferred_position: 'setter' as const,
+        skill_level: 'intermediate' as const,
+      },
+    ],
+  }
+
   it('should reject registration_note exceeding 200 characters', () => {
     const noteExceedingLimit = 'a'.repeat(201)
-    const isValid = !noteExceedingLimit || noteExceedingLimit.length <= 200
-    expect(isValid).toBe(false)
+    expect(() =>
+      groupRegistrationSchema.parse({
+        ...basePayload,
+        registration_note: noteExceedingLimit,
+      })
+    ).toThrow('Note cannot exceed 200 characters')
   })
 
   it('should accept registration_note at exactly 200 characters', () => {
     const noteAtLimit = 'a'.repeat(200)
-    const isValid = !noteAtLimit || noteAtLimit.length <= 200
-    expect(isValid).toBe(true)
+    const result = groupRegistrationSchema.parse({
+      ...basePayload,
+      registration_note: noteAtLimit,
+    })
+    expect(result.registration_note).toBe(noteAtLimit)
   })
 
   it('should accept null registration_note', () => {
-    const note = null
-    const isValid = !note || note.length <= 200
-    expect(isValid).toBe(true)
+    const result = groupRegistrationSchema.parse({
+      ...basePayload,
+      registration_note: null,
+    })
+    expect(result.registration_note).toBe(null)
   })
 
-  it('should convert empty string to null', () => {
-    const note = ''
-    const normalized = note.trim() || null
-    expect(normalized).toBe(null)
+  it('should accept undefined registration_note', () => {
+    const result = groupRegistrationSchema.parse({
+      ...basePayload,
+      // registration_note omitted = undefined
+    })
+    expect(result.registration_note).toBeUndefined()
   })
 
-  it('should trim whitespace from registration_note', () => {
-    const note = '  hello world  '
-    const trimmed = note.trim()
-    expect(trimmed).toBe('hello world')
+  it('should accept empty string registration_note', () => {
+    const result = groupRegistrationSchema.parse({
+      ...basePayload,
+      registration_note: '',
+    })
+    expect(result.registration_note).toBe('')
   })
 })

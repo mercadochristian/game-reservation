@@ -31,14 +31,6 @@ export async function POST(request: NextRequest) {
     const rawNote = validated.registration_note
     const registration_note = rawNote?.trim() || null
 
-    // Validate server-side (redundant with schema but explicit)
-    if (registration_note && registration_note.length > 200) {
-      return NextResponse.json(
-        { error: 'Note cannot exceed 200 characters' },
-        { status: 400 }
-      )
-    }
-
     const supabase = await createClient()
 
     // Authenticate user
