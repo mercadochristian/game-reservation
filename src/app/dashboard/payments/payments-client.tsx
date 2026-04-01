@@ -586,9 +586,9 @@ export function PaymentsClient({
                   <TableRow className="border-border">
                     <TableHead>Player</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead>Amount</TableHead>
-                    <TableHead className="hidden sm:table-cell">Reference</TableHead>
-                    <TableHead className="hidden md:table-cell">Confidence</TableHead>
+                    <TableHead className="hidden sm:table-cell">Amount</TableHead>
+                    <TableHead className="hidden md:table-cell">Reference</TableHead>
+                    <TableHead className="hidden lg:table-cell">Confidence</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -610,13 +610,13 @@ export function PaymentsClient({
                           {reg.payment_status}
                         </Badge>
                       </TableCell>
-                      <TableCell className="font-mono text-sm">
+                      <TableCell className="hidden sm:table-cell font-mono text-sm">
                         {reg.extracted_amount ? `₱${reg.extracted_amount.toFixed(2)}` : '—'}
                       </TableCell>
-                      <TableCell className="hidden sm:table-cell text-sm text-muted-foreground">
+                      <TableCell className="hidden md:table-cell text-sm text-muted-foreground">
                         {reg.extracted_reference || '—'}
                       </TableCell>
-                      <TableCell className="hidden md:table-cell">
+                      <TableCell className="hidden lg:table-cell">
                         {reg.extraction_confidence ? (
                           <Badge className={CONFIDENCE_COLORS[reg.extraction_confidence]}>
                             {reg.extraction_confidence}
