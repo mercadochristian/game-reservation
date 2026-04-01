@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { ChevronDown, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { POSITION_SLOTS, getPositionTotal, getPositionAvailable } from '@/lib/utils/position-slots'
+import { RegistrationNoteDisplay } from './registration-note-display'
 
 interface RegistrationGroupCardProps {
   schedule: ScheduleWithSlots
@@ -161,7 +162,7 @@ export function RegistrationGroupCard({
                       const positionLabel = reg.preferred_position
                         ? POSITION_LABELS[reg.preferred_position]
                         : 'Not specified'
-                      const skillLabel = reg.users
+                      const skillLabel = reg.users && reg.users.skill_level
                         ? SKILL_LEVEL_LABELS[reg.users.skill_level] || 'Unknown'
                         : 'Unknown'
                       const lineupTeamName =
@@ -175,13 +176,16 @@ export function RegistrationGroupCard({
                       return (
                         <TableRow key={reg.id}>
                           <TableCell className="font-medium">
-                            <div className="flex items-center gap-2">
-                              <span>{playerName}</span>
-                              {isGrouped && groupTeamName && (
-                                <Badge variant="secondary" className="text-xs">
-                                  {groupTeamName}
-                                </Badge>
-                              )}
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <span>{playerName}</span>
+                                {isGrouped && groupTeamName && (
+                                  <Badge variant="secondary" className="text-xs">
+                                    {groupTeamName}
+                                  </Badge>
+                                )}
+                              </div>
+                              <RegistrationNoteDisplay note={reg.registration_note} />
                             </div>
                           </TableCell>
                           <TableCell className="hidden sm:table-cell text-sm">{positionLabel}</TableCell>
