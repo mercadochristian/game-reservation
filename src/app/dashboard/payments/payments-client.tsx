@@ -591,6 +591,7 @@ export function PaymentsClient({
                     <TableHead className="hidden sm:table-cell">Amount</TableHead>
                     <TableHead className="hidden md:table-cell">Reference</TableHead>
                     <TableHead className="hidden lg:table-cell">Confidence</TableHead>
+                    <TableHead className="hidden lg:table-cell">Note</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -625,6 +626,18 @@ export function PaymentsClient({
                           </Badge>
                         ) : (
                           <span className="text-sm text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="hidden lg:table-cell">
+                        {reg.payment_note ? (
+                          <div
+                            title={reg.payment_note}
+                            className="max-w-xs truncate text-muted-foreground text-xs"
+                          >
+                            {reg.payment_note}
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground text-xs">—</span>
                         )}
                       </TableCell>
                       <TableCell className="text-right py-4">
