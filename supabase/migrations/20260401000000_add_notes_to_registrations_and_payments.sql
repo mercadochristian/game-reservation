@@ -20,11 +20,3 @@ ALTER TABLE public.registration_payments ADD COLUMN IF NOT EXISTS payment_note T
 -- Add check constraint for payment_note (max 200 chars)
 ALTER TABLE public.registration_payments ADD CONSTRAINT payment_note_max_length
   CHECK (payment_note IS NULL OR LENGTH(payment_note) <= 200);
-
--- ==========================================================================
--- Rollback
--- ==========================================================================
-ALTER TABLE public.registration_payments DROP CONSTRAINT payment_note_max_length;
-ALTER TABLE public.registration_payments DROP COLUMN payment_note;
-ALTER TABLE public.registrations DROP CONSTRAINT registration_note_max_length;
-ALTER TABLE public.registrations DROP COLUMN registration_note;
