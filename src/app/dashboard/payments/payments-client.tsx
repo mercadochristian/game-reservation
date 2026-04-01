@@ -389,6 +389,7 @@ export function PaymentsClient({
           ? new Date(editForm.extracted_datetime).toISOString()
           : null,
         extracted_sender: editForm.extracted_sender || null,
+        payment_note: editForm.payment_note.trim() || null,
       }
 
       const { error } = await (supabase.from('registration_payments') as any)
@@ -418,6 +419,7 @@ export function PaymentsClient({
                 extracted_reference: updatePayload.extracted_reference as string | null,
                 extracted_datetime: updatePayload.extracted_datetime as string | null,
                 extracted_sender: updatePayload.extracted_sender as string | null,
+                payment_note: updatePayload.payment_note as string | null,
               }
             : r
         )
@@ -835,6 +837,32 @@ export function PaymentsClient({
                   })
                 }
               />
+            </div>
+
+            {/* Payment Note */}
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-foreground">
+                Admin note <span className="text-xs text-muted-foreground">(optional)</span>
+              </label>
+              <textarea
+                value={editForm.payment_note}
+                onChange={(e) => {
+                  const value = e.target.value
+                  if (value.length <= 200) {
+                    dispatch({
+                      type: 'SET_EDIT_FORM',
+                      field: 'payment_note',
+                      value,
+                    })
+                  }
+                }}
+                placeholder="Why is this payment under review? (max 200 chars)"
+                className="w-full px-3 py-2 text-sm border rounded bg-background text-foreground border-input resize-none"
+                rows={3}
+              />
+              <div className="text-xs text-muted-foreground text-right">
+                {editForm.payment_note.length} / 200
+              </div>
             </div>
           </div>
 
