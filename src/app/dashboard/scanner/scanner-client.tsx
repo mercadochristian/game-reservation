@@ -78,7 +78,7 @@ export function ScannerClient({ initialLocations, initialSchedules }: ScannerCli
     fetchSchedules()
   }, [selectedLocationId, selectedDateRange, selectedDate, todayKey, initialSchedules])
 
-  const { attended, pending, isLoading: playersLoading, refresh: refreshPlayers } = useSchedulePlayers(selectedScheduleId)
+  const { attended, pending, isLoading: playersLoading, error: playersError, refresh: refreshPlayers } = useSchedulePlayers(selectedScheduleId)
 
   // Sync URL state
   useEffect(() => {
@@ -153,6 +153,7 @@ export function ScannerClient({ initialLocations, initialSchedules }: ScannerCli
           attended={attended}
           pending={pending}
           isLoading={playersLoading}
+          error={playersError}
         />
       )}
     </div>

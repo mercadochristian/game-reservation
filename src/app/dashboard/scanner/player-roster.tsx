@@ -8,6 +8,7 @@ interface PlayerRosterProps {
   attended: PlayerInfo[]
   pending: PlayerInfo[]
   isLoading: boolean
+  error?: string | null
 }
 
 function PlayerRow({ player }: { player: PlayerInfo }) {
@@ -27,6 +28,7 @@ export function PlayerRoster({
   attended,
   pending,
   isLoading,
+  error,
 }: PlayerRosterProps) {
   const totalRegistered = attended.length + pending.length
 
@@ -36,7 +38,11 @@ export function PlayerRoster({
         <CardTitle>Players ({totalRegistered} registered)</CardTitle>
       </CardHeader>
       <CardContent>
-        {isLoading ? (
+        {error ? (
+          <div className="p-4 bg-red-500/10 text-red-600 dark:text-red-400 rounded-lg text-sm border border-red-200 dark:border-red-900">
+            Failed to load players: {error}
+          </div>
+        ) : isLoading ? (
           <div className="space-y-2">
             {[1, 2, 3].map((i) => (
               <div key={i} className="h-12 bg-muted rounded-lg animate-pulse" />
