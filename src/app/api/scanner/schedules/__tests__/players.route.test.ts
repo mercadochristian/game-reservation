@@ -73,26 +73,46 @@ describe('GET /api/scanner/schedules/[scheduleId]/players', () => {
     vi.mocked(createClient).mockResolvedValue(mockServerClient as any)
 
     const mockServiceClient = createMockServerClient()
-    const regQuery = mockServiceClient.from('registrations')
-    regQuery.select.mockReturnValue({
-      eq: vi.fn().mockResolvedValue({
-        data: [
-          {
-            id: 'reg-1',
-            attended: true,
-            payment_status: 'paid',
-            users: { id: 'player-1', first_name: 'Jane', last_name: 'Doe' },
-          },
-          {
-            id: 'reg-2',
-            attended: false,
-            payment_status: 'paid',
-            users: { id: 'player-2', first_name: 'John', last_name: 'Smith' },
-          },
-        ],
-        error: null,
-      }),
-    } as any)
+    const serviceFrom = vi.fn((table: string) => {
+      if (table === 'registrations') {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockResolvedValue({
+              data: [
+                {
+                  id: 'reg-1',
+                  attended: true,
+                  payment_status: 'paid',
+                  player_id: 'player-1',
+                },
+                {
+                  id: 'reg-2',
+                  attended: false,
+                  payment_status: 'paid',
+                  player_id: 'player-2',
+                },
+              ],
+              error: null,
+            }),
+          }),
+        }
+      } else if (table === 'users') {
+        return {
+          select: vi.fn().mockReturnValue({
+            in: vi.fn().mockResolvedValue({
+              data: [
+                { id: 'player-1', first_name: 'Jane', last_name: 'Doe' },
+                { id: 'player-2', first_name: 'John', last_name: 'Smith' },
+              ],
+              error: null,
+            }),
+          }),
+        }
+      }
+      return {}
+    })
+
+    mockServiceClient.from = serviceFrom as any
     vi.mocked(createServiceClient).mockReturnValue(mockServiceClient as any)
 
     const request = createMockRequest('/api/scanner/schedules/sched-1/players', {
@@ -105,8 +125,10 @@ describe('GET /api/scanner/schedules/[scheduleId]/players', () => {
     expect(response.status).toBe(200)
     expect(body).toHaveProperty('attended')
     expect(body).toHaveProperty('pending')
-    expect(Array.isArray(body.attended)).toBe(true)
-    expect(Array.isArray(body.pending)).toBe(true)
+    expect(body.attended).toHaveLength(1)
+    expect(body.pending).toHaveLength(1)
+    expect(body.attended[0].player.first_name).toBe('Jane')
+    expect(body.pending[0].player.first_name).toBe('John')
   })
 
   it('returns empty arrays when no registrations exist', async () => {
@@ -125,13 +147,21 @@ describe('GET /api/scanner/schedules/[scheduleId]/players', () => {
     vi.mocked(createClient).mockResolvedValue(mockServerClient as any)
 
     const mockServiceClient = createMockServerClient()
-    const regQuery = mockServiceClient.from('registrations')
-    regQuery.select.mockReturnValue({
-      eq: vi.fn().mockResolvedValue({
-        data: [],
-        error: null,
-      }),
-    } as any)
+    const serviceFrom = vi.fn((table: string) => {
+      if (table === 'registrations') {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockResolvedValue({
+              data: [],
+              error: null,
+            }),
+          }),
+        }
+      }
+      return {}
+    })
+
+    mockServiceClient.from = serviceFrom as any
     vi.mocked(createServiceClient).mockReturnValue(mockServiceClient as any)
 
     const request = createMockRequest('/api/scanner/schedules/sched-1/players', {
