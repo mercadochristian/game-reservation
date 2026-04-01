@@ -114,6 +114,24 @@ Players submit proof of payment (photo/screenshot) during registration. Admins c
 
 ---
 
+### 📝 Registration & Payment Notes
+
+**Players** can add optional context notes when registering (max 200 characters). These notes are visible only to the player in their registrations dashboard and are write-once (not editable).
+
+**Admins** can add or edit notes when manually correcting payment information (max 200 characters). Payment notes appear in the payment table as a separate column and are editable.
+
+**Use Cases:**
+- **Registration Notes:** Player explains their team preference, position flexibility, or special requirements during registration
+- **Payment Notes:** Admin documents why a payment was flagged for review, tracks investigation progress, or notes payment corrections
+
+**Constraints:**
+- Both notes limited to 200 characters (plain text only)
+- Registration notes: write-once (cannot be edited after registration)
+- Payment notes: editable by admins anytime
+- Validation at three layers: client-side, Zod schema, database CHECK constraint
+
+---
+
 ### ⚙️ Lineup Builder
 **For admins and facilitators before the game**
 
@@ -394,4 +412,5 @@ A record of implemented features. Updated as new features are deployed.
 | 2026-03-26 | Lineup Builder | Admins and facilitators can now organize registered players into game-day teams before each game using an interactive drag-and-drop interface. Solo players drag individually; group registrations drag together as a unit. Team names are customizable. Once saved, the lineup appears in the registrations list and ensures everyone knows their assigned team before game day. |
 | 2026-03-28 | My Registrations (Player View) | Players can now view all their past and upcoming game registrations in one place. Shows game details, location, payment status, QR codes for check-in on upcoming games, and attendance status for completed games. Available from the main dashboard for all authenticated users. |
 | 2026-03-29 | Merged Registrations Dashboard | New admin view combining all registrations with location-first filtering and grouped games by time. Enables admins to manage payments and lineup assignments more efficiently. |
+| 2026-04-01 | Registration & Payment Notes | Players can add optional 200-character notes during registration (visible to player, write-once). Admins can add/edit 200-character notes on payment records for context during payment reviews and corrections. |
 

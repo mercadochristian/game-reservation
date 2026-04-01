@@ -176,6 +176,7 @@ Previously used for magic link email confirmation. No longer in use with passwor
 | `qr_token` | UUID | UNIQUE, auto-generated on insert |
 | `preferred_position` | player_position | nullable |
 | `lineup_team_id` | UUID | nullable, FK → teams(id) ON DELETE SET NULL — assigned game-day team (post-lineup-builder) |
+| `registration_note` | TEXT | nullable, max 200 chars (CHECK constraint) — optional note from player during registration |
 | `created_at`, `updated_at` | TIMESTAMPTZ | DEFAULT NOW() |
 | **Unique constraint:** `(schedule_id, player_id)` |
 
@@ -196,6 +197,29 @@ Previously used for magic link email confirmation. No longer in use with passwor
 | `player_id` | UUID | FK → users(id) ON DELETE CASCADE |
 | `position` | player_position | nullable |
 | **Unique constraint:** `(team_id, player_id)` |
+
+**`registration_payments`** — Payment tracking for registrations
+| Column | Type | Notes |
+|---|---|---|
+| `id` | UUID | PK |
+| `registration_id` | UUID | nullable, FK → registrations(id) ON DELETE CASCADE (for solo registrations) |
+| `team_id` | UUID | nullable, FK → teams(id) ON DELETE CASCADE (for group/team registrations) |
+| `payer_id` | UUID | NOT NULL, FK → users(id) ON DELETE RESTRICT |
+| `schedule_id` | UUID | NOT NULL, FK → schedules(id) ON DELETE RESTRICT |
+| `registration_type` | TEXT | NOT NULL, CHECK ('solo' \| 'group' \| 'team') |
+| `required_amount` | NUMERIC(10, 2) | NOT NULL, DEFAULT 0 |
+| `payment_status` | payment_status | NOT NULL, DEFAULT 'pending' — tracks approval state |
+| `payment_proof_url` | TEXT | nullable (path in storage bucket) |
+| `payment_channel_id` | UUID | nullable, FK → payment_channels(id) ON DELETE SET NULL — payment method used |
+| `extracted_amount` | NUMERIC(10, 2) | nullable — OCR-extracted amount from proof |
+| `extracted_reference` | TEXT | nullable — OCR-extracted reference number |
+| `extracted_datetime` | TIMESTAMPTZ | nullable — OCR-extracted transaction timestamp |
+| `extracted_sender` | TEXT | nullable — OCR-extracted sender name |
+| `extraction_confidence` | TEXT | nullable — confidence level of OCR extraction |
+| `extracted_raw` | JSONB | DEFAULT {} — full OCR result JSON |
+| `payment_note` | TEXT | nullable, max 200 chars (CHECK constraint) — optional note from admin |
+| `created_at`, `updated_at` | TIMESTAMPTZ | NOT NULL, DEFAULT NOW() |
+| **Constraint:** `(registration_id IS NOT NULL OR team_id IS NOT NULL)` — must reference either solo or group registration |
 
 **`mvp_awards`** — Post-game MVP
 | Column | Type | Notes |
@@ -283,6 +307,31 @@ Locations and schedules use a soft-delete pattern via `deleted_at TIMESTAMPTZ`:
 
 **Why soft delete instead of hard delete?**
 Registrations, payment records, and attendance history all reference `schedule_id` via FK. Hard-deleting a schedule would cascade-delete all those records (destroying the audit trail) or leave them orphaned. Soft delete preserves history, allows admin recovery, and keeps payment records available for accounting.
+
+---
+
+### Registration & Payment Notes
+
+**`registration_note`** (`registrations` table)
+- **Max length:** 200 characters (enforced by CHECK constraint)
+- **Purpose:** Optional context from the player during registration (e.g., "I'm in my friend's group", "Special position needed")
+- **Set by:** Player at registration time
+- **Visibility:** Player (read-only) and admins
+- **Editability:** Write-once (not editable after registration)
+- **Validation:** Client-side length check, Zod schema, database CHECK constraint
+
+**`payment_note`** (`registration_payments` table)
+- **Max length:** 200 characters (enforced by CHECK constraint)
+- **Purpose:** Context from admin during payment review (e.g., "Payment received via bank transfer", "Flagged for follow-up investigation")
+- **Set by:** Admin when reviewing or manually editing payment records
+- **Visibility:** Admins only
+- **Editability:** Yes (admins can update note anytime)
+- **Validation:** Client-side length check, Zod schema, database CHECK constraint
+
+**Example Workflows:**
+1. **Player Registration:** Player enters optional note during registration → note stored in `registration_note` → appears in player's dashboard (read-only)
+2. **Admin Payment Review:** Admin reviews payment proof → notices discrepancy → adds note explaining reason for 'review' status → note stored in `payment_note` → visible in payment table
+3. **Admin Payment Correction:** Admin manually adjusts payment status → updates `payment_note` to document the correction → note updated in database
 
 ---
 
