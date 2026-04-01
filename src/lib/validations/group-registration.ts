@@ -30,6 +30,7 @@ export const groupRegistrationSchema = z.object({
   registration_mode: z.enum(['group', 'team']),
   players: z.array(groupPlayerSchema).min(2, 'At least 2 players required (you + 1 additional)'),
   payment_channel_id: z.string().uuid().nullable().optional(),
+  registration_note: z.string().max(200, 'Note cannot exceed 200 characters').nullable().optional(),
 })
 
 export type GroupRegistrationRequest = z.infer<typeof groupRegistrationSchema>

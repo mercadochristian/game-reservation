@@ -27,6 +27,18 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const validated = groupRegistrationSchema.parse(body)
 
+    // Extract and normalize registration_note
+    const rawNote = validated.registration_note
+    const registration_note = rawNote?.trim() || null
+
+    // Validate server-side (redundant with schema but explicit)
+    if (registration_note && registration_note.length > 200) {
+      return NextResponse.json(
+        { error: 'Note cannot exceed 200 characters' },
+        { status: 400 }
+      )
+    }
+
     const supabase = await createClient()
 
     // Authenticate user
@@ -283,6 +295,7 @@ export async function POST(request: NextRequest) {
         registered_by: authUser.id,
         preferred_position: r.player.preferred_position,
         team_preference: validated.registration_mode as 'group' | 'team',
+        registration_note,
       }))
 
     const { data: insertedRegistrations, error: insertError } = await (serviceClient
