@@ -3,6 +3,7 @@ import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { logActivity, logError } from '@/lib/logger'
+import { getExtractionSetting } from '@/lib/config/extraction-settings'
 
 interface ExtractedData {
   amount: number | null
@@ -16,6 +17,12 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
     const { user_payment_id, payment_proof_url } = body
+
+    // Check global extraction setting before doing any work
+    const { enabled } = getExtractionSetting()
+    if (!enabled) {
+      return NextResponse.json({ skipped: true, reason: 'extraction_disabled' }, { status: 200 })
+    }
 
     if (!payment_proof_url || !user_payment_id) {
       return NextResponse.json(
