@@ -1,15 +1,17 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useReducer } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { Eye, Check, X, Image as ImageIcon, RefreshCw } from 'lucide-react'
+import { Eye, Check, X, Image as ImageIcon, RefreshCw, Pencil, Calendar } from 'lucide-react'
 import { useHasAnimated } from '@/lib/hooks/useHasAnimated'
 import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { PageHeader } from '@/components/ui/page-header'
 import { Card } from '@/components/ui/card'
@@ -21,6 +23,7 @@ import { fadeUpVariants } from '@/lib/animations'
 import { getUserFriendlyMessage } from '@/lib/errors/messages'
 import { formatScheduleLabel } from '@/lib/utils/schedule-label'
 import { logActivity, logError } from '@/lib/logger'
+import { ScheduleInfo } from '@/components/schedule-info'
 
 interface PaymentWithExtraction {
   id: string
@@ -53,6 +56,113 @@ const STATUS_COLORS: Record<string, string> = {
   rejected: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
 }
 
+// --- Dialog state reducer ---
+interface PaymentDialogState {
+  viewingProof: { registration_id: string; url: string } | null
+  proofUrl: string | null
+  proofLoading: boolean
+  reextracting: string | null
+  editingPayment: PaymentWithExtraction | null
+  editForm: {
+    extracted_amount: string
+    extracted_reference: string
+    extracted_datetime: string
+    extracted_sender: string
+  }
+  editSubmitting: boolean
+}
+
+export const initialPaymentDialogState: PaymentDialogState = {
+  viewingProof: null,
+  proofUrl: null,
+  proofLoading: false,
+  reextracting: null,
+  editingPayment: null,
+  editForm: {
+    extracted_amount: '',
+    extracted_reference: '',
+    extracted_datetime: '',
+    extracted_sender: '',
+  },
+  editSubmitting: false,
+}
+
+type PaymentDialogAction =
+  | { type: 'OPEN_PROOF'; registration_id: string }
+  | { type: 'SET_PROOF_URL'; url: string }
+  | { type: 'SET_PROOF_LOADING'; loading: boolean }
+  | { type: 'CLOSE_PROOF' }
+  | { type: 'SET_REEXTRACTING'; id: string | null }
+  | { type: 'OPEN_EDIT'; payment: PaymentWithExtraction }
+  | { type: 'SET_EDIT_FORM'; field: keyof PaymentDialogState['editForm']; value: string }
+  | { type: 'SET_EDIT_SUBMITTING'; submitting: boolean }
+  | { type: 'CLOSE_EDIT' }
+
+export function paymentDialogReducer(
+  state: PaymentDialogState,
+  action: PaymentDialogAction,
+): PaymentDialogState {
+  switch (action.type) {
+    case 'OPEN_PROOF':
+      return {
+        ...state,
+        viewingProof: { registration_id: action.registration_id, url: '' },
+        proofLoading: true,
+        proofUrl: null,
+      }
+    case 'SET_PROOF_URL':
+      return {
+        ...state,
+        proofUrl: action.url,
+        viewingProof: state.viewingProof
+          ? { ...state.viewingProof, url: action.url }
+          : null,
+      }
+    case 'SET_PROOF_LOADING':
+      return { ...state, proofLoading: action.loading }
+    case 'CLOSE_PROOF':
+      return { ...state, viewingProof: null, proofUrl: null, proofLoading: false }
+    case 'SET_REEXTRACTING':
+      return { ...state, reextracting: action.id }
+    case 'OPEN_EDIT': {
+      const p = action.payment
+      let dt = ''
+      if (p.extracted_datetime) {
+        const d = new Date(p.extracted_datetime)
+        if (!isNaN(d.getTime())) {
+          dt = d.toISOString().slice(0, 16)
+        }
+      }
+      return {
+        ...state,
+        editingPayment: p,
+        editForm: {
+          extracted_amount: p.extracted_amount != null ? String(p.extracted_amount) : '',
+          extracted_reference: p.extracted_reference ?? '',
+          extracted_datetime: dt,
+          extracted_sender: p.extracted_sender ?? '',
+        },
+      }
+    }
+    case 'SET_EDIT_FORM':
+      return {
+        ...state,
+        editForm: { ...state.editForm, [action.field]: action.value },
+      }
+    case 'SET_EDIT_SUBMITTING':
+      return { ...state, editSubmitting: action.submitting }
+    case 'CLOSE_EDIT':
+      return {
+        ...state,
+        editingPayment: null,
+        editSubmitting: false,
+        editForm: initialPaymentDialogState.editForm,
+      }
+    default:
+      return state
+  }
+}
+
 interface PaymentsClientProps {
   schedules: ScheduleWithLocation[]
   selectedScheduleId: string | null
@@ -81,14 +191,21 @@ export function PaymentsClient({
   const [registrations, setRegistrations] = useState<PaymentWithExtraction[]>(initialRegistrations)
   const [totalCollected, setTotalCollected] = useState(initialTotalCollected)
   const [pendingCount, setPendingCount] = useState(initialPendingCount)
-  const [viewingProof, setViewingProof] = useState<{
-    registration_id: string
-    url: string
-  } | null>(null)
-  const [proofUrl, setProofUrl] = useState<string | null>(null)
-  const [proofLoading, setProofLoading] = useState(false)
   const [isRefreshing, setIsRefreshing] = useState(false)
-  const [reextracting, setReextracting] = useState<string | null>(null)
+
+  const [dialogState, dispatch] = useReducer(
+    paymentDialogReducer,
+    initialPaymentDialogState,
+  )
+  const {
+    viewingProof,
+    proofUrl,
+    proofLoading,
+    reextracting,
+    editingPayment,
+    editForm,
+    editSubmitting,
+  } = dialogState
 
   const selectedScheduleId = initialScheduleId
 
@@ -112,7 +229,7 @@ export function PaymentsClient({
       return
     }
 
-    setReextracting(registration.id)
+    dispatch({ type: 'SET_REEXTRACTING', id: registration.id })
     try {
       const response = await fetch('/api/payment-proof/extract', {
         method: 'POST',
@@ -134,19 +251,18 @@ export function PaymentsClient({
       console.error('[Payments] Re-extraction failed:', error)
       toast.error('Re-extraction failed', { description: getUserFriendlyMessage(error) })
     } finally {
-      setReextracting(null)
+      dispatch({ type: 'SET_REEXTRACTING', id: null })
     }
   }
   
   // Handle view proof
   const handleViewProof = async (registration: PaymentWithExtraction) => {
-    setViewingProof({ registration_id: registration.id, url: '' })
-    setProofLoading(true)
+    dispatch({ type: 'OPEN_PROOF', registration_id: registration.id })
 
     try {
       if (!registration.payment_proof_url) {
         toast.error('No proof URL')
-        setViewingProof(null)
+        dispatch({ type: 'CLOSE_PROOF' })
         return
       }
 
@@ -156,14 +272,12 @@ export function PaymentsClient({
 
       if (error) throw error
 
-      setProofUrl(data.signedUrl)
-      setViewingProof({ registration_id: registration.id, url: data.signedUrl })
+      dispatch({ type: 'SET_PROOF_URL', url: data.signedUrl })
+      dispatch({ type: 'SET_PROOF_LOADING', loading: false })
     } catch (error) {
       console.error('[Payments] Failed to get signed URL:', error)
       toast.error('Failed to load proof image', { description: getUserFriendlyMessage(error) })
-      setViewingProof(null)
-    } finally {
-      setProofLoading(false)
+      dispatch({ type: 'CLOSE_PROOF' })
     }
   }
 
@@ -254,6 +368,79 @@ export function PaymentsClient({
     }
   }
 
+  // Handle edit payment
+  const submitEditPayment = async (targetStatus: 'review' | 'paid') => {
+    if (!editingPayment) return
+
+    dispatch({ type: 'SET_EDIT_SUBMITTING', submitting: true })
+    try {
+      const updatePayload = {
+        payment_status: targetStatus,
+        extracted_amount: editForm.extracted_amount
+          ? parseFloat(editForm.extracted_amount)
+          : null,
+        extracted_reference: editForm.extracted_reference || null,
+        extracted_datetime: editForm.extracted_datetime
+          ? new Date(editForm.extracted_datetime).toISOString()
+          : null,
+        extracted_sender: editForm.extracted_sender || null,
+      }
+
+      const { error } = await (supabase.from('registration_payments') as any)
+        .update(updatePayload)
+        .eq('id', editingPayment.id)
+
+      if (error) throw error
+
+      if (currentUser?.id) {
+        await logActivity('payment.edit', currentUser.id, {
+          user_payment_id: editingPayment.id,
+          player_id: editingPayment.player_id,
+          new_status: targetStatus,
+          extracted_amount: updatePayload.extracted_amount,
+          extracted_reference: updatePayload.extracted_reference,
+        })
+      }
+
+      // Optimistic update
+      setRegistrations((prev) =>
+        prev.map((r) =>
+          r.id === editingPayment.id
+            ? {
+                ...r,
+                payment_status: targetStatus,
+                extracted_amount: updatePayload.extracted_amount as number | null,
+                extracted_reference: updatePayload.extracted_reference as string | null,
+                extracted_datetime: updatePayload.extracted_datetime as string | null,
+                extracted_sender: updatePayload.extracted_sender as string | null,
+              }
+            : r
+        )
+      )
+
+      dispatch({ type: 'CLOSE_EDIT' })
+      toast.success(
+        targetStatus === 'paid' ? 'Payment approved' : 'Payment saved for review'
+      )
+      router.refresh()
+    } catch (error) {
+      if (currentUser?.id) {
+        await logError('payment.edit_failed', error, currentUser.id, {
+          user_payment_id: editingPayment.id,
+        })
+      }
+      console.error('[Payments] Failed to edit payment:', error)
+      toast.error('Failed to save payment', {
+        description: getUserFriendlyMessage(error),
+      })
+    } finally {
+      dispatch({ type: 'SET_EDIT_SUBMITTING', submitting: false })
+    }
+  }
+
+  const handleEditSave = () => submitEditPayment('review')
+  const handleEditSaveAndApprove = () => submitEditPayment('paid')
+
   return (
     <>
       <div className="max-w-6xl mx-auto p-6 lg:p-8">
@@ -283,62 +470,63 @@ export function PaymentsClient({
           />
         </motion.div>
 
-        {/* Schedule Selector or Empty State */}
-        {!filterDate && !filterLocationId ? (
-          <motion.div
-            custom={1}
-            initial={hasAnimated.current ? false : "hidden"}
-            animate="visible"
-            variants={fadeUpVariants}
-            className="bg-card border-border border rounded-lg p-12 text-center"
-          >
-            <ImageIcon size={48} className="mx-auto text-muted-foreground/40 mb-4" />
-            <p className="text-muted-foreground">Select a date or location to view schedules</p>
-          </motion.div>
-        ) : schedules.length > 0 ? (
-          <motion.div
-            custom={1}
-            initial={hasAnimated.current ? false : "hidden"}
-            animate="visible"
-            variants={fadeUpVariants}
-            className="mb-8"
-          >
-            <p className="text-sm font-medium mb-3">Select a Schedule</p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {schedules.map((schedule) => (
-                <Card
-                  key={schedule.id}
-                  onClick={() => {
-                    const params = new URLSearchParams()
-                    if (filterDate) params.set('date', filterDate)
-                    if (filterLocationId) params.set('locationId', filterLocationId)
-                    params.set('scheduleId', schedule.id)
-                    router.push(`/dashboard/payments?${params.toString()}`)
-                  }}
-                  className={`p-4 cursor-pointer transition-all ${
-                    selectedScheduleId === schedule.id
-                      ? 'border-accent bg-accent/5 ring-2 ring-accent'
-                      : 'border-border hover:border-accent/50'
-                  }`}
-                >
-                  <p className="font-medium text-foreground text-sm">{formatScheduleLabel(schedule)}</p>
-                  <p className="text-xs text-muted-foreground mt-1">{schedule.locations?.name || 'Unknown'}</p>
-                </Card>
-              ))}
+        {/* Schedules Section */}
+        <motion.div
+          custom={1}
+          initial={hasAnimated.current ? false : "hidden"}
+          animate="visible"
+          variants={fadeUpVariants}
+          className="mb-8"
+        >
+          <h2 className="text-lg font-semibold mb-3 text-foreground">Games</h2>
+
+          {!filterDate && !filterLocationId ? (
+            <div className="bg-card border-border border rounded-lg p-8 text-center">
+              <Calendar size={48} className="mx-auto text-muted-foreground/40 mb-4" />
+              <p className="text-muted-foreground">Select a date or location to view games.</p>
             </div>
-          </motion.div>
-        ) : (
-          <motion.div
-            custom={1}
-            initial={hasAnimated.current ? false : "hidden"}
-            animate="visible"
-            variants={fadeUpVariants}
-            className="bg-card border-border border rounded-lg p-12 text-center"
-          >
-            <ImageIcon size={48} className="mx-auto text-muted-foreground/40 mb-4" />
-            <p className="text-muted-foreground">No schedules found for the selected filters</p>
-          </motion.div>
-        )}
+          ) : schedules.length === 0 ? (
+            <div className="bg-card border-border border rounded-lg p-8 text-center">
+              <Calendar size={48} className="mx-auto text-muted-foreground/40 mb-4" />
+              <p className="text-muted-foreground">No games found.</p>
+              <p className="text-sm text-muted-foreground">Adjust your filters to see available games.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {schedules.map((schedule) => {
+                const isSelected = schedule.id === selectedScheduleId
+                return (
+                  <div
+                    key={schedule.id}
+                    className={`bg-card border rounded-lg p-4 cursor-pointer transition-all ${
+                      isSelected
+                        ? 'ring-2 ring-primary border-primary'
+                        : 'border-border hover:border-primary/50'
+                    }`}
+                  >
+                    <div className="mb-3">
+                      <ScheduleInfo schedule={schedule} />
+                    </div>
+                    <Button
+                      onClick={() => {
+                        const params = new URLSearchParams()
+                        if (filterDate) params.set('date', filterDate)
+                        if (filterLocationId) params.set('locationId', filterLocationId)
+                        params.set('scheduleId', schedule.id)
+                        router.push(`/dashboard/payments?${params.toString()}`)
+                      }}
+                      variant={isSelected ? 'default' : 'outline'}
+                      size="sm"
+                      className="w-full"
+                    >
+                      {isSelected ? 'Selected' : 'View Payments'}
+                    </Button>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </motion.div>
 
         {/* Summary Cards */}
         {selectedScheduleId && (
@@ -424,6 +612,15 @@ export function PaymentsClient({
                           <Button
                             variant="ghost"
                             size="icon-sm"
+                            onClick={() => dispatch({ type: 'OPEN_EDIT', payment: reg })}
+                            title="Edit payment"
+                            className="text-muted-foreground hover:text-foreground"
+                          >
+                            <Pencil size={18} />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
                             onClick={() => handleViewProof(reg)}
                             title="View proof"
                           >
@@ -476,7 +673,7 @@ export function PaymentsClient({
 
       {/* Proof Image Modal — conditionally mounted */}
       {viewingProof && (
-      <Dialog open onOpenChange={() => setViewingProof(null)}>
+      <Dialog open onOpenChange={() => dispatch({ type: 'CLOSE_PROOF' })}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Payment Proof</DialogTitle>
@@ -523,6 +720,124 @@ export function PaymentsClient({
               <p className="text-muted-foreground">Failed to load image</p>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+      )}
+
+      {/* Edit Payment Dialog — conditionally mounted */}
+      {editingPayment && (
+      <Dialog open onOpenChange={(open) => { if (!open) dispatch({ type: 'CLOSE_EDIT' }) }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Payment</DialogTitle>
+            <DialogDescription>
+              {editingPayment.users?.first_name} {editingPayment.users?.last_name}
+              {' · '}
+              <span className="capitalize">{editingPayment.payment_status}</span>
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            <div>
+              <Label htmlFor="edit-amount" className="text-sm mb-1.5 block">
+                Amount (₱)
+              </Label>
+              <Input
+                id="edit-amount"
+                type="number"
+                step="0.01"
+                min="0"
+                placeholder="0.00"
+                value={editForm.extracted_amount}
+                onChange={(e) =>
+                  dispatch({
+                    type: 'SET_EDIT_FORM',
+                    field: 'extracted_amount',
+                    value: e.target.value,
+                  })
+                }
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="edit-reference" className="text-sm mb-1.5 block">
+                Reference
+              </Label>
+              <Input
+                id="edit-reference"
+                type="text"
+                placeholder="Transaction reference"
+                value={editForm.extracted_reference}
+                onChange={(e) =>
+                  dispatch({
+                    type: 'SET_EDIT_FORM',
+                    field: 'extracted_reference',
+                    value: e.target.value,
+                  })
+                }
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="edit-datetime" className="text-sm mb-1.5 block">
+                Payment Date &amp; Time
+              </Label>
+              <Input
+                id="edit-datetime"
+                type="datetime-local"
+                value={editForm.extracted_datetime}
+                onChange={(e) =>
+                  dispatch({
+                    type: 'SET_EDIT_FORM',
+                    field: 'extracted_datetime',
+                    value: e.target.value,
+                  })
+                }
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="edit-sender" className="text-sm mb-1.5 block">
+                Sender Name
+              </Label>
+              <Input
+                id="edit-sender"
+                type="text"
+                placeholder="Account holder name"
+                value={editForm.extracted_sender}
+                onChange={(e) =>
+                  dispatch({
+                    type: 'SET_EDIT_FORM',
+                    field: 'extracted_sender',
+                    value: e.target.value,
+                  })
+                }
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => dispatch({ type: 'CLOSE_EDIT' })}
+              disabled={editSubmitting}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="outline"
+              onClick={handleEditSave}
+              disabled={editSubmitting}
+            >
+              {editSubmitting ? 'Saving...' : 'Save'}
+            </Button>
+            <Button
+              onClick={handleEditSaveAndApprove}
+              disabled={editSubmitting}
+            >
+              {editSubmitting ? 'Saving...' : 'Save and Approve'}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
       )}
