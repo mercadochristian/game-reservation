@@ -33,7 +33,7 @@ npm run lint     # Run ESLint
 
 **Mobile-first, scale beautifully** — Start with mobile layouts (single column, stacked) and progressively enhance for larger screens (tablets, desktops). Ensure layouts adapt gracefully across all breakpoints with readable text and accessible spacing.
 
-**Email/password auth** — Supabase auth via `@supabase/ssr` middleware. Users sign up with email + password, or sign in with existing credentials. Use `createClient()` for browser context, `createServiceClient()` for server-side operations.
+**Email/password auth** — Supabase auth via `@supabase/ssr` middleware. Users sign up with email + password, or sign in with existing credentials. See [`.claude/rules/supabase.md`](.claude/rules/supabase.md) for the full client selection decision tree.
 
 **Framer Motion animation pattern** — All staggered animations use a consistent `fadeUpVariants` object with `custom` prop for delay control. Ensures visual consistency across the app.
 
@@ -42,6 +42,55 @@ npm run lint     # Run ESLint
 **Role-based nav in AppShell** — Nav items are defined per role in a single `NAV_ITEMS` object in `src/components/app-shell.tsx`. Supports "coming soon" items (opacity-faded, disabled). Single source of truth for navigation structure.
 
 **Branding via config file** — `branding.json` at project root is loaded via `src/lib/config/branding.ts`. Allows rebranding without code changes.
+
+## Behavioral Guidelines
+
+### Plan Mode Default
+- Enter plan mode for ANY non-trivial task (3+ steps or architectural decisions)
+- If something goes sideways, STOP and re-plan immediately — don't keep pushing
+- Use plan mode for verification steps, not just building
+- Write detailed specs upfront to reduce ambiguity
+
+### Subagent Strategy
+- Use subagents liberally to keep main context window clean
+- Offload research, exploration, and parallel analysis to subagents
+- For complex problems, throw more compute at it via subagents
+- One task per subagent for focused execution
+
+### Self-Improvement Loop
+- After ANY correction from the user: update memory with the pattern
+- Write rules for yourself that prevent the same mistake
+- Ruthlessly iterate on these lessons until mistake rate drops
+- Review memory at session start for relevant project context
+
+### Verification Before Done
+- Never mark a task complete without proving it works
+- Diff behavior between main and your changes when relevant
+- Ask yourself: "Would a staff engineer approve this?"
+- Run tests, check logs, demonstrate correctness
+
+### Demand Elegance (Balanced)
+- For non-trivial changes: pause and ask "is there a more elegant way?"
+- If a fix feels hacky: "Knowing everything I know now, implement the elegant solution"
+- Skip this for simple, obvious fixes — don't over-engineer
+- Challenge your own work before presenting it
+
+### Autonomous Bug Fixing
+- When given a bug report: just fix it. Don't ask for hand-holding
+- Point at logs, errors, failing tests — then resolve them
+- Zero context switching required from the user
+- Go fix failing CI tests without being told how
+
+### Task Management
+- Plan first with checkable items before implementation
+- Verify plan before starting implementation
+- Track progress and mark items complete as you go
+- Explain changes with high-level summary at each step
+- Document results and capture lessons after corrections
+
+### Core Principles
+- **Simplicity First**: Make every change as simple as possible. Impact minimal code.
+- **No Laziness**: Find root causes. No temporary fixes. Senior developer standards.
 
 ## Domain Knowledge
 
@@ -73,13 +122,16 @@ npm run lint     # Run ESLint
 
 ## Rules & Standards
 
-Core rules files:
+Core rules files (read before writing any code):
 - [`.claude/rules/code-quality.md`](.claude/rules/code-quality.md) — Code standards, UI conventions, forms, animations, and development mindset
-- [`.claude/rules/frontend.md`](.claude/rules/frontend.md) — Frontend design tokens, layout standards, accessibility, and performance
+- [`.claude/rules/frontend.md`](.claude/rules/frontend.md) — Design tokens (CSS custom properties), dark mode, layout standards, component composition, accessibility, and performance
+- [`.claude/rules/supabase.md`](.claude/rules/supabase.md) — Client selection (createClient vs createServiceClient), RLS, result handling, auth session management
+- [`.claude/rules/nextjs.md`](.claude/rules/nextjs.md) — Server vs Client Components, data fetching strategy, API route structure, middleware scope, cache behavior
 - [`.claude/rules/security.md`](.claude/rules/security.md) — Input validation, authentication, secrets management, and data protection
-- [`.claude/rules/testing.md`](.claude/rules/testing.md) — Testing principles, mocking strategies, test structure, and coverage expectations
+- [`.claude/rules/testing.md`](.claude/rules/testing.md) — Testing stack, file conventions, mock helpers, unit vs integration, coverage thresholds (alwaysApply)
 - [`.claude/rules/error-handling.md`](.claude/rules/error-handling.md) — Error classification, logging, promise handling, and API responses
 - [`.claude/rules/database.md`](.claude/rules/database.md) — Migration safety, schema design, reversibility, and data management
+- [`.claude/rules/code-review.md`](.claude/rules/code-review.md) — When to run senior-code-reviewer, what it checks, and how to act on findings
 
 ## Test Plans & Quality Assurance
 

@@ -371,6 +371,65 @@ describe('middleware(request)', () => {
 
       expect(result).toBe(mockResponse)
     })
+
+    it('passes through /dashboard/scanner for facilitator role', async () => {
+      const mockResponse = createMockResponse()
+      const mockClient = createMockServerClient()
+      mockClient.from('users').single.mockResolvedValue({
+        data: { role: 'facilitator', profile_completed: true },
+        error: null,
+      })
+      vi.mocked(updateSession).mockResolvedValue({
+        supabaseResponse: mockResponse as any,
+        user: { id: 'facilitator-1' } as any,
+        supabase: mockClient as any,
+      })
+
+      const request = createMockRequest('/dashboard/scanner')
+      const result = await middleware(request)
+
+      expect(result).toBe(mockResponse)
+    })
+
+    it('passes through /dashboard/scanner for admin role', async () => {
+      const mockResponse = createMockResponse()
+      const mockClient = createMockServerClient()
+      mockClient.from('users').single.mockResolvedValue({
+        data: { role: 'admin', profile_completed: true },
+        error: null,
+      })
+      vi.mocked(updateSession).mockResolvedValue({
+        supabaseResponse: mockResponse as any,
+        user: { id: 'admin-1' } as any,
+        supabase: mockClient as any,
+      })
+
+      const request = createMockRequest('/dashboard/scanner')
+      const result = await middleware(request)
+
+      expect(result).toBe(mockResponse)
+    })
+
+    it('redirects player on /dashboard/scanner to /dashboard', async () => {
+      const mockResponse = createMockResponse()
+      const mockClient = createMockServerClient()
+      mockClient.from('users').single.mockResolvedValue({
+        data: { role: 'player', profile_completed: true },
+        error: null,
+      })
+      vi.mocked(updateSession).mockResolvedValue({
+        supabaseResponse: mockResponse as any,
+        user: { id: 'player-1' } as any,
+        supabase: mockClient as any,
+      })
+
+      const request = createMockRequest('/dashboard/scanner')
+      const result = await middleware(request)
+
+      expect(result?.status).toBe(307)
+      const location = result?.headers.get('location')
+      expect(location).toContain('/dashboard')
+    })
   })
 
   describe('database queries for profile', () => {

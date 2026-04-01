@@ -233,7 +233,8 @@ export function PaymentScheduleCard({
                           >
                             <Eye size={18} />
                           </Button>
-                          {payment.payment_proof_url &&
+                          {extractionEnabled &&
+                            payment.payment_proof_url &&
                             (payment.extraction_confidence === 'failed' ||
                               !payment.extraction_confidence) && (
                               <Button

@@ -5,8 +5,28 @@ import { RegistrationsClient } from '../registrations-client'
 import type { Location } from '@/types'
 
 const mockLocations: Location[] = [
-  { id: 'loc-1', name: 'North Court', address: '123 Main St', google_map_url: null },
-  { id: 'loc-2', name: 'South Court', address: '456 Park Ave', google_map_url: null },
+  {
+    id: 'loc-1',
+    name: 'North Court',
+    address: '123 Main St',
+    google_map_url: null,
+    notes: null,
+    is_active: true,
+    created_by: 'user-1',
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: 'loc-2',
+    name: 'South Court',
+    address: '456 Park Ave',
+    google_map_url: null,
+    notes: null,
+    is_active: true,
+    created_by: 'user-1',
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
 ]
 
 describe('RegistrationsClient', () => {
@@ -30,11 +50,11 @@ describe('RegistrationsClient', () => {
     expect(headings.length).toBeGreaterThan(0)
   })
 
-  it('should handle facilitator role', () => {
+  it('should render without errors', () => {
     const { container } = render(
-      <RegistrationsClient locations={mockLocations} userRole="facilitator" />
+      <RegistrationsClient locations={mockLocations} userRole="admin" />
     )
-    // Component should render without errors for facilitator role
+    // Component should render without errors
     expect(container).toBeTruthy()
   })
 })

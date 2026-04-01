@@ -163,6 +163,8 @@ export function RegistrationsClient({
           isExpanded={isPastGamesExpanded}
           onToggleSectionExpand={() => setIsPastGamesExpanded(!isPastGamesExpanded)}
           onToggleGameExpand={handleToggleGameExpand}
+          onRegisterPlayer={() => {}}
+          onManageLineups={() => {}}
           currentPage={pastPage}
           pageSize={PAGE_SIZE}
           onPageChange={setPastPage}
