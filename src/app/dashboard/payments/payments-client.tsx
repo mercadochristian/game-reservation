@@ -208,6 +208,7 @@ export function PaymentsClient({
   } = dialogState
 
   const selectedScheduleId = initialScheduleId
+  const selectedSchedule = schedules.find((s) => s.id === selectedScheduleId)
 
   // Sync state with props when they change (from router.refresh or URL navigation)
   useEffect(() => {
@@ -530,28 +531,45 @@ export function PaymentsClient({
 
         {/* Summary Cards */}
         {selectedScheduleId && (
-          <motion.div
-            custom={2}
-            initial={hasAnimated.current ? false : "hidden"}
-            animate="visible"
-            variants={fadeUpVariants}
-            className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8"
-          >
-            <Card className="p-6 bg-card">
-              <p className="text-sm text-muted-foreground mb-2">Total Collected (Paid)</p>
-              <p className="text-3xl font-bold text-foreground">₱{totalCollected.toFixed(2)}</p>
-            </Card>
-            <Card className="p-6 bg-card">
-              <p className="text-sm text-muted-foreground mb-2">Pending Review</p>
-              <p className="text-3xl font-bold text-foreground">{pendingCount}</p>
-            </Card>
-          </motion.div>
+          <>
+            <motion.div
+              custom={2}
+              initial={hasAnimated.current ? false : "hidden"}
+              animate="visible"
+              variants={fadeUpVariants}
+              className="mb-4"
+            >
+              <h2 className="text-lg font-semibold text-foreground">
+                Payments for:{' '}
+                <span className="text-primary">
+                  {selectedSchedule ? formatScheduleLabel(selectedSchedule) : ''}
+                </span>
+              </h2>
+            </motion.div>
+
+            <motion.div
+              custom={3}
+              initial={hasAnimated.current ? false : "hidden"}
+              animate="visible"
+              variants={fadeUpVariants}
+              className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8"
+            >
+              <Card className="p-6 bg-card">
+                <p className="text-sm text-muted-foreground mb-2">Total Collected (Paid)</p>
+                <p className="text-3xl font-bold text-foreground">₱{totalCollected.toFixed(2)}</p>
+              </Card>
+              <Card className="p-6 bg-card">
+                <p className="text-sm text-muted-foreground mb-2">Pending Review</p>
+                <p className="text-3xl font-bold text-foreground">{pendingCount}</p>
+              </Card>
+            </motion.div>
+          </>
         )}
 
         {/* Registrations Table */}
         {selectedScheduleId && (
           <motion.div
-            custom={3}
+            custom={4}
             initial={hasAnimated.current ? false : "hidden"}
             animate="visible"
             variants={fadeUpVariants}
