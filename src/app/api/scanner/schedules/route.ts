@@ -76,15 +76,7 @@ export async function GET(req: NextRequest) {
     // Query schedules with location join
     let query = service
       .from('schedules')
-      .select(`
-        id,
-        start_time,
-        end_time,
-        status,
-        location_id,
-        max_players,
-        locations(id, name)
-      `)
+      .select('id, start_time, end_time, status, location_id, max_players, locations(id, name)')
       .gte('start_time', startIso)
       .lte('start_time', endIso)
 
