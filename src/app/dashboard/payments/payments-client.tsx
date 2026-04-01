@@ -40,6 +40,7 @@ interface PaymentWithExtraction {
   required_amount: number
   registration_type: 'solo' | 'group' | 'team'
   created_at: string
+  payment_note: string | null
 }
 
 const CONFIDENCE_COLORS: Record<string, string> = {
@@ -68,6 +69,7 @@ interface PaymentDialogState {
     extracted_reference: string
     extracted_datetime: string
     extracted_sender: string
+    payment_note: string
   }
   editSubmitting: boolean
 }
@@ -83,6 +85,7 @@ export const initialPaymentDialogState: PaymentDialogState = {
     extracted_reference: '',
     extracted_datetime: '',
     extracted_sender: '',
+    payment_note: '',
   },
   editSubmitting: false,
 }
@@ -141,6 +144,7 @@ export function paymentDialogReducer(
           extracted_reference: p.extracted_reference ?? '',
           extracted_datetime: dt,
           extracted_sender: p.extracted_sender ?? '',
+          payment_note: p.payment_note ?? '',
         },
       }
     }
