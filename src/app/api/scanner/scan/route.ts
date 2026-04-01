@@ -12,9 +12,13 @@ const ALLOWED_ROLES: ScannerRole[] = ['admin', 'super_admin', 'facilitator']
 type RegistrationScanRow = {
   id: string
   attended: boolean
-  payment_status: string
   schedule_id: string
   player_id: string
+  registration_payments?: Array<{
+    payment_status: string
+  }> | {
+    payment_status: string
+  }
 }
 
 type PaymentRow = {
@@ -114,7 +118,7 @@ export async function POST(request: NextRequest) {
     ): Promise<{ data: RegistrationScanRow | null; error: any }> {
       const serviceAttempt = serviceClient
         .from('registrations')
-        .select('id, attended, payment_status, schedule_id, player_id')
+        .select('id, attended, schedule_id, player_id, registration_payments(payment_status)')
         .eq(field, value)
         .maybeSingle() as any
 
@@ -125,7 +129,7 @@ export async function POST(request: NextRequest) {
       // Fallback to authenticated server client when service-role lookup fails.
       const serverAttempt = supabase
         .from('registrations')
-        .select('id, attended, payment_status, schedule_id, player_id')
+        .select('id, attended, schedule_id, player_id, registration_payments(payment_status)')
         .eq(field, value)
         .maybeSingle() as any
 
@@ -165,8 +169,14 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Extract payment status from registration_payments relationship
+    const paymentData = Array.isArray(registration.registration_payments)
+      ? registration.registration_payments[0]
+      : registration.registration_payments
+    const paymentStatus = paymentData?.payment_status || 'unknown'
+
     // Check payment status - only allow attendance marking if payment is approved
-    if (registration.payment_status !== 'paid') {
+    if (paymentStatus !== 'paid') {
       // Fetch payment details for the response
       const paymentResult = await serviceClient
         .from('registration_payments')
@@ -178,7 +188,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json(
           {
             error: 'Payment not approved',
-            payment_status: registration.payment_status,
+            payment_status: paymentStatus,
             required_amount: paymentResult.data.required_amount,
             payment_note: paymentResult.data.payment_note,
           },
@@ -190,7 +200,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           error: 'Payment not approved',
-          payment_status: registration.payment_status,
+          payment_status: paymentStatus,
         },
         { status: 402 },
       )
@@ -239,7 +249,7 @@ export async function POST(request: NextRequest) {
         registration_id: registration.id,
         schedule,
         player,
-        payment_status: registration.payment_status,
+        payment_status: paymentStatus,
         attended: true,
         already_attended: registration.attended,
       },
