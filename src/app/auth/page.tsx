@@ -38,8 +38,11 @@ function AuthPageContent() {
   const returnUrl = searchParams.get('returnUrl') || '/'
 
   useEffect(() => {
-    if (searchParams.get('error') === 'auth_callback_failed') {
+    const error = searchParams.get('error')
+    if (error === 'auth_callback_failed') {
       toast.error('The sign-in link has expired or is invalid. Please try again.')
+    } else if (error === 'banned') {
+      toast.error('Your account has been banned. Please contact support.')
     }
   }, [searchParams])
 
