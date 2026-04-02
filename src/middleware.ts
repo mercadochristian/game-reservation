@@ -28,6 +28,42 @@ const ROLE_PROTECTED_PAGES: Record<string, Role[]> = {
   // '/dashboard/my-registrations': ['player'],
 }
 
+// ─── Rate limiting ──────────────────────────────────────────────────────────────
+// In-memory sliding window rate limiter.
+// Limitation: resets on cold starts — each serverless instance has its own store.
+// This stops naive abuse; distributed attacks require an external store (e.g., Redis).
+
+const rateLimitStore = new Map<string, number[]>()
+
+const RATE_LIMIT_RULES = [
+  { prefix: '/api/register/',      limit: 5,  windowMs: 60_000 },
+  { prefix: '/api/admin/register', limit: 10, windowMs: 60_000 },
+  { prefix: '/api/payment-proof/', limit: 5,  windowMs: 60_000 },
+] as const
+
+function checkRateLimit(
+  ip: string,
+  pathname: string,
+): { limited: boolean; retryAfter: number } {
+  const rule = RATE_LIMIT_RULES.find((r) => pathname.startsWith(r.prefix))
+  if (!rule) return { limited: false, retryAfter: 0 }
+
+  const key = `${ip}:${rule.prefix}`
+  const now = Date.now()
+  const windowStart = now - rule.windowMs
+
+  const timestamps = (rateLimitStore.get(key) ?? []).filter((t) => t > windowStart)
+
+  if (timestamps.length >= rule.limit) {
+    const retryAfter = Math.ceil((timestamps[0] + rule.windowMs - now) / 1000)
+    return { limited: true, retryAfter: Math.max(retryAfter, 1) }
+  }
+
+  timestamps.push(now)
+  rateLimitStore.set(key, timestamps)
+  return { limited: false, retryAfter: 0 }
+}
+
 // Copies Supabase session cookies onto any redirect response so session
 // refresh tokens are not lost when the middleware redirects.
 function redirectWithSession(
@@ -45,6 +81,23 @@ function redirectWithSession(
 export async function middleware(request: NextRequest) {
   try {
     const { pathname } = request.nextUrl
+
+    // Rate limiting — runs before session refresh to block abuse before any DB round-trips
+    const ip =
+      request.headers.get('x-forwarded-for')?.split(',')[0].trim() ??
+      request.headers.get('x-real-ip') ??
+      '127.0.0.1'
+
+    const { limited, retryAfter } = checkRateLimit(ip, pathname)
+    if (limited) {
+      return new NextResponse(JSON.stringify({ error: 'Too many requests' }), {
+        status: 429,
+        headers: {
+          'Content-Type': 'application/json',
+          'Retry-After': String(retryAfter),
+        },
+      })
+    }
 
     // Must call updateSession before any early return to keep session cookies fresh
     const { supabaseResponse, user, supabase } = await updateSession(request)
