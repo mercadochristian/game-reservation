@@ -6,6 +6,7 @@ import { onboardingSchema } from '@/lib/validations/profile'
 import { logActivity, logError } from '@/lib/logger'
 import { clearProfileCache } from '@/lib/middleware/profile-cache'
 import type { UserRole } from '@/types'
+import { updateUserProfile } from '@/lib/queries'
 
 type UserProfileRow = {
   profile_completed: boolean
@@ -62,23 +63,20 @@ export async function POST(request: NextRequest) {
 
   // 4. Update with service client (bypasses RLS)
   const serviceClient = createServiceClient()
-  const { error: updateError } = await (serviceClient
-    .from('users') as any)
-    .update({
-      first_name,
-      last_name,
-      birthday_month,
-      birthday_day,
-      birthday_year: birthday_year ?? null,
-      gender,
-      player_contact_number,
-      emergency_contact_name,
-      emergency_contact_relationship,
-      emergency_contact_number,
-      skill_level,
-      profile_completed: true,
-    })
-    .eq('id', user.id)
+  const { error: updateError } = await updateUserProfile(serviceClient, user.id, {
+    first_name,
+    last_name,
+    birthday_month,
+    birthday_day,
+    birthday_year: birthday_year ?? null,
+    gender,
+    player_contact_number,
+    emergency_contact_name,
+    emergency_contact_relationship,
+    emergency_contact_number,
+    skill_level,
+    profile_completed: true,
+  })
 
   if (updateError) {
     void logError('profile.complete', updateError, user.id)

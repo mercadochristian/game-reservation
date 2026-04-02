@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { NextRequest, NextResponse } from 'next/server'
+import { getUserRole, getRegistrationsBySchedule, getUsersByIds } from '@/lib/queries'
 
 export async function GET(
   req: NextRequest,
@@ -22,11 +23,7 @@ export async function GET(
     }
 
     // Verify admin role
-    const { data: adminUser, error: adminError } = await authSubabase
-      .from('users')
-      .select('role')
-      .eq('id', authUser.id)
-      .single() as { data: { role: string } | null; error: any }
+    const { data: adminUser, error: adminError } = await getUserRole(authSubabase, authUser.id)
 
     if (adminError || !adminUser || (adminUser.role !== 'admin' && adminUser.role !== 'super_admin')) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
@@ -35,11 +32,7 @@ export async function GET(
     const supabase = createServiceClient()
 
     // Fetch registrations for this schedule
-    const { data: regsData, error: regsError } = await supabase
-      .from('registrations')
-      .select('id, player_id, registered_by, schedule_id, preferred_position, created_at, updated_at')
-      .eq('schedule_id', scheduleId)
-      .order('created_at', { ascending: false })
+    const { data: regsData, error: regsError } = await getRegistrationsBySchedule(supabase, scheduleId)
 
     if (regsError) throw regsError
 
@@ -54,10 +47,7 @@ export async function GET(
     // Fetch users, payments, and team_members in parallel
     const [usersResult, paymentsResult, teamMembersResult] = await Promise.all([
       playerIds.length > 0
-        ? supabase
-            .from('users')
-            .select('id, first_name, last_name, email, skill_level, is_guest')
-            .in('id', playerIds)
+        ? getUsersByIds(supabase, playerIds)
         : Promise.resolve({ data: [], error: null } as any),
       supabase
         .from('registration_payments')

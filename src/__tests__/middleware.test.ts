@@ -71,6 +71,21 @@ describe('middleware(request)', () => {
 
       expect(result).toBe(mockResponse)
     })
+
+    it('passes through /waiver without redirecting (unauthenticated)', async () => {
+      const mockResponse = createMockResponse()
+      vi.mocked(updateSession).mockResolvedValue({
+        supabaseResponse: mockResponse as any,
+        user: null,
+        supabase: createMockServerClient() as any,
+      })
+
+      const request = createMockRequest('/waiver')
+
+      const result = await middleware(request)
+
+      expect(result).toBe(mockResponse)
+    })
   })
 
   describe('unauthenticated on protected routes', () => {

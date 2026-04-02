@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { NextRequest, NextResponse } from 'next/server'
+import { getUserRole, getPaymentStatusBySchedules } from '@/lib/queries'
 
 export interface ScheduleWithPaymentSummary {
   id: string
@@ -41,11 +42,7 @@ export async function GET(req: NextRequest) {
     }
 
     // Verify admin role
-    const { data: adminUser, error: adminError } = await supabase
-      .from('users')
-      .select('role')
-      .eq('id', authUser.id)
-      .single() as { data: { role: string } | null; error: any }
+    const { data: adminUser, error: adminError } = await getUserRole(supabase, authUser.id)
 
     if (adminError || !adminUser || (adminUser.role !== 'admin' && adminUser.role !== 'super_admin')) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
@@ -118,11 +115,7 @@ export async function GET(req: NextRequest) {
 
     if (scheduleIds.length > 0) {
       // Fetch aggregated payment data for all schedules
-      // @ts-ignore - Supabase client type inference issue
-      const { data: payments, error: paymentsError } = await serviceSubabase
-        .from('registration_payments')
-        .select('schedule_id, payment_status, extracted_amount')
-        .in('schedule_id', scheduleIds)
+      const { data: payments, error: paymentsError } = await getPaymentStatusBySchedules(serviceSubabase, scheduleIds)
 
       if (paymentsError) throw paymentsError
 

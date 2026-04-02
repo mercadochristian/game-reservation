@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { logError } from '@/lib/logger'
 import { NextRequest, NextResponse } from 'next/server'
+import { getUserRole, getPaymentsBySchedule } from '@/lib/queries'
 
 export interface PaymentWithExtraction {
   id: string
@@ -37,11 +38,7 @@ export async function GET(
     }
 
     // Verify admin role
-    const { data: adminUser, error: adminError } = await supabase
-      .from('users')
-      .select('role')
-      .eq('id', authUser.id)
-      .single() as { data: { role: string } | null; error: any }
+    const { data: adminUser, error: adminError } = await getUserRole(supabase, authUser.id)
 
     if (adminError || !adminUser || (adminUser.role !== 'admin' && adminUser.role !== 'super_admin')) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
@@ -50,15 +47,7 @@ export async function GET(
     const serviceSubabase = createServiceClient()
 
     // Fetch payments for the schedule
-    const { data: paymentsData, error: paymentsError } = await (serviceSubabase.from('registration_payments') as any)
-      .select(
-        `id, registration_id, payer_id, registration_type, payment_status, payment_proof_url, extracted_amount, extracted_reference,
-         extracted_datetime, extracted_sender, extraction_confidence, created_at, required_amount, payment_note,
-         registrations!registration_id(id, player_id, users:player_id(id, first_name, last_name)),
-         payer:payer_id(first_name, last_name)`
-      )
-      .eq('schedule_id', scheduleId)
-      .order('created_at', { ascending: false })
+    const { data: paymentsData, error: paymentsError } = await getPaymentsBySchedule(serviceSubabase, scheduleId)
 
     if (paymentsError) throw paymentsError
 

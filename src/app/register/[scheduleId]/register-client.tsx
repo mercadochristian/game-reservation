@@ -852,6 +852,18 @@ export function RegisterClient({
             <p className="text-[11px] text-slate-500">Total</p>
             <p className="text-[18px] font-extrabold text-white">₱{totalAmount.toFixed(0)}</p>
           </div>
+          <p className="text-xs text-slate-400 text-center">
+            By clicking Register, you agree to our{' '}
+            <a
+              href="/waiver"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline text-sky-400 hover:text-sky-300 transition-colors"
+            >
+              Waiver Agreement
+            </a>
+            .
+          </p>
           <Button
             onClick={handleRegister}
             disabled={
@@ -1343,12 +1355,25 @@ export function RegisterClient({
       </main>
 
       {/* ── MOBILE: Fixed footer bar ── */}
-      <div className="lg:hidden fixed bottom-0 inset-x-0 z-20 bg-[#0f172a] px-4 py-3 flex items-center justify-between">
-        <div>
-          <p className="text-[11px] text-slate-500">{scheduleCount} {scheduleCount === 1 ? 'game' : 'games'} selected</p>
-          <p className="text-sm font-extrabold text-sky-400">₱{totalAmount.toFixed(0)}</p>
-        </div>
-        <Button
+      <div className="lg:hidden fixed bottom-0 inset-x-0 z-20 bg-[#0f172a] flex flex-col">
+        <p className="text-xs text-slate-400 text-center px-4 pt-3 pb-1">
+          By clicking Register, you agree to our{' '}
+          <a
+            href="/waiver"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline text-sky-400 hover:text-sky-300 transition-colors"
+          >
+            Waiver Agreement
+          </a>
+          .
+        </p>
+        <div className="px-4 py-3 flex items-center justify-between">
+          <div>
+            <p className="text-[11px] text-slate-500">{scheduleCount} {scheduleCount === 1 ? 'game' : 'games'} selected</p>
+            <p className="text-sm font-extrabold text-sky-400">₱{totalAmount.toFixed(0)}</p>
+          </div>
+          <Button
           onClick={handleRegister}
           disabled={
             !paymentFile ||
@@ -1369,6 +1394,7 @@ export function RegisterClient({
               ? `Register → (${scheduleCount})`
               : `Register ${groupPlayers.length} →`}
         </Button>
+        </div>
       </div>
 
       {/* ── MOBILE: Cart modal (bottom sheet) ── */}

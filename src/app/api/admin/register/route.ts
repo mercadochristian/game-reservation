@@ -8,6 +8,17 @@ import { z } from 'zod'
 import { revalidatePath } from 'next/cache'
 import { createGuestUser } from '@/lib/services/guest-user'
 import { computeSoloAmount, computeGroupAmount, computeTeamAmount } from '@/lib/utils/pricing'
+import {
+  getUserRole,
+  getSchedulePricing,
+  checkDuplicateRegistrations,
+  createRegistrations,
+  getUserById,
+  getUserFirstName,
+  createTeam,
+  createTeamMembers,
+  createPayment,
+} from '@/lib/queries'
 
 interface PlayerResolution {
   index: number
@@ -37,11 +48,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify user is admin or super_admin
-    const { data: adminUser, error: adminError } = await supabase
-      .from('users')
-      .select('role')
-      .eq('id', authUser.id)
-      .single() as { data: { role: string } | null; error: any }
+    const { data: adminUser, error: adminError } = await getUserRole(supabase, authUser.id)
 
     if (adminError || !adminUser || (adminUser.role !== 'admin' && adminUser.role !== 'super_admin')) {
       return NextResponse.json(
@@ -54,11 +61,7 @@ export async function POST(request: NextRequest) {
     const serviceClient = createServiceClient()
 
     // Fetch schedule with pricing
-    const { data: schedule, error: scheduleError } = await (serviceClient
-      .from('schedules')
-      .select('position_prices, team_price')
-      .eq('id', validated.schedule_id)
-      .single() as any)
+    const { data: schedule, error: scheduleError } = await getSchedulePricing(serviceClient, validated.schedule_id)
 
     if (scheduleError || !schedule) {
       return NextResponse.json(
@@ -82,11 +85,7 @@ export async function POST(request: NextRequest) {
       try {
         if (player.type === 'existing') {
           // Verify user exists
-          const { data: existingUser, error: lookupError } = await supabase
-            .from('users')
-            .select('id')
-            .eq('id', player.user_id)
-            .single()
+          const { data: existingUser, error: lookupError } = await getUserById(supabase, player.user_id)
 
           if (lookupError || !existingUser) {
             resolution.error = 'User not found'
@@ -142,11 +141,7 @@ export async function POST(request: NextRequest) {
       .filter((r) => r.user_id)
       .map((r) => r.user_id as string)
 
-    const { data: existingRegs } = await supabase
-      .from('registrations')
-      .select('player_id')
-      .eq('schedule_id', validated.schedule_id)
-      .in('player_id', playerIds) as { data: Array<{ player_id: string }> | null; error: any }
+    const { data: existingRegs } = await checkDuplicateRegistrations(supabase, validated.schedule_id, playerIds)
 
     if (existingRegs && existingRegs.length > 0) {
       const duplicateIds = existingRegs.map((r) => r.player_id)
@@ -194,10 +189,7 @@ export async function POST(request: NextRequest) {
         team_preference: validated.team_preference,
       }))
 
-    const { data: insertedRegistrations, error: insertError } = await (serviceClient
-      .from('registrations') as any)
-      .insert(registrationInserts)
-      .select('id, player_id')
+    const { data: insertedRegistrations, error: insertError } = await createRegistrations(serviceClient, registrationInserts as any)
 
     if (insertError) {
       console.error('Batch registration insert error:', insertError)
@@ -211,19 +203,11 @@ export async function POST(request: NextRequest) {
     // Step 5: Create team and assign members only if registration_mode is 'group' or 'team'
     let teamId: string | null = null
     if (validated.registration_mode === 'group' || validated.registration_mode === 'team') {
-      const { data: registrantUser } = await supabase
-        .from('users')
-        .select('first_name')
-        .eq('id', authUser.id)
-        .single() as { data: { first_name: string | null } | null; error: any }
+      const { data: registrantUser } = await getUserFirstName(supabase, authUser.id)
 
       const teamName = `${registrantUser?.first_name || 'Admin'}'s ${validated.registration_mode === 'team' ? 'Team' : 'Group'}`
 
-      const { data: team, error: teamError } = await (serviceClient
-        .from('teams') as any)
-        .insert({ schedule_id: validated.schedule_id, name: teamName })
-        .select('id')
-        .single()
+      const { data: team, error: teamError } = await createTeam(serviceClient, { schedule_id: validated.schedule_id, name: teamName })
 
       if (teamError || !team) {
         console.error('Team creation error:', teamError)
@@ -244,13 +228,11 @@ export async function POST(request: NextRequest) {
         .map((r: PlayerResolution & { user_id: string }) => ({
           team_id: team.id,
           player_id: r.user_id,
-          registration_id: regsByPlayerId.get(r.user_id),
+          registration_id: regsByPlayerId.get(r.user_id) as string | undefined,
           position: r.player.preferred_position,
         }))
 
-      const { error: teamMemberError } = await (serviceClient
-        .from('team_members') as any)
-        .insert(teamMemberInserts)
+      const { error: teamMemberError } = await createTeamMembers(serviceClient, teamMemberInserts)
 
       if (teamMemberError) {
         console.error('Team members insert error:', teamMemberError)
@@ -271,16 +253,14 @@ export async function POST(request: NextRequest) {
           resolvedPlayers.find(r => r.user_id === reg.player_id)?.player.preferred_position || null
         )
 
-        const { error: paymentError } = await (serviceClient
-          .from('registration_payments') as any)
-          .insert({
-            registration_id: reg.id,
-            payer_id: authUser.id,
-            schedule_id: validated.schedule_id,
-            registration_type: 'solo',
-            required_amount: requiredAmount,
-            payment_status: validated.payment_status,
-          })
+        const { error: paymentError } = await createPayment(serviceClient, {
+          registration_id: reg.id,
+          payer_id: authUser.id,
+          schedule_id: validated.schedule_id,
+          registration_type: 'solo',
+          required_amount: requiredAmount,
+          payment_status: validated.payment_status,
+        })
 
         if (paymentError) {
           console.error('User payment insert error:', paymentError)
@@ -304,17 +284,15 @@ export async function POST(request: NextRequest) {
         throw new Error('No registrations were created for team payment')
       }
 
-      const { error: paymentError } = await (serviceClient
-        .from('registration_payments') as any)
-        .insert({
-          team_id: teamId,
-          registration_id: insertedRegistrations[0].id,
-          payer_id: authUser.id,
-          schedule_id: validated.schedule_id,
-          registration_type: validated.registration_mode,
-          required_amount: requiredAmount,
-          payment_status: validated.payment_status,
-        })
+      const { error: paymentError } = await createPayment(serviceClient, {
+        team_id: teamId,
+        registration_id: insertedRegistrations[0].id,
+        payer_id: authUser.id,
+        schedule_id: validated.schedule_id,
+        registration_type: validated.registration_mode,
+        required_amount: requiredAmount,
+        payment_status: validated.payment_status,
+      })
 
       if (paymentError) {
         console.error('User payment insert error:', paymentError)

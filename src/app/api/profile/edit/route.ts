@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { profileEditSchema } from '@/lib/validations/profile-edit'
 import { logActivity, logError } from '@/lib/logger'
+import { updateUserProfile } from '@/lib/queries'
 
 export async function PATCH(request: NextRequest) {
   const supabase = await createClient()
@@ -40,21 +41,18 @@ export async function PATCH(request: NextRequest) {
   } = result.data
 
   const serviceClient = createServiceClient()
-  const { error: updateError } = await (serviceClient
-    .from('users') as any)
-    .update({
-      first_name,
-      last_name,
-      birthday_month,
-      birthday_day,
-      birthday_year: birthday_year ?? null,
-      gender,
-      player_contact_number,
-      emergency_contact_name,
-      emergency_contact_relationship,
-      emergency_contact_number,
-    })
-    .eq('id', user.id)
+  const { error: updateError } = await updateUserProfile(serviceClient, user.id, {
+    first_name,
+    last_name,
+    birthday_month,
+    birthday_day,
+    birthday_year: birthday_year ?? null,
+    gender,
+    player_contact_number,
+    emergency_contact_name,
+    emergency_contact_relationship,
+    emergency_contact_number,
+  })
 
   if (updateError) {
     void logError('profile.edit', updateError, user.id)

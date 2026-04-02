@@ -4,6 +4,7 @@ import { saveLineupSchema } from '@/lib/validations/lineup'
 import { logError } from '@/lib/logger'
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
+import { getUserRole, deleteLineupTeams, insertLineupTeams, updateRegistrationLineupTeam } from '@/lib/queries'
 
 export async function POST(request: NextRequest) {
   try {
@@ -26,11 +27,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify user has permission (admin, super_admin, or facilitator)
-    const { data: userRecord, error: userError } = await supabase
-      .from('users')
-      .select('role')
-      .eq('id', authUser.id)
-      .single() as { data: { role: string } | null; error: any }
+    const { data: userRecord, error: userError } = await getUserRole(supabase, authUser.id)
 
     if (userError || !userRecord) {
       return NextResponse.json(
@@ -51,11 +48,7 @@ export async function POST(request: NextRequest) {
     const serviceClient = createServiceClient()
 
     // Step 1: Delete existing lineup teams for this schedule (cascades SET NULL on registrations.lineup_team_id)
-    const { error: deleteError } = await (serviceClient
-      .from('teams') as any)
-      .delete()
-      .eq('schedule_id', validated.schedule_id)
-      .eq('team_type', 'lineup')
+    const { error: deleteError } = await deleteLineupTeams(serviceClient, validated.schedule_id)
 
     if (deleteError) {
       console.error('Delete existing lineup teams error:', deleteError)
@@ -75,10 +68,7 @@ export async function POST(request: NextRequest) {
       team_type: 'lineup' as const,
     }))
 
-    const { data: insertedTeams, error: insertError } = await (serviceClient
-      .from('teams') as any)
-      .insert(teamInserts)
-      .select('id')
+    const { data: insertedTeams, error: insertError } = await insertLineupTeams(serviceClient, teamInserts)
 
     if (insertError || !insertedTeams || insertedTeams.length === 0) {
       console.error('Insert lineup teams error:', insertError)
@@ -108,10 +98,7 @@ export async function POST(request: NextRequest) {
     for (const [teamIndex, registrationIds] of updatesByTeamIndex) {
       const lineupTeamId = teamIndex !== null ? insertedTeams[teamIndex].id : null
 
-      const { error: updateError } = await (serviceClient
-        .from('registrations') as any)
-        .update({ lineup_team_id: lineupTeamId })
-        .in('id', registrationIds)
+      const { error: updateError } = await updateRegistrationLineupTeam(serviceClient, registrationIds, lineupTeamId)
 
       if (updateError) {
         console.error('Update registrations lineup_team_id error:', updateError)

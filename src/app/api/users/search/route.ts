@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { userSearchSchema } from '@/lib/validations/user-search'
 import { logError } from '@/lib/logger'
+import { searchUsers } from '@/lib/queries'
 
 export async function GET(request: NextRequest) {
   try {
@@ -30,14 +31,7 @@ export async function GET(request: NextRequest) {
 
     // Search for users by first name, last name, or email
     // Exclude guest accounts from search results (can't be selected as existing players)
-    const { data: users, error } = await supabase
-      .from('users')
-      .select('id, first_name, last_name, email, skill_level')
-      .eq('is_guest', false)
-      .or(
-        `first_name.ilike.%${q}%,last_name.ilike.%${q}%,email.ilike.%${q}%`
-      )
-      .limit(10)
+    const { data: users, error } = await searchUsers(supabase, q)
 
     if (error) {
       console.error('User search error:', error)
