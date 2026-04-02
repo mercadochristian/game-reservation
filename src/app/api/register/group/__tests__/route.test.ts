@@ -198,6 +198,19 @@ describe('POST /api/register/group', () => {
       expect(body.error).toContain('closed')
     })
 
+    it('should return 400 when schedule status is cancelled', async () => {
+      const { mockServerClient, builders } = setupMocks()
+      mockServerClient.auth.getUser.mockResolvedValue({ data: { user: { id: AUTH_ID } }, error: null })
+      builders.serviceSchedules.single.mockResolvedValueOnce({
+        data: { start_time: futureDate, status: 'cancelled', max_players: 100, position_prices: {}, team_price: 1000 },
+        error: null,
+      })
+      const response = await POST(makeRequest(validGroupBody) as any)
+      expect(response.status).toBe(400)
+      const body = await response.json()
+      expect(body.error).toContain('no longer accepting')
+    })
+
     it('should return 400 when schedule is full', async () => {
       const { mockServerClient, builders } = setupMocks()
       mockServerClient.auth.getUser.mockResolvedValue({ data: { user: { id: AUTH_ID } }, error: null })
@@ -212,6 +225,28 @@ describe('POST /api/register/group', () => {
       expect(response.status).toBe(400)
       const body = await response.json()
       expect(body.error).toContain('Not enough slots')
+    })
+  })
+
+  // ── Player resolution ─────────────────────────────────────────────────────
+  describe('Player resolution', () => {
+    it('should return 400 when a player lookup fails', async () => {
+      const { mockServerClient, builders } = setupMocks()
+      mockServerClient.auth.getUser.mockResolvedValue({ data: { user: { id: AUTH_ID } }, error: null })
+      builders.serviceSchedules.single.mockResolvedValueOnce({
+        data: { start_time: futureDate, status: 'scheduled', max_players: 100, position_prices: {}, team_price: 1000 },
+        error: null,
+      })
+      builders.serviceRegs.then = vi.fn((onFulfilled: any) =>
+        Promise.resolve({ count: 0, data: null, error: null }).then(onFulfilled)
+      )
+      // First user lookup fails
+      builders.serverUsers.single.mockResolvedValueOnce({ data: null, error: { message: 'User not found' } })
+
+      const response = await POST(makeRequest(validGroupBody) as any)
+      expect(response.status).toBe(400)
+      const body = await response.json()
+      expect(body.results.some((r: any) => r.error !== null)).toBe(true)
     })
   })
 
