@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { logActivity, logError } from '@/lib/logger'
 import { getExtractionSetting } from '@/lib/config/extraction-settings'
+import { updatePaymentExtraction } from '@/lib/queries/payments'
 
 interface ExtractedData {
   amount: number | null
@@ -14,6 +15,8 @@ interface ExtractedData {
 }
 
 export async function POST(req: NextRequest) {
+  let paymentId: string | undefined  // hoisted so catch can set extraction_status: 'failed'
+
   try {
     const body = await req.json()
     const { user_payment_id, payment_proof_url } = body
@@ -31,13 +34,13 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const paymentId = user_payment_id
+    paymentId = user_payment_id
 
     // Verify the registration exists and belongs to the user (optional, for security)
     const serverClient = await createClient()
-    const { data: authUser } = await serverClient.auth.getUser()
+    const { data: { user: authUser } } = await serverClient.auth.getUser()
 
-    if (!authUser?.user) {
+    if (!authUser) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -48,7 +51,7 @@ export async function POST(req: NextRequest) {
       .download(payment_proof_url)
 
     if (downloadError || !fileData) {
-      logError('payment_proof.extract.download_failed', downloadError)
+      void logError('payment_proof.extract.download_failed', downloadError)
       // Don't fail the user - just mark as failed extraction
       const extractedData: ExtractedData = {
         amount: null,
@@ -58,14 +61,15 @@ export async function POST(req: NextRequest) {
         confidence: 'failed',
       }
 
-      await (serviceClient.from('registration_payments') as any).update({
-        extracted_amount: extractedData.amount,
-        extracted_reference: extractedData.reference_number,
-        extracted_datetime: extractedData.payment_datetime,
-        extracted_sender: extractedData.sender_name,
-        extraction_confidence: extractedData.confidence,
+      await updatePaymentExtraction(serviceClient, paymentId!, {
+        extracted_amount: null,
+        extracted_reference: null,
+        extracted_datetime: null,
+        extracted_sender: null,
+        extraction_confidence: 'failed',
         extracted_raw: { error: 'File download failed' },
-      }).eq('id', paymentId)
+        extraction_status: 'failed',
+      })
 
       return NextResponse.json({
         success: true,
@@ -104,30 +108,20 @@ export async function POST(req: NextRequest) {
         confidence: 'high' as const,
       }
 
-      const { error: mockUpdateError } = await (serviceClient.from('registration_payments') as any)
-        .update({
-          extracted_amount: mockExtracted.amount,
-          extracted_reference: mockExtracted.reference_number,
-          extracted_datetime: mockExtracted.payment_datetime,
-          extracted_sender: mockExtracted.sender_name,
-          extraction_confidence: mockExtracted.confidence,
-          extracted_raw: {
-            source: 'MOCK_DATA',
-            note: 'Development mode - not from Claude API',
-          },
-        })
-        .eq('id', paymentId)
+      const { error: mockUpdateError } = await updatePaymentExtraction(serviceClient, paymentId!, {
+        extracted_amount: mockExtracted.amount,
+        extracted_reference: mockExtracted.reference_number,
+        extracted_datetime: mockExtracted.payment_datetime,
+        extracted_sender: mockExtracted.sender_name,
+        extraction_confidence: mockExtracted.confidence,
+        extracted_raw: { source: 'MOCK_DATA', note: 'Development mode - not from Claude API' },
+        extraction_status: 'done',
+      })
 
       if (mockUpdateError) {
-        logError('payment_proof.extract_mock_update_failed', mockUpdateError)
-        await logError(
-          'payment_proof.extract_mock_update_failed',
-          mockUpdateError,
-          authUser.user.id,
-          { payment_id: paymentId }
-        )
+        void logError('payment_proof.extract_mock_update_failed', mockUpdateError, authUser.id, { payment_id: paymentId })
       } else {
-        await logActivity('payment_proof.extract_mock', authUser.user.id, {
+        await logActivity('payment_proof.extract_mock', authUser.id, {
           payment_id: paymentId,
           amount: mockExtracted.amount,
           mode: 'mock',
@@ -220,37 +214,26 @@ Rules:
           : 'low',
       }
     } catch (parseError) {
-      logError('payment_proof.extract.json_parse_failed', parseError)
+      void logError('payment_proof.extract.json_parse_failed', parseError)
       extractedData.confidence = 'failed'
     }
 
     // Update registration_payments with extracted data
-    const { error: updateError } = await (serviceClient
-      .from('registration_payments') as any)
-      .update({
-        extracted_amount: extractedData.amount,
-        extracted_reference: extractedData.reference_number,
-        extracted_datetime: extractedData.payment_datetime,
-        extracted_sender: extractedData.sender_name,
-        extraction_confidence: extractedData.confidence,
-        extracted_raw: {
-          model: 'claude-haiku-4-5-20251001',
-          raw_text: rawText,
-        },
-      })
-      .eq('id', paymentId)
+    const { error: updateError } = await updatePaymentExtraction(serviceClient, paymentId!, {
+      extracted_amount: extractedData.amount,
+      extracted_reference: extractedData.reference_number,
+      extracted_datetime: extractedData.payment_datetime,
+      extracted_sender: extractedData.sender_name,
+      extraction_confidence: extractedData.confidence,
+      extracted_raw: { model: 'claude-haiku-4-5-20251001', raw_text: rawText },
+      extraction_status: extractedData.confidence === 'failed' ? 'failed' : 'done',
+    })
 
     if (updateError) {
-      logError('payment_proof.extract.update_failed', updateError)
-      await logError(
-        'payment_proof.extract.update_failed',
-        updateError,
-        authUser.user.id,
-        { payment_id: paymentId }
-      )
+      void logError('payment_proof.extract.update_failed', updateError, authUser.id, { payment_id: paymentId })
     } else {
       // Log successful extraction
-      await logActivity('payment_proof.extract_success', authUser.user.id, {
+      await logActivity('payment_proof.extract_success', authUser.id, {
         payment_id: paymentId,
         amount: extractedData.amount,
         confidence: extractedData.confidence,
@@ -264,29 +247,12 @@ Rules:
       extracted: extractedData,
     })
   } catch (error) {
-    logError('payment_proof.extract.unhandled', error)
-
-    // Log the error but don't fail the response
-    if (error instanceof Error) {
-      logError(
-        'payment_proof.extract.unhandled',
-        error,
-        undefined,
-        {}
-      )
+    void logError('payment_proof.extract.unhandled', error instanceof Error ? error : new Error(String(error)))
+    // Best-effort: mark extraction failed so admin knows to review manually
+    if (paymentId) {
+      const svcClient = createServiceClient()
+      void updatePaymentExtraction(svcClient, paymentId, { extraction_status: 'failed' })
     }
-
-    // Return success even on error - extraction is non-blocking
-    return NextResponse.json({
-      success: true,
-      extracted: {
-        amount: null,
-        reference_number: null,
-        payment_datetime: null,
-        sender_name: null,
-        confidence: 'failed',
-      },
-      note: 'Extraction encountered an error',
-    })
+    return NextResponse.json({ error: 'Extraction failed' }, { status: 500 })
   }
 }

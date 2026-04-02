@@ -20,6 +20,7 @@ import {
   getUserById,
   getUserFirstName,
 } from '@/lib/queries'
+import { getExtractionSetting } from '@/lib/config/extraction-settings'
 
 interface PlayerResolution {
   index: number
@@ -306,6 +307,9 @@ export async function POST(request: NextRequest) {
         position: r.player.preferred_position,
       }))
 
+    // Check extraction setting to decide whether to trigger extraction
+    const { enabled: extractionEnabled } = getExtractionSetting()
+
     // Atomic transaction: all 4 tables in one DB call — rolls back on any failure
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- database.ts not yet regenerated with register_group_transaction RPC signature; remove after running supabase gen types
     const { data: rpcResult, error: rpcError } = await (serviceClient as any).rpc(
@@ -322,7 +326,7 @@ export async function POST(request: NextRequest) {
           payment_proof_url: validated.payment_proof_path,
           payment_channel_id: validated.payment_channel_id ?? null,
           registration_type: validated.registration_mode,
-          extraction_status: 'pending',
+          extraction_status: extractionEnabled ? 'pending' : null,
         },
       }
     )
@@ -338,27 +342,29 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Trigger AI extraction (non-blocking fire-and-forget)
-    const origin = new URL(request.url).origin
-    fetch(new URL('/api/payment-proof/extract', origin), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        user_payment_id: rpcResult.payment_id,
-        payment_proof_url: validated.payment_proof_path,
-      }),
-    })
-      .then(() => {
-        void logActivity('payment_proof.extract', authUser.id, {
-          registration_mode: validated.registration_mode,
-          player_count: registrationInserts.length,
-        })
+    // Only trigger extraction if it is enabled
+    if (extractionEnabled) {
+      const origin = new URL(request.url).origin
+      fetch(new URL('/api/payment-proof/extract', origin), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_payment_id: rpcResult.payment_id,
+          payment_proof_url: validated.payment_proof_path,
+        }),
       })
-      .catch((err) => {
-        void logError('payment_proof.extract_failed', err, authUser.id, {
-          registration_mode: validated.registration_mode,
+        .then(() => {
+          void logActivity('payment_proof.extract', authUser.id, {
+            registration_mode: validated.registration_mode,
+            player_count: registrationInserts.length,
+          })
         })
-      })
+        .catch((err) => {
+          void logError('payment_proof.extract_failed', err, authUser.id, {
+            registration_mode: validated.registration_mode,
+          })
+        })
+    }
 
     // Step 8: Revalidate home page cache to reflect updated slot counts
     revalidatePath('/')

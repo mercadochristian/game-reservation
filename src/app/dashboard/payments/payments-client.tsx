@@ -23,6 +23,38 @@ import { Input } from '@/components/ui/input'
 import type { ScheduleWithPaymentSummary } from '@/app/api/admin/payments/schedules/route'
 import type { PaymentWithExtraction } from '@/app/api/admin/payments/[id]/route'
 
+function ExtractionStatusBadge({ status }: { status: string | null | undefined }) {
+  if (!status) return null
+
+  if (status === 'pending') {
+    return (
+      <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+        <RefreshCw className="h-3 w-3 animate-spin" />
+        Extracting…
+      </span>
+    )
+  }
+
+  if (status === 'done') {
+    return (
+      <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+        <Check className="h-3 w-3 text-green-500" />
+        Extracted
+      </span>
+    )
+  }
+
+  return (
+    <span
+      className="inline-flex items-center gap-1 text-xs text-destructive cursor-help"
+      title="AI extraction failed. Payment details must be entered manually."
+    >
+      <X className="h-3 w-3" />
+      Extraction failed
+    </span>
+  )
+}
+
 interface PaymentDialogState {
   viewingProof: { payment_id: string; url: string } | null
   proofUrl: string | null
@@ -233,7 +265,7 @@ export function PaymentsClient({ locations, initialSearchParams = {}, extraction
       if (error) throw error
 
       toast.success('Payment approved')
-      logActivity('payment.approved', `Payment ${payment.id} approved`)
+      void logActivity('payment.approved', `Payment ${payment.id} approved`)
       router.refresh()
     } catch (error) {
       console.error('[Payments] Approve failed:', error)
@@ -252,7 +284,7 @@ export function PaymentsClient({ locations, initialSearchParams = {}, extraction
       if (error) throw error
 
       toast.success('Payment rejected')
-      logActivity('payment.rejected', `Payment ${payment.id} rejected`)
+      void logActivity('payment.rejected', `Payment ${payment.id} rejected`)
       router.refresh()
     } catch (error) {
       console.error('[Payments] Reject failed:', error)
@@ -302,7 +334,7 @@ export function PaymentsClient({ locations, initialSearchParams = {}, extraction
       toast.success(
         targetStatus === 'paid' ? 'Payment approved' : 'Payment saved for review'
       )
-      logActivity('payment.edited', `Payment ${dialogState.editingPayment.id} edited`)
+      void logActivity('payment.edited', `Payment ${dialogState.editingPayment.id} edited`)
       router.refresh()
     } catch (error) {
       console.error('[Payments] Edit failed:', error)
@@ -420,6 +452,7 @@ export function PaymentsClient({ locations, initialSearchParams = {}, extraction
               <DialogDescription>
                 Update payment details for {editingPayment.users?.first_name} {editingPayment.users?.last_name}
               </DialogDescription>
+              <ExtractionStatusBadge status={editingPayment.extraction_status} />
             </DialogHeader>
 
             <div className="space-y-4">
