@@ -328,6 +328,41 @@ describe('POST /api/register/group', () => {
       expect(body.results[0].success).toBe(true)
     })
 
+    it('should pass extraction_status null when extraction is disabled', async () => {
+      const { getExtractionSetting } = await import('@/lib/config/extraction-settings')
+      vi.mocked(getExtractionSetting).mockReturnValueOnce({ enabled: false })
+
+      const { mockServerClient, mockServiceClient, builders } = setupMocks()
+      configureHappyPath2Players(mockServerClient, mockServiceClient, builders)
+
+      const response = await POST(makeRequest(validGroupBody) as any)
+
+      expect(response.status).toBe(200)
+      expect(mockServiceClient.rpc).toHaveBeenCalledWith(
+        'register_group_transaction',
+        expect.objectContaining({
+          p_payment: expect.objectContaining({ extraction_status: null }),
+        })
+      )
+    })
+
+    it('should not fire extraction fetch when extraction is disabled', async () => {
+      const { getExtractionSetting } = await import('@/lib/config/extraction-settings')
+      vi.mocked(getExtractionSetting).mockReturnValueOnce({ enabled: false })
+      const fetchSpy = vi.spyOn(global, 'fetch').mockResolvedValue(new Response())
+
+      const { mockServerClient, mockServiceClient, builders } = setupMocks()
+      configureHappyPath2Players(mockServerClient, mockServiceClient, builders)
+
+      await POST(makeRequest(validGroupBody) as any)
+
+      const extractCalls = fetchSpy.mock.calls.filter(([url]) =>
+        String(url).includes('/api/payment-proof/extract')
+      )
+      expect(extractCalls).toHaveLength(0)
+      fetchSpy.mockRestore()
+    })
+
     it('should return 200 for valid team registration', async () => {
       const { mockServerClient, mockServiceClient, builders } = setupMocks()
 

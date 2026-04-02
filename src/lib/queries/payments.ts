@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+import type { PostgrestError } from '@supabase/postgrest-js'
 
 /**
  * Fetches all payment records for a schedule with registration and payer details.
@@ -46,21 +47,6 @@ export async function createPayment(
 }
 
 /**
- * Updates the payment status for a payment record.
- * Used by payments-client.tsx (browser client).
- */
-export async function updatePaymentStatus(
-  supabase: SupabaseClient,
-  id: string,
-  status: string,
-) {
-  return (supabase
-    .from('registration_payments') as any)
-    .update({ payment_status: status })
-    .eq('id', id)
-}
-
-/**
  * Updates AI extraction fields on a payment record.
  * Used by api/admin/payments/[id]/edit.
  */
@@ -83,16 +69,6 @@ export async function getPaymentById(supabase: SupabaseClient, registrationId: s
   return (supabase.from('registration_payments') as any)
     .select('required_amount, payment_note')
     .eq('registration_id', registrationId)
-    .maybeSingle() as { data: { required_amount: number; payment_note: string | null } | null; error: any }
+    .maybeSingle() as { data: { required_amount: number; payment_note: string | null } | null; error: PostgrestError | null }
 }
 
-/**
- * Fetches all pending payments with id and required_amount.
- * Used by the admin dashboard for payment stats.
- */
-export async function getPendingPaymentsStats(supabase: SupabaseClient) {
-  return (supabase
-    .from('registration_payments')
-    .select('id, required_amount')
-    .eq('payment_status', 'pending') as unknown) as Promise<{ data: Array<{ id: string; required_amount: number }> | null; error: any }>
-}

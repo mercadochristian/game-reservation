@@ -20,6 +20,7 @@ export interface PaymentWithExtraction {
   registration_type: 'solo' | 'group' | 'team'
   created_at: string
   payment_note: string | null
+  extraction_status: string | null
 }
 
 export async function GET(
@@ -68,6 +69,7 @@ export async function GET(
       registration_type: p.registration_type,
       created_at: p.created_at,
       payment_note: p.payment_note,
+      extraction_status: p.extraction_status ?? null,
     }))
 
     return NextResponse.json(registrations)
