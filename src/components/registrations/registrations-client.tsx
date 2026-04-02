@@ -97,7 +97,7 @@ export function RegistrationsClient({
     }
     const queryString = params.toString()
     router.replace(`/dashboard/registrations${queryString ? '?' + queryString : ''}`)
-  }, [selectedLocationId, selectedDateRange, expandedScheduleIds, router])
+  }, [selectedLocationId, selectedDateRange, expandedScheduleIds])
 
   const totalRegistrations =
     Object.values(registrationsByScheduleId).reduce((sum, regs) => sum + regs.length, 0)

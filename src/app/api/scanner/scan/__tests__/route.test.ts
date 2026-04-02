@@ -498,6 +498,6 @@ describe('POST /api/scanner/scan', () => {
     const body = await response.json()
 
     expect(response.status).toBe(500)
-    expect(body.error).toContain('error')
+    expect(body.error).toContain('Failed to lookup registration')
   })
 })

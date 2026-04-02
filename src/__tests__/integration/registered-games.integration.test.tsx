@@ -136,12 +136,8 @@ describe('Registered Games Integration', () => {
 
     render(<RegisteredGamesSection />)
 
-    await waitFor(() => {
-      expect(screen.getByText('Your Registered Games')).toBeInTheDocument()
-    })
-
-    // Find and click the Show QR button
-    const showQRButton = screen.getByRole('button', { name: /Show QR/i })
+    // Find and click the Show QR button (findByRole includes implicit waitFor)
+    const showQRButton = await screen.findByRole('button', { name: /Show QR/i })
     await user.click(showQRButton)
 
     // Verify QR modal is opened with schedule details (check for date text)

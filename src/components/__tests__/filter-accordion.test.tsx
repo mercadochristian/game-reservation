@@ -7,6 +7,7 @@ import { FilterAccordion } from '../filter-accordion'
 
 describe('FilterAccordion', () => {
   afterEach(() => {
+    vi.clearAllMocks()
     cleanup()
   })
 

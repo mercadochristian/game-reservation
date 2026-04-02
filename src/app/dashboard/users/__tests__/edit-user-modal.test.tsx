@@ -1,13 +1,18 @@
 // @vitest-environment jsdom
 
-import { describe, it, expect, vi, afterEach } from 'vitest'
-import { render, screen, cleanup } from '@testing-library/react'
+import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest'
+import { render, screen, cleanup, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { toast } from 'sonner'
 import type { UserRole, SkillLevel } from '@/types'
 import { EditUserModal } from '../edit-user-modal'
 
+beforeEach(() => {
+  vi.clearAllMocks()
+})
+
 afterEach(() => {
+  vi.clearAllMocks()
   cleanup()
 })
 
@@ -224,8 +229,10 @@ describe('EditUserModal', () => {
     const saveButton = screen.getByRole('button', { name: 'Save' })
     await user.click(saveButton)
 
-    // Confirmation dialog should appear
-    expect(screen.getByText('Change Role?')).toBeInTheDocument()
+    // Confirmation dialog should appear (use waitFor since it's rendered conditionally)
+    await waitFor(() => {
+      expect(screen.getByText('Change Role?')).toBeInTheDocument()
+    })
   })
 
   it('submits on role change confirmation', async () => {

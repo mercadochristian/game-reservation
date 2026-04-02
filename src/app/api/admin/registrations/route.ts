@@ -122,6 +122,7 @@ export async function GET(req: NextRequest) {
       registrations,
     })
   } catch (error) {
+    console.log('Error fetching registrations:', error)
     void logError('admin.registrations.unhandled', error instanceof Error ? error : new Error(String(error)))
     return NextResponse.json(
       { error: 'Failed to fetch registrations' },

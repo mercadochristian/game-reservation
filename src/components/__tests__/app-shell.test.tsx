@@ -132,6 +132,7 @@ describe('AppShell', () => {
   })
 
   afterEach(() => {
+    vi.clearAllMocks()
     cleanup()
   })
 
