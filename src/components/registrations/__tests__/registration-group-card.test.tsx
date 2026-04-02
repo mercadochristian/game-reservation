@@ -174,6 +174,36 @@ describe('RegistrationGroupCard', () => {
     expect(screen.getByText(/No registrations yet/i)).toBeInTheDocument()
   })
 
+  it('should show Register Player button when expanded with no registrations and not past game', () => {
+    const { container } = render(
+      <RegistrationGroupCard
+        schedule={mockSchedule}
+        registrations={[]}
+        isExpanded={true}
+        onToggleExpand={() => {}}
+        isPastGame={false}
+      />
+    )
+    const buttons = Array.from(container.querySelectorAll('button'))
+    const registerButton = buttons.find((b) => b.textContent?.includes('Register Player'))
+    expect(registerButton).toBeTruthy()
+  })
+
+  it('should NOT show Manage Lineups button when expanded with no registrations', () => {
+    const { container } = render(
+      <RegistrationGroupCard
+        schedule={mockSchedule}
+        registrations={[]}
+        isExpanded={true}
+        onToggleExpand={() => {}}
+        isPastGame={false}
+      />
+    )
+    const buttons = Array.from(container.querySelectorAll('button'))
+    const manageButton = buttons.find((b) => b.textContent?.includes('Manage Lineups'))
+    expect(manageButton).toBeFalsy()
+  })
+
   it('should render table with correct columns when expanded with registrations', () => {
     const { container } = render(
       <RegistrationGroupCard

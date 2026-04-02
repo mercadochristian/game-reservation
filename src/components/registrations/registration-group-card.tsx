@@ -203,18 +203,24 @@ export function RegistrationGroupCard({
                 </Table>
               </div>
 
-              {/* Action buttons - Only show for upcoming games */}
+              {/* Manage Lineups — only when registrations exist */}
               {!isPastGame && (
                 <div className="flex gap-2 mt-6 justify-end">
-                  <Button variant="outline" size="sm" onClick={() => onRegisterPlayer?.(schedule.id)}>
-                    Register Player
-                  </Button>
                   <Button variant="default" size="sm" onClick={() => onManageLineups?.(schedule.id)}>
                     Manage Lineups
                   </Button>
                 </div>
               )}
             </>
+          )}
+
+          {/* Register Player — always visible for upcoming games */}
+          {!isPastGame && (
+            <div className={`flex gap-2 justify-end ${registrations.length > 0 ? '' : 'mt-6'}`}>
+              <Button variant="outline" size="sm" onClick={() => onRegisterPlayer?.(schedule.id)}>
+                Register Player
+              </Button>
+            </div>
           )}
         </div>
       )}
