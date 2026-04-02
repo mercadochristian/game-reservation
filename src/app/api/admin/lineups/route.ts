@@ -1,3 +1,4 @@
+import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { saveLineupSchema } from '@/lib/validations/lineup'
@@ -117,6 +118,9 @@ export async function POST(request: NextRequest) {
       team_count: validated.teams.length,
       assigned_count: validated.assignments.length,
     })
+
+    // Revalidate the lineup page for this schedule
+    revalidatePath(`/dashboard/lineups/${validated.schedule_id}`)
 
     return NextResponse.json({
       success: true,

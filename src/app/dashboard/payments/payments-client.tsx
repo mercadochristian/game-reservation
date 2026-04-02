@@ -258,14 +258,15 @@ export function PaymentsClient({ locations, initialSearchParams = {}, extraction
 
   const handleApprove = async (payment: PaymentWithExtraction) => {
     try {
-      const { error } = await supabase.from('registration_payments')
-        .update({ payment_status: 'paid' })
-        .eq('id', payment.id)
+      const res = await fetch('/api/admin/payments', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: payment.id, payment_status: 'paid' }),
+      })
 
-      if (error) throw error
+      if (!res.ok) throw new Error(await res.text())
 
       toast.success('Payment approved')
-      void logActivity('payment.approved', `Payment ${payment.id} approved`)
       router.refresh()
     } catch (error) {
       console.error('[Payments] Approve failed:', error)
@@ -277,14 +278,15 @@ export function PaymentsClient({ locations, initialSearchParams = {}, extraction
 
   const handleReject = async (payment: PaymentWithExtraction) => {
     try {
-      const { error } = await supabase.from('registration_payments')
-        .update({ payment_status: 'rejected' })
-        .eq('id', payment.id)
+      const res = await fetch('/api/admin/payments', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: payment.id, payment_status: 'rejected' }),
+      })
 
-      if (error) throw error
+      if (!res.ok) throw new Error(await res.text())
 
       toast.success('Payment rejected')
-      void logActivity('payment.rejected', `Payment ${payment.id} rejected`)
       router.refresh()
     } catch (error) {
       console.error('[Payments] Reject failed:', error)
@@ -324,11 +326,13 @@ export function PaymentsClient({ locations, initialSearchParams = {}, extraction
         throw new Error(error.error || 'Failed to update payment')
       }
 
-      const { error: statusError } = await supabase.from('registration_payments')
-        .update({ payment_status: targetStatus })
-        .eq('id', dialogState.editingPayment.id)
+      const statusRes = await fetch('/api/admin/payments', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: dialogState.editingPayment.id, payment_status: targetStatus }),
+      })
 
-      if (statusError) throw statusError
+      if (!statusRes.ok) throw new Error(await statusRes.text())
 
       dispatch({ type: 'CLOSE_EDIT' })
       toast.success(

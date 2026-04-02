@@ -1,3 +1,4 @@
+import { revalidatePath } from 'next/cache'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
@@ -73,6 +74,8 @@ export async function PATCH(
     extracted_sender,
     payment_note,
   })
+
+  revalidatePath('/dashboard/payments')
 
   return NextResponse.json({ success: true })
 }

@@ -118,6 +118,7 @@ export function SchedulesClient({ initialSchedules, initialLocations }: Schedule
       if (crudDialog.editingId) {
         // Update
         const updateData = {
+          id: crudDialog.editingId,
           start_time: manilaInputToUTC(formData.start_time),
           end_time: manilaInputToUTC(formData.end_time),
           location_id: formData.location_id,
@@ -128,11 +129,13 @@ export function SchedulesClient({ initialSchedules, initialLocations }: Schedule
           position_prices: formData.position_prices,
           team_price: formData.team_price,
         }
-        const { error } = await supabase.from('schedules')
-          .update(updateData)
-          .eq('id', crudDialog.editingId)
+        const res = await fetch('/api/admin/schedules', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updateData),
+        })
 
-        if (error) throw error
+        if (!res.ok) throw new Error(await res.text())
         toast.success('Schedule updated')
         setSchedules((prev) =>
           prev.map((s) => (s.id === crudDialog.editingId ? { ...s, ...updateData } : s))
@@ -157,13 +160,14 @@ export function SchedulesClient({ initialSchedules, initialLocations }: Schedule
           position_prices: formData.position_prices,
           team_price: formData.team_price,
         }
-        // Foreign key join in insert+select cannot be validated without Relationships;
-        // insertData lacks `title` which is set by DB default — cast through unknown.
-        const { data, error } = await (supabase.from('schedules')
-          .insert([insertData as unknown as Database['public']['Tables']['schedules']['Insert']])
-          .select('*, locations(id, name, address, google_map_url)') as unknown as Promise<{ data: ScheduleWithLocation[] | null; error: Error | null }>)
+        const res = await fetch('/api/admin/schedules', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(insertData),
+        })
 
-        if (error) throw error
+        if (!res.ok) throw new Error(await res.text())
+        const { data } = (await res.json()) as { data: ScheduleWithLocation[] }
         if (data?.[0]) {
           setSchedules((prev) => [data[0], ...prev])
           pagination.setCurrentPage(1)
@@ -205,11 +209,11 @@ export function SchedulesClient({ initialSchedules, initialLocations }: Schedule
   const handleDelete = async () => {
     if (!crudDialog.deleteTarget) return
     try {
-      const { error } = await supabase.from('schedules')
-        .delete()
-        .eq('id', crudDialog.deleteTarget.id)
+      const res = await fetch(`/api/admin/schedules?id=${crudDialog.deleteTarget.id}`, {
+        method: 'DELETE',
+      })
 
-      if (error) throw error
+      if (!res.ok) throw new Error(await res.text())
       setSchedules((prev) => prev.filter((s) => s.id !== crudDialog.deleteTarget!.id))
       pagination.setCurrentPage(1)
       crudDialog.onCancelDelete()
