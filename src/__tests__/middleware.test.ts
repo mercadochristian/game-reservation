@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { NextRequest, NextResponse } from 'next/server'
 import { middleware } from '../middleware'
 import { updateSession } from '@/lib/supabase/middleware'
 import { createMockRequest, createMockResponse } from '@/__tests__/helpers/next-mock'
@@ -545,6 +546,107 @@ describe('middleware(request)', () => {
 
       // The redirect response should be created (status 307)
       expect(result?.status).toBe(307)
+    })
+  })
+
+  describe('Rate limiting', () => {
+    beforeEach(() => {
+      vi.clearAllMocks()
+      vi.resetModules()
+    })
+
+    it('should allow requests under the rate limit', async () => {
+      const { middleware } = await import('@/middleware')
+      const { updateSession } = await import('@/lib/supabase/middleware')
+      vi.mocked(updateSession).mockResolvedValue({
+        supabaseResponse: new NextResponse(),
+        user: { id: 'user-1' } as any,
+        supabase: { from: vi.fn().mockReturnValue({ select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), single: vi.fn().mockResolvedValue({ data: null, error: { message: 'not found' } }) }) } as any,
+      })
+
+      const request = new NextRequest('http://localhost/api/register/group', {
+        method: 'POST',
+        headers: { 'x-forwarded-for': '1.2.3.4' },
+      })
+
+      const response = await middleware(request)
+      expect(response.status).not.toBe(429)
+    })
+
+    it('should return 429 after exceeding the rate limit', async () => {
+      const { middleware } = await import('@/middleware')
+      const { updateSession } = await import('@/lib/supabase/middleware')
+      vi.mocked(updateSession).mockResolvedValue({
+        supabaseResponse: new NextResponse(),
+        user: { id: 'user-1' } as any,
+        supabase: { from: vi.fn().mockReturnValue({ select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), single: vi.fn().mockResolvedValue({ data: null, error: { message: 'not found' } }) }) } as any,
+      })
+
+      const makeRegisterRequest = () => new NextRequest('http://localhost/api/register/group', {
+        method: 'POST',
+        headers: { 'x-forwarded-for': '10.0.0.1' },
+      })
+
+      // First 5 requests should succeed
+      for (let i = 0; i < 5; i++) {
+        const response = await middleware(makeRegisterRequest())
+        expect(response.status).not.toBe(429)
+      }
+
+      // 6th request from same IP should be rate limited
+      const blocked = await middleware(makeRegisterRequest())
+      expect(blocked.status).toBe(429)
+      const body = await blocked.json()
+      expect(body.error).toBe('Too many requests')
+      expect(blocked.headers.get('Retry-After')).toBeTruthy()
+    })
+
+    it('should not rate limit routes outside the limited set', async () => {
+      const { middleware } = await import('@/middleware')
+      const { updateSession } = await import('@/lib/supabase/middleware')
+      vi.mocked(updateSession).mockResolvedValue({
+        supabaseResponse: new NextResponse(),
+        user: null,
+        supabase: {} as any,
+      })
+
+      // /api/registrations/counts is NOT rate limited
+      for (let i = 0; i < 10; i++) {
+        const request = new NextRequest('http://localhost/api/registrations/counts', {
+          method: 'GET',
+          headers: { 'x-forwarded-for': '10.0.0.2' },
+        })
+        const response = await middleware(request)
+        expect(response.status).not.toBe(429)
+      }
+    })
+
+    it('should track limits independently per IP', async () => {
+      const { middleware } = await import('@/middleware')
+      const { updateSession } = await import('@/lib/supabase/middleware')
+      vi.mocked(updateSession).mockResolvedValue({
+        supabaseResponse: new NextResponse(),
+        user: null,
+        supabase: {} as any,
+      })
+
+      const makeRequest = (ip: string) => new NextRequest('http://localhost/api/register/group', {
+        method: 'POST',
+        headers: { 'x-forwarded-for': ip },
+      })
+
+      // Exhaust limit for IP A
+      for (let i = 0; i < 5; i++) {
+        await middleware(makeRequest('192.168.1.1'))
+      }
+
+      // IP A is blocked
+      const blockedA = await middleware(makeRequest('192.168.1.1'))
+      expect(blockedA.status).toBe(429)
+
+      // IP B is not blocked
+      const allowedB = await middleware(makeRequest('192.168.1.2'))
+      expect(allowedB.status).not.toBe(429)
     })
   })
 })
