@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import type { ScheduleWithSlots, RegistrationWithDetails } from '@/types'
 
 interface UseSchedulesByLocationResult {
@@ -9,6 +9,7 @@ interface UseSchedulesByLocationResult {
   registrationsByScheduleId: Record<string, RegistrationWithDetails[]>
   loading: boolean
   error?: string
+  refetch: () => void
 }
 
 export function useSchedulesByLocation(
@@ -22,6 +23,11 @@ export function useSchedulesByLocation(
   >({})
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | undefined>()
+  const [refreshCount, setRefreshCount] = useState(0)
+
+  const refetch = useCallback(() => {
+    setRefreshCount((c) => c + 1)
+  }, [])
 
   useEffect(() => {
     if (!locationId) {
@@ -80,7 +86,7 @@ export function useSchedulesByLocation(
     }
 
     fetchData()
-  }, [locationId, dateRange])
+  }, [locationId, dateRange, refreshCount])
 
   return {
     upcomingSchedules,
@@ -88,5 +94,6 @@ export function useSchedulesByLocation(
     registrationsByScheduleId,
     loading,
     error,
+    refetch,
   }
 }
