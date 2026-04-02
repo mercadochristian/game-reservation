@@ -3,6 +3,7 @@ import { describe, it, expect } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { FeaturedGamesSection } from '@/components/featured-games-section'
 import type { ScheduleWithLocation } from '@/types'
+import { futureDateISO } from '@/__tests__/helpers/date-mock'
 
 const mockGames: (ScheduleWithLocation & {
   registrations_count: number
@@ -11,15 +12,15 @@ const mockGames: (ScheduleWithLocation & {
   {
     id: '1',
     location_id: 'loc1',
-    start_time: '2026-03-31T19:00:00Z',
-    end_time: '2026-03-31T21:00:00Z',
+    start_time: futureDateISO(1),
+    end_time: new Date(new Date(futureDateISO(1)).getTime() + 7_200_000).toISOString(),
     max_players: 12,
     num_teams: 2,
     required_levels: ['developmental', 'intermediate'],
     status: 'open',
     created_by: 'user1',
-    created_at: '2026-03-01',
-    updated_at: '2026-03-01',
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
     position_prices: {},
     team_price: null,
     registrations_count: 4,
@@ -62,6 +63,7 @@ describe('FeaturedGamesSection', () => {
     }))
     const { container } = render(<FeaturedGamesSection schedules={manyGames} />)
     const cards = container.querySelectorAll('[data-testid="game-card"]')
+
     expect(cards).toHaveLength(3)
   })
 })
