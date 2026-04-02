@@ -2,13 +2,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { PastGamesSection } from '../past-games-section'
+import { pastDateISO } from '@/__tests__/helpers/date-mock'
 import type { ScheduleWithSlots } from '@/types'
 
 const mockSchedules: ScheduleWithSlots[] = Array.from({ length: 5 }, (_, i) => ({
   id: `sch-${i}`,
   title: `Past Game ${i + 1}`,
-  start_time: new Date(Date.now() - (i + 1) * 86400000).toISOString(),
-  end_time: new Date(Date.now() - (i + 1) * 86400000 + 7200000).toISOString(),
+  start_time: pastDateISO(i + 1),
+  end_time: new Date(new Date(pastDateISO(i + 1)).getTime() + 7_200_000).toISOString(),
   location_id: 'loc-1',
   max_players: 12,
   num_teams: 2,
