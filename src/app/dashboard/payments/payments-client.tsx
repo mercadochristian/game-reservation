@@ -185,7 +185,7 @@ export function PaymentsClient({ locations, initialSearchParams = {}, extraction
     }
 
     router.replace(`/dashboard/payments?${params.toString()}`)
-  }, [selectedLocationId, selectedDateRange, selectedDate, router])
+  }, [selectedLocationId, selectedDateRange, selectedDate])
 
   const handleLocationChange = (locationId: string) => {
     setSelectedLocationId(locationId || null)

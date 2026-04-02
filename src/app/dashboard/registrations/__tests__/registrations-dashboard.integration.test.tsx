@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { RegistrationsClient } from '@/components/registrations/registrations-client'
 import type { Location } from '@/types'
@@ -37,6 +37,11 @@ describe('Merged Registrations Dashboard - Integration', () => {
     vi.clearAllMocks()
   })
 
+  afterEach(() => {
+    vi.clearAllMocks()
+    cleanup()
+  })
+
   it('should show initial empty state with location selector', () => {
     render(<RegistrationsClient locations={mockLocations} userRole="admin" />)
 
@@ -47,18 +52,20 @@ describe('Merged Registrations Dashboard - Integration', () => {
 
   it('should render both upcoming and past games sections after location selection', async () => {
     const user = userEvent.setup()
+
+    // Mock fetch for API calls
+    vi.spyOn(global, 'fetch').mockResolvedValue({
+      ok: true,
+      json: async () => ({ schedules: [], registrations: [] }),
+    } as Response)
+
     render(<RegistrationsClient locations={mockLocations} userRole="admin" />)
 
-    // Get the location selector
+    // Get the location selector and select location using proper select interaction
     const comboboxes = screen.getAllByRole('combobox')
-    const locationSelect = comboboxes[0]
+    const locationSelect = comboboxes[0] as HTMLSelectElement
 
-    // Open location dropdown and select first location
-    await user.click(locationSelect)
-    await waitFor(() => {
-      expect(screen.getByText('North Court')).toBeInTheDocument()
-    })
-    await user.click(screen.getByText('North Court'))
+    await user.selectOptions(locationSelect, 'loc-1')
 
     // Wait for sections to load and render
     await waitFor(() => {
@@ -70,17 +77,20 @@ describe('Merged Registrations Dashboard - Integration', () => {
 
   it('should allow filtering by date range', async () => {
     const user = userEvent.setup()
+
+    // Mock fetch for API calls
+    vi.spyOn(global, 'fetch').mockResolvedValue({
+      ok: true,
+      json: async () => ({ schedules: [], registrations: [] }),
+    } as Response)
+
     render(<RegistrationsClient locations={mockLocations} userRole="admin" />)
 
-    // Select location first
+    // Select location first using proper select interaction
     const comboboxes = screen.getAllByRole('combobox')
-    const locationSelect = comboboxes[0]
+    const locationSelect = comboboxes[0] as HTMLSelectElement
 
-    await user.click(locationSelect)
-    await waitFor(() => {
-      expect(screen.getByText('North Court')).toBeInTheDocument()
-    })
-    await user.click(screen.getByText('North Court'))
+    await user.selectOptions(locationSelect, 'loc-1')
 
     // Date range select should be available
     await waitFor(() => {

@@ -45,6 +45,7 @@ const mockRegistration: Registration = {
 
 describe('RegisteredGameCard', () => {
   afterEach(() => {
+    vi.clearAllMocks()
     cleanup()
   })
 

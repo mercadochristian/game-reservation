@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import { QRCodeModal } from '../qr-code-modal'
 
 describe('QRCodeModal', () => {
@@ -43,6 +43,7 @@ describe('QRCodeModal', () => {
     render(
       <QRCodeModal open={true} onOpenChange={mockOnOpenChange} url={testQrUrl} />
     )
-    expect(screen.getByText(/click the image to save or scan/i)).toBeDefined()
+    const modal = screen.getByRole('dialog')
+    expect(within(modal).getByText(/click the image to save or scan/i)).toBeDefined()
   })
 })

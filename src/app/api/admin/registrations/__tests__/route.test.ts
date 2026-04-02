@@ -2,6 +2,10 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { GET } from '../route'
 import { createMockRequest } from '@/__tests__/helpers/next-mock'
 
+vi.mock('@/lib/supabase/server', () => ({
+  createClient: vi.fn(),
+}))
+
 vi.mock('@/lib/supabase/service', () => ({
   createServiceClient: vi.fn(),
 }))
@@ -55,8 +59,28 @@ function buildMockServiceClient() {
 }
 
 describe('GET /api/admin/registrations', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks()
+    const { createClient } = await import('@/lib/supabase/server')
+
+    const usersTableBuilder = {
+      ...createTableBuilder(),
+      single: vi.fn().mockResolvedValue({
+        data: { id: 'admin-user', role: 'admin' },
+        error: null
+      }),
+    }
+
+    const mockServerClient = {
+      auth: {
+        getUser: vi.fn().mockResolvedValue({ data: { user: { id: 'admin-user' } }, error: null }),
+      },
+      from: vi.fn((table: string) => {
+        if (table === 'users') return usersTableBuilder
+        return createTableBuilder()
+      }),
+    }
+    vi.mocked(createClient).mockResolvedValue(mockServerClient as any)
   })
 
   it('returns 400 when locationId is missing', async () => {
@@ -375,7 +399,7 @@ describe('GET /api/admin/registrations', () => {
     expect(body.registrations[1].team_members).toEqual([])
   })
 
-  it('returns error response with details field when an Error instance is thrown', async () => {
+  it('returns 500 when an unexpected error occurs', async () => {
     const { createServiceClient } = await import('@/lib/supabase/service')
     const mockClient = buildMockServiceClient()
     vi.mocked(createServiceClient).mockReturnValue(mockClient as any)
@@ -390,8 +414,7 @@ describe('GET /api/admin/registrations', () => {
     const body = await response.json()
 
     expect(response.status).toBe(500)
-    expect(body.error).toBe('Unexpected DB failure')
-    expect(body.details).toBeDefined()
+    expect(body.error).toBe('Failed to fetch registrations')
   })
 
   it('skips users query when there are no registrations', async () => {

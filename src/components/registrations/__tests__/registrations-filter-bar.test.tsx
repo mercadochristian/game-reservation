@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
-import { describe, it, expect, beforeEach } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { RegistrationsFilterBar } from '../registrations-filter-bar'
 import type { Location } from '@/types'
@@ -35,6 +35,10 @@ const mockLocations: Location[] = [
 describe('RegistrationsFilterBar', () => {
   beforeEach(() => {
     // Clean up between tests
+  })
+
+  afterEach(() => {
+    cleanup()
   })
 
   it('should render location and date range selects', () => {
