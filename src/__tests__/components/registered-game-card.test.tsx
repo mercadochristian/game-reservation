@@ -7,7 +7,6 @@ import type { ScheduleWithLocation, Registration } from '@/types'
 
 const mockSchedule: ScheduleWithLocation = {
   id: 'schedule-1',
-  title: 'Thursday Volleyball Game',
   location_id: 'loc-1',
   start_time: '2026-03-31T11:00:00Z', // 7:00 PM Manila time (UTC+8)
   end_time: '2026-03-31T13:00:00Z', // 9:00 PM Manila time (UTC+8)
@@ -20,6 +19,7 @@ const mockSchedule: ScheduleWithLocation = {
   updated_at: '2026-03-01T00:00:00Z',
   position_prices: {},
   team_price: null,
+  deleted_at: null,
   locations: {
     id: 'loc-1',
     name: 'Makati Sports Complex',

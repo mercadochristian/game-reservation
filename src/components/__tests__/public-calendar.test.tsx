@@ -83,7 +83,6 @@ import type { ScheduleWithLocation } from '@/types'
 function makeSchedule(overrides: Partial<ScheduleWithLocation> = {}): ScheduleWithLocation {
   return {
     id: 'sched-1',
-    title: 'Test Game',
     start_time: '2026-03-15T08:00:00',
     end_time: '2026-03-15T10:00:00',
     location_id: 'loc-1',
@@ -96,6 +95,7 @@ function makeSchedule(overrides: Partial<ScheduleWithLocation> = {}): ScheduleWi
     created_by: 'admin-1',
     created_at: '2026-01-01T00:00:00Z',
     updated_at: '2026-01-01T00:00:00Z',
+    deleted_at: null,
     locations: { id: 'loc-1', name: 'Main Court', address: null, google_map_url: null },
     ...overrides,
   }

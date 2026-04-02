@@ -1,7 +1,4 @@
-import type { Database, SkillLevel } from './database'
-
-export type { SkillLevel }
-export type { PlayerPosition } from './database'
+import type { Database } from './database'
 
 // Table Row types (full DB records)
 export type User = Database['public']['Tables']['users']['Row']
@@ -21,6 +18,8 @@ export type UserRole = Database['public']['Enums']['user_role']
 export type ScheduleStatus = Database['public']['Enums']['schedule_status']
 export type PaymentStatus = Database['public']['Enums']['payment_status']
 export type TeamPreference = Database['public']['Enums']['team_preference']
+export type PlayerPosition = Database['public']['Enums']['player_position']
+export type SkillLevel = Database['public']['Enums']['skill_level']
 
 // Convenience types
 export type ScheduleWithLocation = Schedule & {

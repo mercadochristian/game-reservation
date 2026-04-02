@@ -20,6 +20,7 @@ const mockSchedules: ScheduleWithSlots[] = Array.from({ length: 5 }, (_, i) => (
   registration_count: i + 1,
   created_at: new Date().toISOString(),
   updated_at: new Date().toISOString(),
+  deleted_at: null,
   locations: {
     id: 'loc-1',
     name: 'North Court',
