@@ -7,23 +7,27 @@ import { RegisteredGameCard } from '@/components/registered-game-card'
 import { QRModal } from '@/components/qr-modal'
 import * as supabaseModule from '@/lib/supabase/client'
 import type { ScheduleWithLocation, Registration } from '@/types'
+import { futureDateISO, pastDateISO, formatExpectedScheduleDate } from '@/__tests__/helpers/date-mock'
 
 // Mock Supabase client
 vi.mock('@/lib/supabase/client')
 
 describe('Registered Games Integration', () => {
+  const mockScheduleStart = futureDateISO(1)
+  const mockScheduleEnd = new Date(new Date(mockScheduleStart).getTime() + 7_200_000).toISOString()
+
   const mockSchedule: ScheduleWithLocation = {
     id: 'schedule-1',
     location_id: 'loc-1',
-    start_time: '2026-04-15T11:00:00Z',
-    end_time: '2026-04-15T13:00:00Z',
+    start_time: mockScheduleStart,
+    end_time: mockScheduleEnd,
     max_players: 12,
     num_teams: 2,
     required_levels: ['developmental', 'intermediate'],
     status: 'open',
     created_by: 'user-1',
-    created_at: '2026-03-01T00:00:00Z',
-    updated_at: '2026-03-01T00:00:00Z',
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
     position_prices: {},
     team_price: null,
     deleted_at: null,
@@ -50,11 +54,12 @@ describe('Registered Games Integration', () => {
     updated_at: '2026-03-15T00:00:00Z',
   }
 
+  const pastStart = pastDateISO(90)
   const pastSchedule: ScheduleWithLocation = {
     ...mockSchedule,
     id: 'schedule-2',
-    start_time: '2026-01-15T11:00:00Z',
-    end_time: '2026-01-15T13:00:00Z',
+    start_time: pastStart,
+    end_time: new Date(new Date(pastStart).getTime() + 7_200_000).toISOString(),
   }
 
   beforeEach(() => {
@@ -142,7 +147,7 @@ describe('Registered Games Integration', () => {
     // Verify QR modal is opened with schedule details (check for date text)
     await waitFor(() => {
       // The modal displays the date of the schedule
-      expect(screen.getByText(/Wednesday, April 15, 2026/)).toBeInTheDocument()
+      expect(screen.getByText(new RegExp(formatExpectedScheduleDate(mockScheduleStart)))).toBeInTheDocument()
     })
   })
 
@@ -173,11 +178,12 @@ describe('Registered Games Integration', () => {
   // Test 4: RegisteredGamesSection filters out past games by default
   it('filters out past games by default (includePastGames=false)', async () => {
     // Create a future schedule with time way in the future
+    const futureStart = futureDateISO(90)
     const futureSchedule: ScheduleWithLocation = {
       ...mockSchedule,
       id: 'schedule-4',
-      start_time: '2026-12-15T11:00:00Z',
-      end_time: '2026-12-15T13:00:00Z',
+      start_time: futureStart,
+      end_time: new Date(new Date(futureStart).getTime() + 7_200_000).toISOString(),
     }
 
     const mockClient = {
@@ -222,11 +228,12 @@ describe('Registered Games Integration', () => {
   // Test 5: RegisteredGamesSection includes past games when flag is true
   it('includes past games when includePastGames=true', async () => {
     // Create a future schedule
+    const futureStart5 = futureDateISO(90)
     const futureSchedule: ScheduleWithLocation = {
       ...mockSchedule,
       id: 'schedule-5',
-      start_time: '2026-12-15T11:00:00Z',
-      end_time: '2026-12-15T13:00:00Z',
+      start_time: futureStart5,
+      end_time: new Date(new Date(futureStart5).getTime() + 7_200_000).toISOString(),
     }
 
     const mockClient = {
@@ -326,7 +333,7 @@ describe('Registered Games Integration', () => {
     )
 
     // Verify QR modal is open with date details
-    expect(screen.getByText(/Wednesday, April 15, 2026/)).toBeInTheDocument()
+    expect(screen.getByText(new RegExp(formatExpectedScheduleDate(mockScheduleStart)))).toBeInTheDocument()
 
     // Verify position is shown
     expect(screen.getByText('Your Position')).toBeInTheDocument()
@@ -338,11 +345,12 @@ describe('Registered Games Integration', () => {
 
   // Test 9: Multiple games display in grid layout
   it('displays multiple registered games in a grid', async () => {
+    const schedule2Start = futureDateISO(30)
     const mockSchedule2: ScheduleWithLocation = {
       ...mockSchedule,
       id: 'schedule-3',
-      start_time: '2026-04-16T11:00:00Z',
-      end_time: '2026-04-16T13:00:00Z',
+      start_time: schedule2Start,
+      end_time: new Date(new Date(schedule2Start).getTime() + 7_200_000).toISOString(),
     }
 
     const mockClient = {
