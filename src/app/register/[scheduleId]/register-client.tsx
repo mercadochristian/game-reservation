@@ -16,7 +16,7 @@ import { getUserFriendlyMessage } from '@/lib/errors/messages'
 import { SKILL_LEVEL_LABELS, POSITION_LABELS } from '@/lib/constants/labels'
 import { formatScheduleDateWithWeekday, formatScheduleTime } from '@/lib/utils/timezone'
 import { formatScheduleLabel } from '@/lib/utils/schedule-label'
-import { computeSoloAmount } from '@/lib/utils/pricing'
+import { computeSoloAmount, computeSoloAmountOriginal } from '@/lib/utils/pricing'
 import { isPositionFull, canCreateFullTeam } from '@/lib/utils/registration-helpers'
 
 type ScheduleSlot = {
@@ -71,12 +71,23 @@ function computeCartTotal(
   mode: 'solo' | 'group' | 'team',
   position: PlayerPosition | null,
   groupPlayers: GroupPlayer_[]
-): { totalAmount: number; costLines: Array<{ label: string; amount: number }> } {
+): {
+  totalAmount: number
+  costLines: Array<{ label: string; amount: number }>
+  subtotalAmount: number
+  discountAmount: number
+  discountType: string | null
+  discountValue: number | null
+} {
   const costLines: Array<{ label: string; amount: number }> = []
 
   if (Object.keys(selectedSchedules).length === 0) {
-    return { totalAmount: 0, costLines: [] }
+    return { totalAmount: 0, costLines: [], subtotalAmount: 0, discountAmount: 0, discountType: null, discountValue: null }
   }
+
+  const primarySlot = Object.values(selectedSchedules)[0]
+  const discountType = primarySlot.schedule.discount_type
+  const discountValue = primarySlot.schedule.discount_value
 
   if (mode === 'solo') {
     Object.values(selectedSchedules).forEach(slot => {
@@ -84,32 +95,82 @@ function computeCartTotal(
         {
           position_prices: slot.schedule.position_prices as Record<string, number>,
           team_price: slot.schedule.team_price,
+          discount_type: slot.schedule.discount_type,
+          discount_value: slot.schedule.discount_value,
         },
         position
       )
       costLines.push({ label: slot.schedule.locations?.name || 'Game', amount })
     })
   } else if (mode === 'group') {
-    const primarySlot = Object.values(selectedSchedules)[0]
     groupPlayers.forEach(player => {
       const amount = computeSoloAmount(
         {
           position_prices: primarySlot.schedule.position_prices as Record<string, number>,
           team_price: primarySlot.schedule.team_price,
+          discount_type: primarySlot.schedule.discount_type,
+          discount_value: primarySlot.schedule.discount_value,
         },
         player.preferred_position
       )
       costLines.push({ label: `${player.first_name} ${player.last_name}`, amount })
     })
   } else {
-    const primarySlot = Object.values(selectedSchedules)[0]
     const teamPrice = primarySlot.schedule.team_price || 0
     costLines.push({ label: 'Team Registration', amount: teamPrice })
   }
 
   const totalAmount = costLines.reduce((sum, line) => sum + line.amount, 0)
 
-  return { totalAmount, costLines }
+  // Compute subtotal and discount
+  let subtotalAmount = 0
+  if (mode === 'solo') {
+    Object.values(selectedSchedules).forEach(slot => {
+      const amount = computeSoloAmountOriginal(
+        {
+          position_prices: slot.schedule.position_prices as Record<string, number>,
+          team_price: slot.schedule.team_price,
+        },
+        position
+      )
+      subtotalAmount += amount
+    })
+  } else if (mode === 'group') {
+    groupPlayers.forEach(player => {
+      const amount = computeSoloAmountOriginal(
+        {
+          position_prices: primarySlot.schedule.position_prices as Record<string, number>,
+          team_price: primarySlot.schedule.team_price,
+        },
+        player.preferred_position
+      )
+      subtotalAmount += amount
+    })
+  } else {
+    subtotalAmount = primarySlot.schedule.team_price || 0
+  }
+
+  const discountAmount = Math.max(0, subtotalAmount - totalAmount)
+
+  return { totalAmount, costLines, subtotalAmount, discountAmount, discountType, discountValue }
+}
+
+function PriceDisplay({
+  original,
+  discounted,
+  hasDiscount,
+}: {
+  original: number
+  discounted: number
+  hasDiscount: boolean
+}) {
+  if (!hasDiscount) return <span className="font-bold">₱{discounted.toFixed(0)}</span>
+  return (
+    <span>
+      <span className="line-through text-muted-foreground mr-2">₱{original.toFixed(0)}</span>
+      <span className="text-accent font-bold">₱{discounted.toFixed(0)}</span>
+    </span>
+  )
 }
 
 export interface RegisterClientProps {
@@ -160,6 +221,7 @@ export function RegisterClient({
   // Group registration state
   const [mode, setMode] = useState<'solo' | 'group' | 'team'>('solo')
   const [cartModalOpen, setCartModalOpen] = useState(false)
+  const [waiverAccepted, setWaiverAccepted] = useState(false)
   const [groupPlayers, setGroupPlayers] = useState<GroupPlayer_[]>([
     {
       id: `user-${user.id}`,
@@ -583,7 +645,7 @@ export function RegisterClient({
   }
 
   const primarySchedule = primaryScheduleSlot.schedule
-  const { totalAmount } = computeCartTotal(selectedSchedules, mode, position, groupPlayers)
+  const { totalAmount, discountAmount, discountType, discountValue } = computeCartTotal(selectedSchedules, mode, position, groupPlayers)
   const scheduleCount = Object.keys(selectedSchedules).length
 
   // Error state
@@ -778,10 +840,17 @@ export function RegisterClient({
                 </p>
                 <p className="text-[11px] text-slate-400 text-xs mt-0.5">{s.locations?.address}</p>
                 <p className="text-[15px] font-extrabold text-sky-400 mt-2">
-                  ₱{computeSoloAmount(
-                    { position_prices: s.position_prices as Record<string, number>, team_price: s.team_price },
-                    position
-                  ).toFixed(0)}
+                  <PriceDisplay
+                    original={computeSoloAmountOriginal(
+                      { position_prices: s.position_prices as Record<string, number>, team_price: s.team_price },
+                      position
+                    )}
+                    discounted={computeSoloAmount(
+                      { position_prices: s.position_prices as Record<string, number>, team_price: s.team_price, discount_type: s.discount_type, discount_value: s.discount_value },
+                      position
+                    )}
+                    hasDiscount={!!(s.discount_type && s.discount_value)}
+                  />
                 </p>
                 <p className="text-[10px] text-slate-600 mt-0.5">
                   {(s.max_players - slot.registrationCount)} spots remaining
@@ -827,10 +896,17 @@ export function RegisterClient({
                           <div className="min-w-0">
                             <p className="text-[11px] font-semibold text-white truncate">{s.locations?.name}</p>
                             <p className="text-[10px] text-sky-400">
-                              {formatScheduleDateWithWeekday(s.start_time)} · ₱{computeSoloAmount(
-                                { position_prices: s.position_prices as Record<string, number>, team_price: s.team_price },
-                                position
-                              ).toFixed(0)}
+                              {formatScheduleDateWithWeekday(s.start_time)} · <PriceDisplay
+                                original={computeSoloAmountOriginal(
+                                  { position_prices: s.position_prices as Record<string, number>, team_price: s.team_price },
+                                  position
+                                )}
+                                discounted={computeSoloAmount(
+                                  { position_prices: s.position_prices as Record<string, number>, team_price: s.team_price, discount_type: s.discount_type, discount_value: s.discount_value },
+                                  position
+                                )}
+                                hasDiscount={!!(s.discount_type && s.discount_value)}
+                              />
                             </p>
                           </div>
                           <Button size="xs" onClick={() => handleAddSchedule(s)} className="shrink-0">
@@ -848,25 +924,47 @@ export function RegisterClient({
 
         {/* Spacer + Total + CTA */}
         <div className="flex-shrink-0 mt-auto border-t border-[#1e293b] px-5 py-4 space-y-3">
-          <div className="flex justify-between items-center">
-            <p className="text-[11px] text-slate-500">Total</p>
+          {discountAmount > 0 && (
+            <div className="space-y-2 pb-2">
+              <div className="flex justify-between items-center text-[11px] text-slate-600">
+                <p>Subtotal</p>
+                <p className="line-through">₱{(discountAmount + totalAmount).toFixed(0)}</p>
+              </div>
+              <div className="flex justify-between items-center text-[11px] text-[#6ee7b7] font-semibold">
+                <p>
+                  Discount ({discountType === 'percent' ? `${discountValue}%` : `₱${discountValue}`})
+                </p>
+                <p>− ₱{discountAmount.toFixed(0)}</p>
+              </div>
+            </div>
+          )}
+          <div className="flex justify-between items-center border-t border-[#334155] pt-2">
+            <p className="text-[11px] text-slate-500">Total Due</p>
             <p className="text-[18px] font-extrabold text-white">₱{totalAmount.toFixed(0)}</p>
           </div>
-          <p className="text-xs text-slate-400 text-center">
-            By clicking Register, you agree to our{' '}
-            <a
-              href="/waiver"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="underline text-sky-400 hover:text-sky-300 transition-colors"
-            >
-              Waiver Agreement
-            </a>
-            .
-          </p>
+          <label className="flex items-start gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={waiverAccepted}
+              onChange={e => setWaiverAccepted(e.target.checked)}
+              className="mt-0.5 accent-accent cursor-pointer"
+            />
+            <span className="text-xs text-muted-foreground">
+              I agree to the{' '}
+              <a
+                href="/waiver"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline text-accent hover:text-accent/80 transition-colors"
+              >
+                Waiver Agreement
+              </a>
+            </span>
+          </label>
           <Button
             onClick={handleRegister}
             disabled={
+              !waiverAccepted ||
               !paymentFile ||
               isSubmitting ||
               registrationNote.length > 200 ||
@@ -1356,26 +1454,34 @@ export function RegisterClient({
 
       {/* ── MOBILE: Fixed footer bar ── */}
       <div className="lg:hidden fixed bottom-0 inset-x-0 z-20 bg-[#0f172a] flex flex-col">
-        <p className="text-xs text-slate-400 text-center px-4 pt-3 pb-1">
-          By clicking Register, you agree to our{' '}
-          <a
-            href="/waiver"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="underline text-sky-400 hover:text-sky-300 transition-colors"
-          >
-            Waiver Agreement
-          </a>
-          .
-        </p>
+        <label className="flex items-start gap-2 cursor-pointer px-4 pt-3 pb-1">
+          <input
+            type="checkbox"
+            checked={waiverAccepted}
+            onChange={e => setWaiverAccepted(e.target.checked)}
+            className="mt-0.5 accent-accent cursor-pointer"
+          />
+          <span className="text-xs text-muted-foreground">
+            I agree to the{' '}
+            <a
+              href="/waiver"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline text-accent hover:text-accent/80 transition-colors"
+            >
+              Waiver Agreement
+            </a>
+          </span>
+        </label>
         <div className="px-4 py-3 flex items-center justify-between">
           <div>
-            <p className="text-[11px] text-slate-500">{scheduleCount} {scheduleCount === 1 ? 'game' : 'games'} selected</p>
-            <p className="text-sm font-extrabold text-sky-400">₱{totalAmount.toFixed(0)}</p>
+            <p className="text-[11px] text-muted-foreground">{scheduleCount} {scheduleCount === 1 ? 'game' : 'games'} selected</p>
+            <p className="text-sm font-extrabold text-accent">₱{totalAmount.toFixed(0)}</p>
           </div>
           <Button
           onClick={handleRegister}
           disabled={
+            !waiverAccepted ||
             !paymentFile ||
             isSubmitting ||
             registrationNote.length > 200 ||
@@ -1441,10 +1547,17 @@ export function RegisterClient({
                       </div>
                       <div className="text-right ml-3">
                         <p className="text-[14px] font-extrabold text-primary">
-                          ₱{computeSoloAmount(
-                            { position_prices: s.position_prices as Record<string, number>, team_price: s.team_price },
-                            position
-                          ).toFixed(0)}
+                          <PriceDisplay
+                            original={computeSoloAmountOriginal(
+                              { position_prices: s.position_prices as Record<string, number>, team_price: s.team_price },
+                              position
+                            )}
+                            discounted={computeSoloAmount(
+                              { position_prices: s.position_prices as Record<string, number>, team_price: s.team_price, discount_type: s.discount_type, discount_value: s.discount_value },
+                              position
+                            )}
+                            hasDiscount={!!(s.discount_type && s.discount_value)}
+                          />
                         </p>
                         {!isPrimary && (
                           <button
@@ -1496,10 +1609,17 @@ export function RegisterClient({
                                 <div className="min-w-0">
                                   <p className="text-sm font-semibold text-slate-900 truncate">{s.locations?.name}</p>
                                   <p className="text-xs text-slate-600">
-                                    {formatScheduleDateWithWeekday(s.start_time)} · ₱{computeSoloAmount(
-                                      { position_prices: s.position_prices as Record<string, number>, team_price: s.team_price },
-                                      position
-                                    ).toFixed(0)}
+                                    {formatScheduleDateWithWeekday(s.start_time)} · <PriceDisplay
+                                      original={computeSoloAmountOriginal(
+                                        { position_prices: s.position_prices as Record<string, number>, team_price: s.team_price },
+                                        position
+                                      )}
+                                      discounted={computeSoloAmount(
+                                        { position_prices: s.position_prices as Record<string, number>, team_price: s.team_price, discount_type: s.discount_type, discount_value: s.discount_value },
+                                        position
+                                      )}
+                                      hasDiscount={!!(s.discount_type && s.discount_value)}
+                                    />
                                   </p>
                                 </div>
                                 <Button size="xs" onClick={() => { handleAddSchedule(s); setPanelOpen(false) }} className="shrink-0">
@@ -1517,9 +1637,25 @@ export function RegisterClient({
 
               {/* Total + Done */}
               <div className="px-5 py-4 border-t border-border space-y-4">
-                <div className="flex justify-between items-center">
-                  <p className="text-xs text-slate-600 font-semibold">Total</p>
-                  <p className="text-2xl font-black text-slate-900">₱{totalAmount.toFixed(0)}</p>
+                {discountAmount > 0 && (
+                  <div className="space-y-2 pb-2">
+                    <div className="flex justify-between items-center text-xs text-slate-600">
+                      <p>Subtotal</p>
+                      <p className="line-through">₱{(discountAmount + totalAmount).toFixed(0)}</p>
+                    </div>
+                    <div className="flex justify-between items-center text-xs text-green-600 font-semibold">
+                      <p>
+                        Discount ({discountType === 'percent' ? `${discountValue}%` : `₱${discountValue}`})
+                      </p>
+                      <p>− ₱{discountAmount.toFixed(0)}</p>
+                    </div>
+                  </div>
+                )}
+                <div className={discountAmount > 0 ? 'border-t border-border pt-2' : ''}>
+                  <div className="flex justify-between items-center">
+                    <p className="text-xs text-slate-600 font-semibold">Total Due</p>
+                    <p className="text-2xl font-black text-slate-900">₱{totalAmount.toFixed(0)}</p>
+                  </div>
                 </div>
                 <Button className="w-full" onClick={() => setCartModalOpen(false)}>
                   Done
