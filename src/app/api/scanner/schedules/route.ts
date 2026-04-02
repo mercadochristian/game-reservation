@@ -3,6 +3,7 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { NextRequest, NextResponse } from 'next/server'
 import { getTodayManilaKey } from '@/lib/utils/timezone'
 import { logError } from '@/lib/logger'
+import { getUserRole } from '@/lib/queries'
 
 type ScannerRole = 'admin' | 'super_admin' | 'facilitator'
 const ALLOWED_ROLES: ScannerRole[] = ['admin', 'super_admin', 'facilitator']
@@ -57,11 +58,7 @@ export async function GET(req: NextRequest) {
     }
 
     // Verify role
-    const { data: userProfile, error: userError } = await supabase
-      .from('users')
-      .select('role')
-      .eq('id', authUser.id)
-      .single() as { data: { role: string } | null; error: any }
+    const { data: userProfile, error: userError } = await getUserRole(supabase, authUser.id)
 
     if (userError || !userProfile || !ALLOWED_ROLES.includes(userProfile.role as ScannerRole)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })

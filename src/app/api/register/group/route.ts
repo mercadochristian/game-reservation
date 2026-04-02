@@ -12,6 +12,17 @@ import {
 } from '@/lib/utils/registration-positions'
 import { createGuestUser } from '@/lib/services/guest-user'
 import { computeGroupAmount, computeTeamAmount } from '@/lib/utils/pricing'
+import {
+  getScheduleForRegistration,
+  getRegistrationCountForSchedule,
+  checkDuplicateRegistrations,
+  createRegistrations,
+  getUserById,
+  getUserFirstName,
+  createTeam,
+  createTeamMembers,
+  createPayment,
+} from '@/lib/queries'
 
 interface PlayerResolution {
   index: number
@@ -49,11 +60,7 @@ export async function POST(request: NextRequest) {
     const serviceClient = createServiceClient()
 
     // Schedule validation: check if schedule is available (not past, not full, not cancelled)
-    const { data: schedule, error: scheduleError } = await (serviceClient
-      .from('schedules')
-      .select('start_time, status, max_players, position_prices, team_price')
-      .eq('id', validated.schedule_id)
-      .single() as any)
+    const { data: schedule, error: scheduleError } = await getScheduleForRegistration(serviceClient, validated.schedule_id)
 
     if (scheduleError || !schedule) {
       return NextResponse.json(
@@ -85,10 +92,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if schedule has available slots
-    const { count: existingRegistrationCount } = await serviceClient
-      .from('registrations')
-      .select('*', { count: 'exact', head: true })
-      .eq('schedule_id', validated.schedule_id)
+    const { count: existingRegistrationCount } = await getRegistrationCountForSchedule(serviceClient, validated.schedule_id)
 
     const slotsRemaining = (schedule.max_players ?? 0) - (existingRegistrationCount ?? 0)
     if (slotsRemaining < validated.players.length) {
@@ -176,11 +180,7 @@ export async function POST(request: NextRequest) {
       try {
         if (player.type === 'existing') {
           // Verify user exists
-          const { data: existingUser, error: lookupError } = await supabase
-            .from('users')
-            .select('id')
-            .eq('id', player.user_id)
-            .single()
+          const { data: existingUser, error: lookupError } = await getUserById(supabase, player.user_id)
 
           if (lookupError || !existingUser) {
             resolution.error = 'User not found'
@@ -237,11 +237,7 @@ export async function POST(request: NextRequest) {
       .filter((r) => r.user_id)
       .map((r) => r.user_id as string)
 
-    const { data: existingRegs } = await supabase
-      .from('registrations')
-      .select('player_id')
-      .eq('schedule_id', validated.schedule_id)
-      .in('player_id', playerIds) as { data: Array<{ player_id: string }> | null; error: any }
+    const { data: existingRegs } = await checkDuplicateRegistrations(supabase, validated.schedule_id, playerIds)
 
     if (existingRegs && existingRegs.length > 0) {
       const duplicateIds = existingRegs.map((r) => r.player_id)
@@ -290,10 +286,7 @@ export async function POST(request: NextRequest) {
         registration_note,
       }))
 
-    const { data: insertedRegistrations, error: insertError } = await (serviceClient
-      .from('registrations') as any)
-      .insert(registrationInserts)
-      .select('id, player_id')
+    const { data: insertedRegistrations, error: insertError } = await createRegistrations(serviceClient, registrationInserts as any)
 
     if (insertError) {
       logError('register.group.batch_insert', insertError, authUser.id, { playerCount: registrationInserts.length })
@@ -304,19 +297,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Step 5: Create pre-formed team and assign members (for group/team modes)
-    const { data: registrantUser } = await supabase
-      .from('users')
-      .select('first_name')
-      .eq('id', authUser.id)
-      .single() as { data: { first_name: string | null } | null; error: any }
+    const { data: registrantUser } = await getUserFirstName(supabase, authUser.id)
 
     const teamName = `${registrantUser?.first_name || 'Group'}'s ${validated.registration_mode === 'team' ? 'Team' : 'Group'}`
 
-    const { data: team, error: teamError } = await (serviceClient
-      .from('teams') as any)
-      .insert({ schedule_id: validated.schedule_id, name: teamName })
-      .select('id')
-      .single()
+    const { data: team, error: teamError } = await createTeam(serviceClient, { schedule_id: validated.schedule_id, name: teamName })
 
     if (teamError || !team) {
       logError('register.group.team_create', teamError || new Error('Unknown team error'), authUser.id, { teamName })
@@ -334,13 +319,11 @@ export async function POST(request: NextRequest) {
       .map((r: PlayerResolution & { user_id: string }) => ({
         team_id: team.id,
         player_id: r.user_id,
-        registration_id: regsByPlayerId.get(r.user_id),
+        registration_id: regsByPlayerId.get(r.user_id) as string | undefined,
         position: r.player.preferred_position,
       }))
 
-    const { error: teamMemberError } = await (serviceClient
-      .from('team_members') as any)
-      .insert(teamMemberInserts)
+    const { error: teamMemberError } = await createTeamMembers(serviceClient, teamMemberInserts)
 
     if (teamMemberError) {
       logError('register.group.team_members', teamMemberError, authUser.id, { teamId: team?.id, memberCount: teamMemberInserts.length })
@@ -361,20 +344,16 @@ export async function POST(request: NextRequest) {
               .map((r) => r.player.preferred_position)
           )
 
-    const { data: userPayment, error: userPaymentError } = await (serviceClient
-      .from('registration_payments') as any)
-      .insert({
-        team_id: team.id,
-        payer_id: authUser.id,
-        schedule_id: validated.schedule_id,
-        registration_type: validated.registration_mode,
-        required_amount: requiredAmount,
-        payment_status: 'pending',
-        payment_proof_url: validated.payment_proof_path,
-        payment_channel_id: validated.payment_channel_id || null,
-      })
-      .select('id')
-      .single()
+    const { data: userPayment, error: userPaymentError } = await createPayment(serviceClient, {
+      team_id: team.id,
+      payer_id: authUser.id,
+      schedule_id: validated.schedule_id,
+      registration_type: validated.registration_mode,
+      required_amount: requiredAmount,
+      payment_status: 'pending',
+      payment_proof_url: validated.payment_proof_path,
+      payment_channel_id: validated.payment_channel_id || null,
+    })
 
     if (userPaymentError || !userPayment) {
       logError('register.group.user_payment', userPaymentError || new Error('Unknown payment error'), authUser.id, { teamId: team?.id })

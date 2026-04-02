@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { NextRequest, NextResponse } from 'next/server'
+import { getUserRole, getUsersByIds } from '@/lib/queries'
 
 export async function GET(req: NextRequest) {
   try {
@@ -20,11 +21,7 @@ export async function GET(req: NextRequest) {
     }
 
     // Verify admin role
-    const { data: adminUser, error: adminError } = await supabase
-      .from('users')
-      .select('role')
-      .eq('id', authUser.id)
-      .single() as { data: { role: string } | null; error: any }
+    const { data: adminUser, error: adminError } = await getUserRole(supabase, authUser.id)
 
     if (adminError || !adminUser || (adminUser.role !== 'admin' && adminUser.role !== 'super_admin')) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
@@ -102,10 +99,7 @@ export async function GET(req: NextRequest) {
       // 4. Fetch users for player names
       let userMap: Record<string, any> = {}
       if (playerIds.length > 0) {
-        const { data: usersData, error: usersError } = await serviceSubabase
-          .from('users')
-          .select('id, first_name, last_name, email, skill_level, is_guest')
-          .in('id', playerIds)
+        const { data: usersData, error: usersError } = await getUsersByIds(serviceSubabase, playerIds)
 
         if (usersError) throw usersError
         userMap = (usersData || []).reduce((acc: any, user: any) => {

@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { paymentEditSchema } from '@/lib/validations/payment-edit'
 import { logActivity, logError } from '@/lib/logger'
+import { getUserRole, updatePaymentExtraction } from '@/lib/queries'
 
 export async function PATCH(
   request: NextRequest,
@@ -18,11 +19,7 @@ export async function PATCH(
   }
 
   // Verify admin role
-  const { data: adminUser, error: roleError } = await supabase
-    .from('users')
-    .select('role')
-    .eq('id', user.id)
-    .single() as { data: { role: string } | null; error: any }
+  const { data: adminUser, error: roleError } = await getUserRole(supabase, user.id)
 
   if (roleError || !adminUser || (adminUser.role !== 'admin' && adminUser.role !== 'super_admin')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
@@ -53,16 +50,13 @@ export async function PATCH(
   const payment_note = rawNote?.trim() || null
 
   const serviceClient = createServiceClient()
-  const { error: updateError } = await (serviceClient
-    .from('registration_payments') as any)
-    .update({
-      extracted_amount,
-      extracted_reference,
-      extracted_datetime,
-      extracted_sender,
-      payment_note,
-    })
-    .eq('id', id)
+  const { error: updateError } = await updatePaymentExtraction(serviceClient, id, {
+    extracted_amount,
+    extracted_reference,
+    extracted_datetime,
+    extracted_sender,
+    payment_note,
+  })
 
   if (updateError) {
     await logError('payment.edit', updateError, user.id, {

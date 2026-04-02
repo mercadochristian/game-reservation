@@ -1,7 +1,5 @@
-'use client'
-
 import { Suspense } from 'react'
-import { RegisteredGamesSection } from '@/components/registered-games-section'
+import { MyRegistrationsClient } from './my-registrations-client'
 
 function MyRegistrationsLoading() {
   return (
@@ -19,7 +17,7 @@ export default function MyRegistrationsPage() {
   return (
     <div className="min-h-screen bg-background">
       <Suspense fallback={<MyRegistrationsLoading />}>
-        <RegisteredGamesSection includePastGames={true} />
+        <MyRegistrationsClient />
       </Suspense>
     </div>
   )

@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { NextRequest, NextResponse } from 'next/server'
 import { logError } from '@/lib/logger'
+import { getUserRole, getRegistrationsWithPayments } from '@/lib/queries'
 
 type ScannerRole = 'admin' | 'super_admin' | 'facilitator'
 const ALLOWED_ROLES: ScannerRole[] = ['admin', 'super_admin', 'facilitator']
@@ -37,11 +38,7 @@ export async function GET(
     }
 
     // Verify role
-    const { data: userProfile, error: userError } = await supabase
-      .from('users')
-      .select('role')
-      .eq('id', authUser.id)
-      .single() as { data: { role: string } | null; error: any }
+    const { data: userProfile, error: userError } = await getUserRole(supabase, authUser.id)
 
     if (userError || !userProfile || !ALLOWED_ROLES.includes(userProfile.role as ScannerRole)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
@@ -50,10 +47,7 @@ export async function GET(
     const service = createServiceClient()
 
     // Fetch all registrations for the schedule with payment status
-    const { data: registrations, error: registrationsError } = await service
-      .from('registrations')
-      .select('id, player_id, attended, registration_payments(payment_status)')
-      .eq('schedule_id', scheduleId)
+    const { data: registrations, error: registrationsError } = await getRegistrationsWithPayments(service, scheduleId)
 
     if (registrationsError) {
       const errorDetails = {

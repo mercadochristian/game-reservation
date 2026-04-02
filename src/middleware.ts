@@ -2,7 +2,7 @@ import { type NextRequest, NextResponse } from 'next/server'
 import { updateSession } from '@/lib/supabase/middleware'
 import { logError } from '@/lib/logger'
 
-const PUBLIC_ROUTES = ['/auth', '/auth/callback', '/', '/api/registrations/counts', '/api/registrations/by-position']
+const PUBLIC_ROUTES = ['/auth', '/auth/callback', '/', '/waiver', '/api/registrations/counts', '/api/registrations/by-position']
 
 // Exempt from profile-completion redirect: the API that completes the profile
 // and the page itself (prevents a redirect loop).

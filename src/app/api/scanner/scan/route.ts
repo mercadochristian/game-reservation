@@ -4,6 +4,7 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { scanQrSchema } from '@/lib/validations/scanner'
 import { logError } from '@/lib/logger'
 import { z } from 'zod'
+import { getUserRole, getPaymentById } from '@/lib/queries'
 
 type ScannerRole = 'admin' | 'super_admin' | 'facilitator'
 
@@ -96,11 +97,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { data: currentUser, error: userError } = await supabase
-      .from('users')
-      .select('role')
-      .eq('id', authUser.id)
-      .single() as { data: { role: string } | null; error: any }
+    const { data: currentUser, error: userError } = await getUserRole(supabase, authUser.id)
 
     if (userError || !currentUser) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
@@ -178,11 +175,7 @@ export async function POST(request: NextRequest) {
     // Check payment status - only allow attendance marking if payment is approved
     if (paymentStatus !== 'paid') {
       // Fetch payment details for the response
-      const paymentResult = await serviceClient
-        .from('registration_payments')
-        .select('required_amount, payment_note')
-        .eq('registration_id', registration.id)
-        .maybeSingle() as { data: PaymentRow | null; error: any }
+      const paymentResult = await getPaymentById(serviceClient, registration.id)
 
       if (!paymentResult.error && paymentResult.data) {
         return NextResponse.json(
