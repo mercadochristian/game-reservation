@@ -39,6 +39,7 @@ export default defineConfig({
         'src/app/api/profile/complete/route.ts',
         'src/app/api/users/search/route.ts',
         'src/app/api/users/[userId]/ban/route.ts',
+        'src/app/api/users/[userId]/unban/route.ts',
         'src/app/api/register/group/route.ts',
         'src/app/api/admin/register/route.ts',
         'src/app/api/admin/payments/schedules/route.ts',

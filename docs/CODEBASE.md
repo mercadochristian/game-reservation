@@ -1885,5 +1885,6 @@ Log all new features, pages, API routes, and significant changes here.
 | 2026-03-29 | Merged Registrations Dashboard (in design) | `docs/superpowers/plans/2026-03-29-merged-registrations-dashboard.md`, `docs/superpowers/specs/2026-03-29-merged-registrations-dashboard-design.md` | New admin view combining all registrations with location-first filtering and games grouped by time. Improves UX for admins managing multiple games across venues. Design phase complete; implementation pending. |
 | 2026-04-03 | Add banned_at to users | `supabase/migrations/20260403000000_add_banned_at_to_users.sql`, `src/types/database.ts` | Adds nullable timestamptz column for soft-ban support. NULL = active user. |
 | 2026-04-03 | Ban user API route | `src/app/api/users/[userId]/ban/route.ts`, `src/app/api/users/[userId]/ban/__tests__/route.test.ts` | PATCH /api/users/[userId]/ban — admin/super_admin only. Sets banned_at timestamp. Validates caller role, prevents self-ban, prevents admin banning admin. |
+| 2026-04-03 | Unban user API route | `src/app/api/users/[userId]/unban/route.ts`, `src/app/api/users/[userId]/unban/__tests__/route.test.ts` | PATCH /api/users/[userId]/unban — admin/super_admin only. Clears banned_at timestamp (recovery action). |
 | | | | |
 
