@@ -413,4 +413,5 @@ A record of implemented features. Updated as new features are deployed.
 | 2026-03-28 | My Registrations (Player View) | Players can now view all their past and upcoming game registrations in one place. Shows game details, location, payment status, QR codes for check-in on upcoming games, and attendance status for completed games. Available from the main dashboard for all authenticated users. |
 | 2026-03-29 | Merged Registrations Dashboard | New admin view combining all registrations with location-first filtering and grouped games by time. Enables admins to manage payments and lineup assignments more efficiently. |
 | 2026-04-01 | Registration & Payment Notes | Players can add optional 200-character notes during registration (visible to player, write-once). Admins can add/edit 200-character notes on payment records for context during payment reviews and corrections. |
+| 2026-04-03 | User Ban Support | Soft-ban functionality adds a nullable `banned_at` timestamp to user profiles. When set, the user is marked as banned; when NULL, the user is active. Enables admin control of player access without deleting accounts. |
 

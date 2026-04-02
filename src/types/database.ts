@@ -577,6 +577,7 @@ export type Database = {
         }
         Insert: {
           avatar_url?: string | null
+          banned_at?: string | null
           birthday_day?: number | null
           birthday_month?: number | null
           birthday_year?: number | null
