@@ -10,6 +10,7 @@ import { useSchedulesByLocation } from '@/lib/hooks/useSchedulesByLocation'
 import { RegistrationsFilterBar } from './registrations-filter-bar'
 import { UpcomingGamesSection } from './upcoming-games-section'
 import { PastGamesSection } from './past-games-section'
+import { AdminRegistrationDialog } from './admin-registration-dialog'
 import type { Location } from '@/types'
 
 interface RegistrationsClientProps {
@@ -45,8 +46,10 @@ export function RegistrationsClient({
   const [isPastGamesExpanded, setIsPastGamesExpanded] = useState(false)
   const [upcomingPage, setUpcomingPage] = useState(1)
   const [pastPage, setPastPage] = useState(1)
+  const [registerDialogOpen, setRegisterDialogOpen] = useState(false)
+  const [registerTargetScheduleId, setRegisterTargetScheduleId] = useState<string | null>(null)
 
-  const { upcomingSchedules, pastSchedules, registrationsByScheduleId, loading } =
+  const { upcomingSchedules, pastSchedules, registrationsByScheduleId, loading, refetch } =
     useSchedulesByLocation(selectedLocationId, selectedDateRange)
 
   const PAGE_SIZE = 10
@@ -64,17 +67,9 @@ export function RegistrationsClient({
   }, [])
 
   const handleRegisterPlayer = useCallback((scheduleId: string) => {
-    // State is already synced to URL by useEffect, just add the registration params
-    const params = new URLSearchParams()
-    if (selectedLocationId) params.set('locationId', selectedLocationId)
-    if (selectedDateRange !== 'all') params.set('dateRange', selectedDateRange)
-    if (expandedScheduleIds.size > 0) {
-      params.set('expanded', Array.from(expandedScheduleIds).join(','))
-    }
-    params.set('scheduleId', scheduleId)
-    params.set('openRegister', 'true')
-    router.push(`/dashboard/registrations?${params.toString()}`)
-  }, [router, selectedLocationId, selectedDateRange, expandedScheduleIds])
+    setRegisterTargetScheduleId(scheduleId)
+    setRegisterDialogOpen(true)
+  }, [])
 
   const handleManageLineups = useCallback((scheduleId: string) => {
     // Add return URL params so we can restore state when coming back
@@ -86,6 +81,15 @@ export function RegistrationsClient({
     }
     router.push(`/dashboard/lineups/${scheduleId}?${params.toString()}`)
   }, [router, selectedLocationId, selectedDateRange, expandedScheduleIds])
+
+  const handleDialogClose = useCallback(() => {
+    setRegisterDialogOpen(false)
+    setRegisterTargetScheduleId(null)
+  }, [])
+
+  const handleDialogSuccess = useCallback(() => {
+    refetch()
+  }, [refetch])
 
   // Sync state to URL whenever filters change (use replace to avoid polluting history)
   useEffect(() => {
@@ -170,6 +174,19 @@ export function RegistrationsClient({
           onPageChange={setPastPage}
         />
       </motion.div>
+
+      {registerDialogOpen && registerTargetScheduleId && (() => {
+        const targetSchedule = upcomingSchedules.find((s) => s.id === registerTargetScheduleId)
+        if (!targetSchedule) return null
+        return (
+          <AdminRegistrationDialog
+            open={registerDialogOpen}
+            schedule={targetSchedule}
+            onClose={handleDialogClose}
+            onSuccess={handleDialogSuccess}
+          />
+        )
+      })()}
     </>
   )
 
