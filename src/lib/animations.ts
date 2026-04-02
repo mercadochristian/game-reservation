@@ -27,15 +27,3 @@ export const fadeInVariants: Variants = {
     transition: { duration: 0.2, delay: custom * 0.06 },
   }),
 }
-
-/**
- * Slide in from the left. Useful for drawers and side panels.
- */
-export const slideInVariants: Variants = {
-  hidden: { opacity: 0, x: -24 },
-  visible: (custom: number = 0) => ({
-    opacity: 1,
-    x: 0,
-    transition: { duration: 0.3, delay: custom * 0.1 },
-  }),
-}

@@ -49,9 +49,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true }, { status: 200 })
   } catch (err) {
-    // Catch JSON parsing errors or other unexpected issues
-    console.error('[logs/error API] Unexpected error:', err)
-
     // Still try to log this error
     try {
       const message = err instanceof Error ? err.message : String(err)

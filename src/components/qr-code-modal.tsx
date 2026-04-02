@@ -8,7 +8,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 
-type QRCodeModalProps = {
+interface QRCodeModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   url: string | null

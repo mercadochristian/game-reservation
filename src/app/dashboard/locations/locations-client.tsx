@@ -66,7 +66,7 @@ export function LocationsClient({ initialLocations }: LocationsClientProps) {
           notes: formData.notes || null,
           is_active: formData.is_active,
         }
-        const { error } = await (supabase.from('locations') as any).update(updateData).eq('id', crudDialog.editingId)
+        const { error } = await supabase.from('locations').update(updateData).eq('id', crudDialog.editingId)
 
         if (error) throw error
         toast.success('Location updated')
@@ -90,7 +90,7 @@ export function LocationsClient({ initialLocations }: LocationsClientProps) {
           created_by: currentUser.id,
         }
 
-        const { data, error } = await (supabase.from('locations') as any).insert([insertData]).select()
+        const { data, error } = await supabase.from('locations').insert([insertData]).select()
 
         if (error) throw error
         if (data?.[0]) {
@@ -124,7 +124,7 @@ export function LocationsClient({ initialLocations }: LocationsClientProps) {
   // Handle toggle active
   const handleToggleActive = async (id: string, currentStatus: boolean) => {
     try {
-      const { error } = await (supabase.from('locations') as any).update({ is_active: !currentStatus }).eq('id', id)
+      const { error } = await supabase.from('locations').update({ is_active: !currentStatus }).eq('id', id)
 
       if (error) throw error
       setLocations((prev) => prev.map((loc) => (loc.id === id ? { ...loc, is_active: !currentStatus } : loc)))
@@ -140,7 +140,7 @@ export function LocationsClient({ initialLocations }: LocationsClientProps) {
   const handleDelete = async () => {
     if (!crudDialog.deleteTarget) return
     try {
-      const { error } = await (supabase.from('locations') as any).delete().eq('id', crudDialog.deleteTarget.id)
+      const { error } = await supabase.from('locations').delete().eq('id', crudDialog.deleteTarget.id)
 
       if (error) throw error
       setLocations((prev) => prev.filter((loc) => loc.id !== crudDialog.deleteTarget?.id))

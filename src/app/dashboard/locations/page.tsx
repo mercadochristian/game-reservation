@@ -4,7 +4,7 @@ import { LocationsClient } from './locations-client'
 
 export default async function LocationsPage() {
   const supabase = createServiceClient()
-  const { data } = await (supabase.from('locations') as any)
+  const { data } = await supabase.from('locations')
     .select('*')
     .order('created_at', { ascending: false })
 

@@ -28,7 +28,7 @@ export default async function LineupPage({ params }: PageProps) {
     .from('users')
     .select('role')
     .eq('id', authUser.id)
-    .single() as { data: { role: string } | null }
+    .single()
 
   const allowedRoles = ['admin', 'super_admin', 'facilitator']
   if (!userRecord || !allowedRoles.includes(userRecord.role)) {
@@ -39,8 +39,8 @@ export default async function LineupPage({ params }: PageProps) {
   const serviceClient = createServiceClient()
 
   // Fetch schedule
-  const { data: scheduleData } = await (serviceClient
-    .from('schedules') as any)
+  const { data: scheduleData } = await serviceClient
+    .from('schedules')
     .select('id, num_teams, start_time, end_time, locations!inner(id, name, address, google_map_url)')
     .eq('id', scheduleId)
     .single()
@@ -49,11 +49,12 @@ export default async function LineupPage({ params }: PageProps) {
     redirect('/dashboard/registrations')
   }
 
-  const schedule = scheduleData as ScheduleWithLocation & { num_teams: number }
+  // Foreign key join cannot be validated without full Relationships in Database type
+  const schedule = scheduleData as unknown as ScheduleWithLocation & { num_teams: number }
 
   // Fetch registrations for the schedule
-  const { data: registrationsData } = await (serviceClient
-    .from('registrations') as any)
+  const { data: registrationsData } = await serviceClient
+    .from('registrations')
     .select(`
       id, schedule_id, player_id, team_preference, preferred_position, lineup_team_id,
       users!player_id(id, first_name, last_name, skill_level, is_guest, gender),
@@ -62,16 +63,17 @@ export default async function LineupPage({ params }: PageProps) {
     .eq('schedule_id', scheduleId)
     .order('created_at', { ascending: true })
 
-  const registrations = (registrationsData ?? []) as RegistrationForLineup[]
+  // Foreign key joins (!player_id, !registration_id) require explicit cast
+  const registrations = (registrationsData ?? []) as unknown as RegistrationForLineup[]
 
   // Fetch existing lineup teams
-  const { data: lineupTeamsData } = await (serviceClient.from('teams') as any)
+  const { data: lineupTeamsData } = await serviceClient.from('teams')
     .select('id, name')
     .eq('schedule_id', scheduleId)
     .eq('team_type', 'lineup')
     .order('created_at', { ascending: true })
 
-  const existingLineupTeams = (lineupTeamsData ?? []).map((t: any) => ({
+  const existingLineupTeams = (lineupTeamsData ?? []).map((t) => ({
     id: t.id,
     name: t.name,
   }))

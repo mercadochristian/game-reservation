@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { saveLineupSchema } from '@/lib/validations/lineup'
-import { logError } from '@/lib/logger'
+import { logActivity, logError } from '@/lib/logger'
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { getUserRole, deleteLineupTeams, insertLineupTeams, updateRegistrationLineupTeam } from '@/lib/queries'
@@ -51,7 +51,6 @@ export async function POST(request: NextRequest) {
     const { error: deleteError } = await deleteLineupTeams(serviceClient, validated.schedule_id)
 
     if (deleteError) {
-      console.error('Delete existing lineup teams error:', deleteError)
       void logError('admin.lineups.delete_existing', deleteError, authUser.id, {
         schedule_id: validated.schedule_id,
       })
@@ -71,7 +70,6 @@ export async function POST(request: NextRequest) {
     const { data: insertedTeams, error: insertError } = await insertLineupTeams(serviceClient, teamInserts)
 
     if (insertError || !insertedTeams || insertedTeams.length === 0) {
-      console.error('Insert lineup teams error:', insertError)
       void logError('admin.lineups.insert_teams', insertError || new Error('No teams inserted'), authUser.id, {
         schedule_id: validated.schedule_id,
         team_count: validated.teams.length,
@@ -101,7 +99,6 @@ export async function POST(request: NextRequest) {
       const { error: updateError } = await updateRegistrationLineupTeam(serviceClient, registrationIds, lineupTeamId)
 
       if (updateError) {
-        console.error('Update registrations lineup_team_id error:', updateError)
         void logError('admin.lineups.update_registrations', updateError, authUser.id, {
           schedule_id: validated.schedule_id,
           team_index: teamIndex,
@@ -115,7 +112,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Step 4: Log the activity
-    void logError('admin.lineups.saved', new Error('Lineup saved'), authUser.id, {
+    void logActivity('admin.lineups.saved', authUser.id, {
       schedule_id: validated.schedule_id,
       team_count: validated.teams.length,
       assigned_count: validated.assignments.length,
@@ -134,7 +131,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.error('Save lineup exception:', err)
     void logError(
       'admin.lineups.unhandled',
       err instanceof Error ? err : new Error(String(err))

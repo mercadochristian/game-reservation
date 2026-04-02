@@ -275,10 +275,10 @@ export function EditUserModal({
             {/* Skill Level */}
             <div>
               <Label htmlFor="skill_level">Skill Level</Label>
-              {/* @ts-ignore - React Hook Form type issue with select form fields */}
+              {/* React Hook Form register() is compatible with native select props */}
               <select
                 id="skill_level"
-                {...(register('skill_level', {}) as any)}
+                {...register('skill_level', {})}
                 disabled={!canEditField(currentUserRole, 'skill_level')}
                 className="w-full px-3 py-2 rounded-lg border border-foreground/20 bg-background disabled:opacity-60 disabled:cursor-not-allowed"
               >

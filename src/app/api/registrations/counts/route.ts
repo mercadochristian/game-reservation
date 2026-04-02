@@ -1,5 +1,6 @@
 import { createServiceClient } from '@/lib/supabase/service'
 import { NextRequest, NextResponse } from 'next/server'
+import { logError } from '@/lib/logger'
 
 /**
  * GET /api/registrations/counts?schedule_ids=id1,id2,...
@@ -34,7 +35,7 @@ export async function GET(request: NextRequest) {
       .in('schedule_id', scheduleIds)
 
     if (error) {
-      console.error('[GET /api/registrations/counts] Query error:', error)
+      void logError('registrations.counts.query_failed', error)
       return NextResponse.json(
         { error: 'Failed to fetch registration counts' },
         { status: 500 }
@@ -59,7 +60,7 @@ export async function GET(request: NextRequest) {
       headers: { 'Cache-Control': 'private, max-age=30, stale-while-revalidate=60' },
     })
   } catch (err) {
-    console.error('[GET /api/registrations/counts] Exception:', err)
+    void logError('registrations.counts.unhandled', err instanceof Error ? err : new Error(String(err)))
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

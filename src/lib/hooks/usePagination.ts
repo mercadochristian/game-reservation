@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useMemo } from 'react'
 
-const DEFAULT_PAGE_SIZE = 15
+const DEFAULT_PAGE_SIZE = 10
 
 /**
  * Pagination state

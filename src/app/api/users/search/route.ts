@@ -34,14 +34,12 @@ export async function GET(request: NextRequest) {
     const { data: users, error } = await searchUsers(supabase, q)
 
     if (error) {
-      console.error('User search error:', error)
       void logError('users.search.query', error, user?.id, { query: q })
       return NextResponse.json({ error: 'Search failed' }, { status: 500 })
     }
 
     return NextResponse.json(users || [])
   } catch (err) {
-    console.error('User search exception:', err)
     void logError('users.search.unhandled', err instanceof Error ? err : new Error(String(err)))
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }

@@ -18,10 +18,10 @@ describe('usePagination', () => {
       expect(result.current.pageSize).toBe(10)
     })
 
-    it('should default to pageSize 15', () => {
+    it('should default to pageSize 10', () => {
       const items = Array.from({ length: 30 }, (_, i) => ({ id: `item-${i}` }))
       const { result } = renderHook(() => usePagination(items))
-      expect(result.current.pageSize).toBe(15)
+      expect(result.current.pageSize).toBe(10)
     })
   })
 

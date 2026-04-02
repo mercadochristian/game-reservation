@@ -476,14 +476,14 @@ export function RegistrationsClient({
                         </TableCell>
                         <TableCell className="hidden md:table-cell text-sm text-muted-foreground">
                           {(() => {
-                            const lineupTeam = lineupTeams.find((t: { id: string; name: string }) => t.id === (reg as any).lineup_team_id)
+                            const lineupTeam = lineupTeams.find((t: { id: string; name: string }) => t.id === reg.lineup_team_id)
                             const registrationTeam = reg.team_members?.[0]?.teams?.name
                             return lineupTeam?.name ?? registrationTeam ?? 'Unassigned'
                           })()}
                         </TableCell>
                         <TableCell>
-                          <Badge variant={PAYMENT_BADGE_VARIANTS[(reg as any).payment_status || 'pending']} className="whitespace-nowrap">
-                            {((reg as any).payment_status || 'pending').charAt(0).toUpperCase() + ((reg as any).payment_status || 'pending').slice(1)}
+                          <Badge variant={PAYMENT_BADGE_VARIANTS[reg.payment_status || 'pending']} className="whitespace-nowrap">
+                            {(reg.payment_status || 'pending').charAt(0).toUpperCase() + (reg.payment_status || 'pending').slice(1)}
                           </Badge>
                         </TableCell>
                         <TableCell className="hidden md:table-cell text-sm text-muted-foreground">

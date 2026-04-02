@@ -73,6 +73,7 @@ export type Database = {
           profile_completed?: boolean
           is_guest?: boolean
         }
+        Relationships: []
       }
       locations: {
         Row: {
@@ -108,6 +109,7 @@ export type Database = {
           created_at?: string
           updated_at?: string
         }
+        Relationships: []
       }
       schedules: {
         Row: {
@@ -158,6 +160,7 @@ export type Database = {
           created_at?: string
           updated_at?: string
         }
+        Relationships: []
       }
       registrations: {
         Row: {
@@ -229,6 +232,7 @@ export type Database = {
           created_at?: string
           updated_at?: string
         }
+        Relationships: []
       }
       teams: {
         Row: {
@@ -252,6 +256,7 @@ export type Database = {
           team_type?: string
           created_at?: string
         }
+        Relationships: []
       }
       team_members: {
         Row: {
@@ -275,6 +280,7 @@ export type Database = {
           position?: PlayerPosition | null
           registration_id?: string
         }
+        Relationships: []
       }
       mvp_awards: {
         Row: {
@@ -301,6 +307,7 @@ export type Database = {
           note?: string | null
           awarded_at?: string
         }
+        Relationships: []
       }
       payment_channels: {
         Row: {
@@ -339,6 +346,7 @@ export type Database = {
           created_at?: string
           updated_at?: string
         }
+        Relationships: []
       }
       registration_payments: {
         Row: {
@@ -358,6 +366,7 @@ export type Database = {
           extracted_sender: string | null
           extraction_confidence: string | null
           extracted_raw: Json | null
+          payment_note: string | null
           created_at: string
           updated_at: string
         }
@@ -378,6 +387,7 @@ export type Database = {
           extracted_sender?: string | null
           extraction_confidence?: string | null
           extracted_raw?: Json | null
+          payment_note?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -398,9 +408,11 @@ export type Database = {
           extracted_sender?: string | null
           extraction_confidence?: string | null
           extracted_raw?: Json | null
+          payment_note?: string | null
           created_at?: string
           updated_at?: string
         }
+        Relationships: []
       }
       role_whitelist: {
         Row: {
@@ -415,6 +427,7 @@ export type Database = {
           email?: string
           role?: 'admin' | 'player' | 'facilitator' | 'super_admin'
         }
+        Relationships: []
       }
       logs: {
         Row: {
@@ -444,8 +457,11 @@ export type Database = {
           metadata?: Json | null
           created_at?: string
         }
+        Relationships: []
       }
     }
+    Views: {}
+    Functions: {}
     Enums: {
       user_role: 'admin' | 'player' | 'facilitator' | 'super_admin'
       skill_level: SkillLevel

@@ -127,7 +127,7 @@ export function PaymentChannelsClient({ initialChannels }: PaymentChannelsClient
           updateData.qr_code_url = qrCodeUrl
         }
 
-        const { error } = await (supabase.from('payment_channels') as any).update(updateData).eq('id', crudDialog.editingId)
+        const { error } = await supabase.from('payment_channels').update(updateData).eq('id', crudDialog.editingId)
 
         if (error) throw error
 
@@ -162,7 +162,7 @@ export function PaymentChannelsClient({ initialChannels }: PaymentChannelsClient
           qr_code_url: qrCodeUrl,
         }
 
-        const { data, error } = await (supabase.from('payment_channels') as any).insert([insertData]).select()
+        const { data, error } = await supabase.from('payment_channels').insert([insertData]).select()
 
         if (error) throw error
         if (data?.[0]) {
@@ -206,7 +206,8 @@ export function PaymentChannelsClient({ initialChannels }: PaymentChannelsClient
   const handleEdit = (channel: PaymentChannel) => {
     reset()
     setValue('name', channel.name)
-    setValue('provider', channel.provider as any)
+    // DB stores provider as string; cast to the form's enum type (validated on save)
+    setValue('provider', channel.provider as PaymentChannelFormData['provider'])
     setValue('account_number', channel.account_number)
     setValue('account_holder_name', channel.account_holder_name)
     setValue('is_active', channel.is_active)
@@ -222,7 +223,7 @@ export function PaymentChannelsClient({ initialChannels }: PaymentChannelsClient
   // Handle toggle active
   const handleToggleActive = async (id: string, currentStatus: boolean) => {
     try {
-      const { error } = await (supabase.from('payment_channels') as any).update({ is_active: !currentStatus }).eq('id', id)
+      const { error } = await supabase.from('payment_channels').update({ is_active: !currentStatus }).eq('id', id)
 
       if (error) throw error
 
@@ -253,7 +254,7 @@ export function PaymentChannelsClient({ initialChannels }: PaymentChannelsClient
     try {
       const channel = channels.find((ch) => ch.id === crudDialog.deleteTarget?.id)
 
-      const { error } = await (supabase.from('payment_channels') as any).delete().eq('id', crudDialog.deleteTarget.id)
+      const { error } = await supabase.from('payment_channels').delete().eq('id', crudDialog.deleteTarget.id)
 
       if (error) throw error
 

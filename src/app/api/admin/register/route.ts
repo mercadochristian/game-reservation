@@ -1,13 +1,13 @@
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { adminRegistrationSchema } from '@/lib/validations/admin-registration'
-import { GroupPlayer } from '@/lib/validations/group-registration'
+import type { GroupPlayer } from '@/lib/validations/group-registration'
 import { logError } from '@/lib/logger'
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { revalidatePath } from 'next/cache'
 import { createGuestUser } from '@/lib/services/guest-user'
-import { computeSoloAmount, computeGroupAmount, computeTeamAmount } from '@/lib/utils/pricing'
+import { computeSoloAmount, computeGroupAmount, computeTeamAmount, type SchedulePricing } from '@/lib/utils/pricing'
 import {
   getUserRole,
   getSchedulePricing,
@@ -61,14 +61,17 @@ export async function POST(request: NextRequest) {
     const serviceClient = createServiceClient()
 
     // Fetch schedule with pricing
-    const { data: schedule, error: scheduleError } = await getSchedulePricing(serviceClient, validated.schedule_id)
+    const { data: scheduleData, error: scheduleError } = await getSchedulePricing(serviceClient, validated.schedule_id)
 
-    if (scheduleError || !schedule) {
+    if (scheduleError || !scheduleData) {
       return NextResponse.json(
         { error: 'Schedule not found' },
         { status: 404 }
       )
     }
+
+    // Cast Json -> SchedulePricing since position_prices is stored as Json in DB
+    const schedule = scheduleData as unknown as SchedulePricing
 
     // Step 1: Resolve all players (existing or create stub for guests)
     const resolvedPlayers: PlayerResolution[] = []
@@ -192,7 +195,6 @@ export async function POST(request: NextRequest) {
     const { data: insertedRegistrations, error: insertError } = await createRegistrations(serviceClient, registrationInserts as any)
 
     if (insertError) {
-      console.error('Batch registration insert error:', insertError)
       void logError('admin.register.batch_insert', insertError, authUser.id, { playerCount: registrationInserts.length })
       return NextResponse.json(
         { error: 'Registration failed. Please try again.' },
@@ -210,7 +212,6 @@ export async function POST(request: NextRequest) {
       const { data: team, error: teamError } = await createTeam(serviceClient, { schedule_id: validated.schedule_id, name: teamName })
 
       if (teamError || !team) {
-        console.error('Team creation error:', teamError)
         void logError('admin.register.team_create', teamError || new Error('Unknown team error'), authUser.id, { teamName })
         return NextResponse.json(
           { error: 'Team creation failed. Please try again.' },
@@ -228,14 +229,13 @@ export async function POST(request: NextRequest) {
         .map((r: PlayerResolution & { user_id: string }) => ({
           team_id: team.id,
           player_id: r.user_id,
-          registration_id: regsByPlayerId.get(r.user_id) as string | undefined,
+          registration_id: regsByPlayerId.get(r.user_id) ?? '',
           position: r.player.preferred_position,
         }))
 
       const { error: teamMemberError } = await createTeamMembers(serviceClient, teamMemberInserts)
 
       if (teamMemberError) {
-        console.error('Team members insert error:', teamMemberError)
         void logError('admin.register.team_members', teamMemberError, authUser.id, { teamId: team?.id, memberCount: teamMemberInserts.length })
         return NextResponse.json(
           { error: 'Team member assignment failed. Please try again.' },
@@ -263,8 +263,11 @@ export async function POST(request: NextRequest) {
         })
 
         if (paymentError) {
-          console.error('User payment insert error:', paymentError)
           void logError('admin.register.user_payment', paymentError, authUser.id, { registrationId: reg.id })
+          return NextResponse.json(
+            { error: 'Payment record creation failed. Please try again.' },
+            { status: 500 }
+          )
         }
       }
     } else {
@@ -295,8 +298,11 @@ export async function POST(request: NextRequest) {
       })
 
       if (paymentError) {
-        console.error('User payment insert error:', paymentError)
         void logError('admin.register.user_payment', paymentError, authUser.id, { teamId })
+        return NextResponse.json(
+          { error: 'Payment record creation failed. Please try again.' },
+          { status: 500 }
+        )
       }
     }
 
@@ -323,7 +329,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.error('Admin registration exception:', err)
     void logError('admin.register.unhandled', err instanceof Error ? err : new Error(String(err)))
     return NextResponse.json(
       { error: 'Internal server error' },

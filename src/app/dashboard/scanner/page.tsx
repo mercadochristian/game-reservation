@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { getTodayManilaKey } from '@/lib/utils/timezone'
 import { ScannerClient } from './scanner-client'
+import type { Location } from '@/types'
 
 export default async function ScannerPage() {
   const supabase = await createClient()
@@ -15,7 +16,8 @@ export default async function ScannerPage() {
     .eq('is_active', true)
     .order('name', { ascending: true })
 
-  const locations = locationsData || []
+  // Partial select; cast to Location[] as ScannerClient only uses id and name
+  const locations = (locationsData || []) as Location[]
 
   // Fetch schedules for today
   const startIso = `${todayKey}T00:00:00.000Z`
