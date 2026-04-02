@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { NextRequest, NextResponse } from 'next/server'
+import { logError } from '@/lib/logger'
 import { getUserRole, getUsersByIds } from '@/lib/queries'
 
 export async function GET(req: NextRequest) {
@@ -121,7 +122,7 @@ export async function GET(req: NextRequest) {
       registrations,
     })
   } catch (error) {
-    console.error('[API] Registrations fetch error:', error)
+    void logError('admin.registrations.unhandled', error instanceof Error ? error : new Error(String(error)))
     return NextResponse.json(
       { error: 'Failed to fetch registrations' },
       { status: 500 }

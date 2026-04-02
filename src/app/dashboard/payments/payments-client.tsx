@@ -156,7 +156,7 @@ export function PaymentsClient({ locations, initialSearchParams = {}, extraction
     initialSearchParams.locationId || null
   )
   const [selectedDateRange, setSelectedDateRange] = useState<'all' | 'last7' | 'last30' | 'date'>(
-    (initialSearchParams.dateRange as any) || 'all'
+    (initialSearchParams.dateRange as 'all' | 'last7' | 'last30' | 'date') || 'all'
   )
   const [selectedDate, setSelectedDate] = useState<string>(
     initialSearchParams.date || ''
@@ -258,7 +258,7 @@ export function PaymentsClient({ locations, initialSearchParams = {}, extraction
 
   const handleApprove = async (payment: PaymentWithExtraction) => {
     try {
-      const { error } = await (supabase.from('registration_payments') as any)
+      const { error } = await supabase.from('registration_payments')
         .update({ payment_status: 'paid' })
         .eq('id', payment.id)
 
@@ -277,7 +277,7 @@ export function PaymentsClient({ locations, initialSearchParams = {}, extraction
 
   const handleReject = async (payment: PaymentWithExtraction) => {
     try {
-      const { error } = await (supabase.from('registration_payments') as any)
+      const { error } = await supabase.from('registration_payments')
         .update({ payment_status: 'rejected' })
         .eq('id', payment.id)
 
@@ -324,7 +324,7 @@ export function PaymentsClient({ locations, initialSearchParams = {}, extraction
         throw new Error(error.error || 'Failed to update payment')
       }
 
-      const { error: statusError } = await (supabase.from('registration_payments') as any)
+      const { error: statusError } = await supabase.from('registration_payments')
         .update({ payment_status: targetStatus })
         .eq('id', dialogState.editingPayment.id)
 

@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
       })
 
     if (uploadError) {
-      console.error('[QR Upload] Storage upload failed:', uploadError)
+      void logError('payment_channel.qr_upload_storage_failed', uploadError)
       return NextResponse.json(
         { error: 'Failed to upload QR code image' },
         { status: 500 }
@@ -70,7 +70,6 @@ export async function POST(req: NextRequest) {
       path: uploadData.path,
     })
   } catch (error) {
-    console.error('[QR Upload] Unexpected error:', error)
     void logError('payment_channel.qr_upload_failed', error, 'system', {
       errorMessage: error instanceof Error ? error.message : String(error),
     })

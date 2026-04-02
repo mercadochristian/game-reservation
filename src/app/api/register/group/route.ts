@@ -12,7 +12,7 @@ import {
   validateTeamPositions,
 } from '@/lib/utils/registration-positions'
 import { createGuestUser } from '@/lib/services/guest-user'
-import { computeGroupAmount, computeTeamAmount } from '@/lib/utils/pricing'
+import { computeGroupAmount, computeTeamAmount, type SchedulePricing } from '@/lib/utils/pricing'
 import {
   getScheduleForRegistration,
   getRegistrationCountForSchedule,
@@ -272,12 +272,13 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Compute required amount
+    // Compute required amount — cast schedule to SchedulePricing since position_prices is Json in DB
+    const pricing = schedule as unknown as SchedulePricing
     const requiredAmount =
       validated.registration_mode === 'team'
-        ? computeTeamAmount(schedule)
+        ? computeTeamAmount(pricing)
         : computeGroupAmount(
-            schedule,
+            pricing,
             resolvedPlayers
               .filter((r) => r.user_id)
               .map((r) => r.player.preferred_position)

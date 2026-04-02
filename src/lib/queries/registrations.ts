@@ -1,12 +1,16 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+import type { PostgrestError } from '@supabase/postgrest-js'
+import type { Database, Json } from '@/types/database'
 import type { RegistrationInsert } from '@/types'
+
+type DbClient = SupabaseClient<Database>
 
 /**
  * Counts registrations for a schedule (head-only, no data returned).
  * Used for availability checks.
  */
 export async function getRegistrationCountForSchedule(
-  supabase: SupabaseClient,
+  supabase: DbClient,
   scheduleId: string,
 ) {
   return supabase
@@ -20,41 +24,27 @@ export async function getRegistrationCountForSchedule(
  * Returns player_id for any already-registered players.
  */
 export async function checkDuplicateRegistrations(
-  supabase: SupabaseClient,
+  supabase: DbClient,
   scheduleId: string,
   playerIds: string[],
 ) {
-  return (supabase.from('registrations') as any)
+  return supabase.from('registrations')
     .select('player_id')
     .eq('schedule_id', scheduleId)
-    .in('player_id', playerIds) as { data: Array<{ player_id: string }> | null; error: any }
+    .in('player_id', playerIds)
 }
 
 /**
  * Batch inserts registrations and returns their IDs and player_ids.
  */
 export async function createRegistrations(
-  supabase: SupabaseClient,
+  supabase: DbClient,
   records: RegistrationInsert[],
 ) {
-  return (supabase
-    .from('registrations') as any)
+  return supabase
+    .from('registrations')
     .insert(records)
     .select('id, player_id')
-}
-
-/**
- * Marks a registration as attended or not attended.
- */
-export async function updateAttendance(
-  supabase: SupabaseClient,
-  registrationId: string,
-  attended: boolean,
-) {
-  return (supabase
-    .from('registrations') as any)
-    .update({ attended })
-    .eq('id', registrationId)
 }
 
 /**
@@ -62,33 +52,14 @@ export async function updateAttendance(
  * Returns core fields only (no user joins).
  */
 export async function getRegistrationsBySchedule(
-  supabase: SupabaseClient,
+  supabase: DbClient,
   scheduleId: string,
 ) {
   return supabase
     .from('registrations')
-    .select('id, player_id, registered_by, schedule_id, preferred_position, created_at, updated_at')
+    .select('id, player_id, registered_by, schedule_id, preferred_position, registration_note, created_at, updated_at')
     .eq('schedule_id', scheduleId)
     .order('created_at', { ascending: false })
-}
-
-/**
- * Fetches registrations for lineup management with user and team member details.
- * Used by dashboard/lineups/[scheduleId]/page.tsx.
- */
-export async function getRegistrationsForLineup(
-  supabase: SupabaseClient,
-  scheduleId: string,
-) {
-  return (supabase
-    .from('registrations') as any)
-    .select(`
-      id, schedule_id, player_id, team_preference, preferred_position, lineup_team_id,
-      users!player_id(id, first_name, last_name, skill_level, is_guest, gender),
-      team_members!registration_id(team_id, teams(id, name))
-    `)
-    .eq('schedule_id', scheduleId)
-    .order('created_at', { ascending: true })
 }
 
 /**
@@ -96,7 +67,7 @@ export async function getRegistrationsForLineup(
  * Used by scanner routes to determine player eligibility.
  */
 export async function getRegistrationsWithPayments(
-  supabase: SupabaseClient,
+  supabase: DbClient,
   scheduleId: string,
 ) {
   return supabase
@@ -106,42 +77,81 @@ export async function getRegistrationsWithPayments(
 }
 
 /**
- * Looks up a registration by qr_token or id (maybeSingle — 0 rows is valid).
- * Used by the scanner scan route.
- */
-export async function lookupRegistrationByField(
-  supabase: SupabaseClient,
-  field: 'qr_token' | 'id',
-  value: string,
-) {
-  return (supabase
-    .from('registrations') as any)
-    .select('id, attended, schedule_id, player_id, registration_payments(payment_status)')
-    .eq(field, value)
-    .maybeSingle()
-}
-
-/**
  * Updates the lineup_team_id for a set of registration IDs.
  * Used by the admin lineups API route.
  */
 export async function updateRegistrationLineupTeam(
-  supabase: SupabaseClient,
+  supabase: DbClient,
   registrationIds: string[],
   lineupTeamId: string | null,
 ) {
-  return (supabase
-    .from('registrations') as any)
+  return supabase
+    .from('registrations')
     .update({ lineup_team_id: lineupTeamId })
     .in('id', registrationIds)
+}
+
+/** Shape returned by getPlayerRegistrations — schedule with nested location and registration. */
+export type PlayerRegistrationRow = {
+  id: string
+  title: string
+  start_time: string
+  end_time: string
+  location_id: string
+  max_players: number
+  num_teams: number
+  required_levels: string[]
+  status: string
+  position_prices: Json | null
+  team_price: number | null
+  created_by: string
+  created_at: string
+  updated_at: string
+  locations: {
+    id: string
+    name: string
+    address: string | null
+    google_map_url: string | null
+    notes: string | null
+    is_active: boolean
+    created_by: string
+    created_at: string
+    updated_at: string
+  }
+  registrations: Array<{
+    id: string
+    schedule_id: string
+    registered_by: string
+    player_id: string
+    team_preference: string
+    payment_status: string
+    payment_proof_url: string | null
+    attended: boolean
+    qr_token: string | null
+    preferred_position: string | null
+    lineup_team_id: string | null
+    payment_channel_id: string | null
+    extracted_amount: number | null
+    extracted_reference: string | null
+    extracted_datetime: string | null
+    extracted_sender: string | null
+    extraction_confidence: string | null
+    extracted_raw: Json | null
+    registration_note: string | null
+    created_at: string
+    updated_at: string
+  }>
 }
 
 /**
  * Fetches paginated registrations for a player (upcoming or past schedules).
  * Used by my-registrations-client.tsx.
+ *
+ * Uses explicit result type because !inner join + range produces a complex
+ * PostgREST shape that TS cannot fully infer.
  */
 export async function getPlayerRegistrations(
-  supabase: SupabaseClient,
+  supabase: DbClient,
   userId: string,
   timeFilter: 'upcoming' | 'past',
   page: number,
@@ -151,45 +161,16 @@ export async function getPlayerRegistrations(
   const from = page * pageSize
   const to = from + pageSize - 1
 
-  const query = (supabase
-    .from('schedules') as any)
+  const query = supabase
+    .from('schedules')
     .select('*, locations(*), registrations!inner(*)')
     .eq('registrations.player_id', userId)
     .order('start_time', { ascending: timeFilter === 'upcoming' })
     .range(from, to)
 
   if (timeFilter === 'upcoming') {
-    return query.gte('start_time', nowUtc) as Promise<{ data: any[] | null; error: any }>
+    return query.gte('start_time', nowUtc) as unknown as Promise<{ data: PlayerRegistrationRow[] | null; error: PostgrestError | null }>
   } else {
-    return query.lt('start_time', nowUtc) as Promise<{ data: any[] | null; error: any }>
+    return query.lt('start_time', nowUtc) as unknown as Promise<{ data: PlayerRegistrationRow[] | null; error: PostgrestError | null }>
   }
-}
-
-/**
- * Checks whether a player is already registered for a schedule.
- * Returns schedule_id if found (maybeSingle — not found is valid).
- */
-export async function isPlayerRegistered(
-  supabase: SupabaseClient,
-  scheduleId: string,
-  playerId: string,
-) {
-  return supabase
-    .from('registrations')
-    .select('schedule_id')
-    .eq('player_id', playerId)
-    .eq('schedule_id', scheduleId)
-    .maybeSingle()
-}
-
-/**
- * Counts recent registrations (last 5 by created_at).
- * Used by the admin dashboard for activity stats.
- */
-export async function getRecentRegistrationsCount(supabase: SupabaseClient) {
-  return supabase
-    .from('registrations')
-    .select('*', { count: 'exact', head: true })
-    .order('created_at', { ascending: false })
-    .limit(5)
 }

@@ -4,7 +4,7 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { createClient } from '@/lib/supabase/server'
 import { validateUserEditData } from '@/lib/validations/user-edit'
 import { canEditField, canAssignRole } from '@/lib/permissions/user-editing'
-import { logActivity } from '@/lib/logger'
+import { logActivity, logError } from '@/lib/logger'
 
 function isUserRole(value: string): value is UserRole {
   return ['super_admin', 'admin', 'player', 'facilitator'].includes(value)
@@ -181,16 +181,20 @@ export async function PATCH(
 
     // Create audit log entry if role changed
     if (isRoleChanging && validation.data.role) {
-      await logActivity('role_change', userId, {
-        changed_by: currentUser.id,
-        old_role: targetUser.role,
-        new_role: validation.data.role,
-      })
+      try {
+        await logActivity('role_change', userId, {
+          changed_by: currentUser.id,
+          old_role: targetUser.role,
+          new_role: validation.data.role,
+        })
+      } catch (logErr) {
+        void logError('users.role_change.audit_failed', logErr instanceof Error ? logErr : new Error(String(logErr)), authUser.id, { userId })
+      }
     }
 
     return NextResponse.json(updatedUser, { status: 200 })
   } catch (error) {
-    console.error('Error updating user:', error)
+    void logError('users.update.unhandled', error instanceof Error ? error : new Error(String(error)))
     return NextResponse.json(
       { error: 'SERVER_ERROR', message: 'An error occurred while updating user' },
       { status: 500 }

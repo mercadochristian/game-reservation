@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { RegistrationsClient } from '@/components/registrations/registrations-client'
+import type { Location } from '@/types'
 
 interface RegistrationsPageProps {
   readonly searchParams?: Promise<Record<string, string | string[] | undefined>>
@@ -41,6 +42,6 @@ export default async function RegistrationsPage({ searchParams }: RegistrationsP
   const params = await searchParams
 
   return (
-    <RegistrationsClient locations={locations || []} userRole={'admin'} initialSearchParams={params} />
+    <RegistrationsClient locations={(locations || []) as Location[]} userRole={'admin'} initialSearchParams={params} />
   )
 }

@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { NextRequest, NextResponse } from 'next/server'
+import { logError } from '@/lib/logger'
 import { getUserRole, getPaymentStatusBySchedules } from '@/lib/queries'
 
 export interface ScheduleWithPaymentSummary {
@@ -140,7 +141,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json(schedulesWithSummary)
   } catch (error) {
-    console.error('[API] Payments schedules fetch error:', error)
+    void logError('admin.payments.schedules.unhandled', error instanceof Error ? error : new Error(String(error)))
     return NextResponse.json(
       { error: 'Failed to fetch payment schedules' },
       { status: 500 }

@@ -1,5 +1,7 @@
 import { createServiceClient } from '@/lib/supabase/service'
 import { NextRequest, NextResponse } from 'next/server'
+import { logError } from '@/lib/logger'
+import type { PlayerPosition } from '@/types/database'
 
 export async function GET(request: NextRequest) {
   try {
@@ -19,10 +21,10 @@ export async function GET(request: NextRequest) {
       .from('registrations')
       .select('users!player_id(first_name, last_name)')
       .eq('schedule_id', schedule_id)
-      .eq('preferred_position', position)
+      .eq('preferred_position', position as PlayerPosition)
 
     if (error) {
-      console.error('[GET /api/registrations/by-position] Query error:', error)
+      void logError('registrations.by_position.query_failed', error)
       return NextResponse.json(
         { error: 'Failed to fetch registered players' },
         { status: 500 }
@@ -39,7 +41,7 @@ export async function GET(request: NextRequest) {
       headers: { 'Cache-Control': 'private, max-age=30, stale-while-revalidate=60' },
     })
   } catch (err) {
-    console.error('[GET /api/registrations/by-position] Exception:', err)
+    void logError('registrations.by_position.unhandled', err instanceof Error ? err : new Error(String(err)))
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

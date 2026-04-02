@@ -23,35 +23,33 @@ export default async function ErrorLogsPage({
   const currentPage = getIntParam(params, 'page', 1)
   const pageSize = getIntParam(params, 'pageSize', DEFAULT_PAGE_SIZE)
 
-  // Build base filtered query
-  const buildQuery = () => {
-    let query = (supabase.from('logs') as any).select('*, users(email, first_name, last_name)')
-
+  // Build filter conditions shared by count and data queries
+  const applyFilters = <T extends { gte: (col: string, val: string) => T; lt: (col: string, val: string) => T; eq: (col: string, val: string) => T }>(query: T): T => {
+    let q = query
     if (dateFrom) {
-      const startISO = new Date(dateFrom).toISOString()
-      query = query.gte('created_at', startISO)
+      q = q.gte('created_at', new Date(dateFrom).toISOString())
     }
     if (dateTo) {
       const endDate = new Date(dateTo)
       endDate.setDate(endDate.getDate() + 1)
-      query = query.lt('created_at', endDate.toISOString())
+      q = q.lt('created_at', endDate.toISOString())
     }
     if (level && level !== 'all') {
-      query = query.eq('level', level)
+      q = q.eq('level', level)
     }
-
-    return query
+    return q
   }
 
   // Run count + data queries in parallel
+  // Foreign key join (logs -> users) cannot be validated without Relationships in Database type
   const [countResult, dataResult] = await Promise.all([
-    buildQuery().select('*', { count: 'exact', head: true }),
-    buildQuery()
+    applyFilters(supabase.from('logs').select('*', { count: 'exact', head: true })),
+    applyFilters(supabase.from('logs').select('*, users(email, first_name, last_name)'))
       .order('created_at', { ascending: false })
       .range((currentPage - 1) * pageSize, currentPage * pageSize - 1),
   ])
 
-  const logs: LogWithUser[] = dataResult.data ?? []
+  const logs = (dataResult.data ?? []) as unknown as LogWithUser[]
   const totalCount: number = countResult.count ?? 0
 
   return (

@@ -1,13 +1,45 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { PostgrestError } from '@supabase/postgrest-js'
+import type { Database } from '@/types/database'
+
+type DbClient = SupabaseClient<Database>
+
+/**
+ * Payment record with joined registration and payer details.
+ * Typed explicitly because the select includes aliased foreign keys
+ * that PostgREST TS cannot infer (payer:payer_id, users:player_id).
+ */
+export type PaymentWithDetails = {
+  id: string
+  registration_id: string | null
+  payer_id: string
+  registration_type: string
+  payment_status: string
+  payment_proof_url: string | null
+  extracted_amount: number | null
+  extracted_reference: string | null
+  extracted_datetime: string | null
+  extracted_sender: string | null
+  extraction_confidence: string | null
+  created_at: string
+  required_amount: number
+  payment_note: string | null
+  registrations: {
+    id: string
+    player_id: string
+    users: { id: string; first_name: string | null; last_name: string | null } | null
+  } | null
+  payer: { first_name: string | null; last_name: string | null } | null
+}
 
 /**
  * Fetches all payment records for a schedule with registration and payer details.
  * Used by api/admin/payments/[id]/route.ts.
  */
-export async function getPaymentsBySchedule(supabase: SupabaseClient, scheduleId: string) {
-  return (supabase
-    .from('registration_payments') as any)
+export async function getPaymentsBySchedule(supabase: DbClient, scheduleId: string) {
+  // Aliased foreign key joins (payer:payer_id, users:player_id) require explicit result typing
+  return supabase
+    .from('registration_payments')
     .select(
       `id, registration_id, payer_id, registration_type, payment_status, payment_proof_url, extracted_amount, extracted_reference,
        extracted_datetime, extracted_sender, extraction_confidence, created_at, required_amount, payment_note,
@@ -15,7 +47,10 @@ export async function getPaymentsBySchedule(supabase: SupabaseClient, scheduleId
        payer:payer_id(first_name, last_name)`,
     )
     .eq('schedule_id', scheduleId)
-    .order('created_at', { ascending: false })
+    .order('created_at', { ascending: false }) as unknown as Promise<{
+      data: PaymentWithDetails[] | null
+      error: PostgrestError | null
+    }>
 }
 
 /**
@@ -23,7 +58,7 @@ export async function getPaymentsBySchedule(supabase: SupabaseClient, scheduleId
  * Used by api/admin/payments/schedules to show payment summaries.
  */
 export async function getPaymentStatusBySchedules(
-  supabase: SupabaseClient,
+  supabase: DbClient,
   scheduleIds: string[],
 ) {
   return supabase
@@ -36,11 +71,11 @@ export async function getPaymentStatusBySchedules(
  * Creates a payment record and returns its ID.
  */
 export async function createPayment(
-  supabase: SupabaseClient,
-  data: Record<string, unknown>,
+  supabase: DbClient,
+  data: Database['public']['Tables']['registration_payments']['Insert'],
 ) {
-  return (supabase
-    .from('registration_payments') as any)
+  return supabase
+    .from('registration_payments')
     .insert(data)
     .select('id')
     .single()
@@ -51,12 +86,12 @@ export async function createPayment(
  * Used by api/admin/payments/[id]/edit.
  */
 export async function updatePaymentExtraction(
-  supabase: SupabaseClient,
+  supabase: DbClient,
   id: string,
-  data: Record<string, unknown>,
+  data: Database['public']['Tables']['registration_payments']['Update'],
 ) {
-  return (supabase
-    .from('registration_payments') as any)
+  return supabase
+    .from('registration_payments')
     .update(data)
     .eq('id', id)
 }
@@ -65,10 +100,9 @@ export async function updatePaymentExtraction(
  * Fetches payment fields needed for the scanner's payment-gate check.
  * Returns null if no payment record exists (maybeSingle).
  */
-export async function getPaymentById(supabase: SupabaseClient, registrationId: string) {
-  return (supabase.from('registration_payments') as any)
+export async function getPaymentById(supabase: DbClient, registrationId: string) {
+  return supabase.from('registration_payments')
     .select('required_amount, payment_note')
     .eq('registration_id', registrationId)
-    .maybeSingle() as { data: { required_amount: number; payment_note: string | null } | null; error: PostgrestError | null }
+    .maybeSingle()
 }
-

@@ -23,6 +23,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useUser } from '@/lib/context/user-context'
 import { scheduleSchema, ScheduleFormData } from '@/lib/validations/schedule'
 import type { ScheduleWithLocation, Location, SkillLevel } from '@/types'
+import type { Database } from '@/types/database'
 import { ScheduleInfo } from '@/components/schedule-info'
 import { fadeUpVariants } from '@/lib/animations'
 import { SKILL_LEVEL_LABELS, STATUS_LABELS } from '@/lib/constants/labels'
@@ -127,7 +128,7 @@ export function SchedulesClient({ initialSchedules, initialLocations }: Schedule
           position_prices: formData.position_prices,
           team_price: formData.team_price,
         }
-        const { error } = await (supabase.from('schedules') as any)
+        const { error } = await supabase.from('schedules')
           .update(updateData)
           .eq('id', crudDialog.editingId)
 
@@ -156,9 +157,11 @@ export function SchedulesClient({ initialSchedules, initialLocations }: Schedule
           position_prices: formData.position_prices,
           team_price: formData.team_price,
         }
-        const { data, error } = await (supabase.from('schedules') as any)
-          .insert([insertData])
-          .select('*, locations(id, name, address, google_map_url)')
+        // Foreign key join in insert+select cannot be validated without Relationships;
+        // insertData lacks `title` which is set by DB default — cast through unknown.
+        const { data, error } = await (supabase.from('schedules')
+          .insert([insertData as unknown as Database['public']['Tables']['schedules']['Insert']])
+          .select('*, locations(id, name, address, google_map_url)') as unknown as Promise<{ data: ScheduleWithLocation[] | null; error: Error | null }>)
 
         if (error) throw error
         if (data?.[0]) {
@@ -187,7 +190,8 @@ export function SchedulesClient({ initialSchedules, initialLocations }: Schedule
     setValue('num_teams', schedule.num_teams)
     setValue('required_levels', (schedule.required_levels as unknown as SkillLevel[]) || [])
     setValue('status', schedule.status)
-    setValue('position_prices', (schedule.position_prices as any) || {
+    // position_prices is Json in DB; cast to the form schema shape
+    setValue('position_prices', (schedule.position_prices as ScheduleFormData['position_prices']) || {
       open_spiker: 0,
       opposite_spiker: 0,
       middle_blocker: 0,
@@ -201,7 +205,7 @@ export function SchedulesClient({ initialSchedules, initialLocations }: Schedule
   const handleDelete = async () => {
     if (!crudDialog.deleteTarget) return
     try {
-      const { error } = await (supabase.from('schedules') as any)
+      const { error } = await supabase.from('schedules')
         .delete()
         .eq('id', crudDialog.deleteTarget.id)
 
@@ -450,10 +454,10 @@ export function SchedulesClient({ initialSchedules, initialLocations }: Schedule
                       <input
                         type="checkbox"
                         value={level.value}
-                        checked={selectedLevels.includes(level.value as any)}
+                        checked={selectedLevels.includes(level.value)}
                         onChange={(e) => {
                           if (e.target.checked) {
-                            setValue('required_levels', [...selectedLevels, level.value as any])
+                            setValue('required_levels', [...selectedLevels, level.value])
                           } else {
                             setValue('required_levels', selectedLevels.filter(l => l !== level.value))
                           }

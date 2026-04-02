@@ -1,13 +1,16 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+import type { Database, PlayerPosition } from '@/types/database'
+
+type DbClient = SupabaseClient<Database>
 
 /**
  * Creates a new team record and returns its ID.
  */
 export async function createTeam(
-  supabase: SupabaseClient,
+  supabase: DbClient,
   data: { schedule_id: string; name: string; team_type?: string },
 ) {
-  return (supabase.from('teams') as any)
+  return supabase.from('teams')
     .insert(data)
     .select('id')
     .single()
@@ -17,35 +20,23 @@ export async function createTeam(
  * Batch inserts team members.
  */
 export async function createTeamMembers(
-  supabase: SupabaseClient,
+  supabase: DbClient,
   members: Array<{
     team_id: string
     player_id: string
-    registration_id?: string
-    position?: string | null
+    registration_id: string
+    position?: PlayerPosition | null
   }>,
 ) {
-  return (supabase.from('team_members') as any).insert(members)
-}
-
-/**
- * Fetches lineup teams for a schedule (team_type = 'lineup').
- * Used by dashboard/lineups/[scheduleId]/page.tsx.
- */
-export async function getTeamsBySchedule(supabase: SupabaseClient, scheduleId: string) {
-  return (supabase.from('teams') as any)
-    .select('id, name')
-    .eq('schedule_id', scheduleId)
-    .eq('team_type', 'lineup')
-    .order('created_at', { ascending: true })
+  return supabase.from('team_members').insert(members)
 }
 
 /**
  * Deletes all lineup teams for a schedule.
  * Used by api/admin/lineups when regenerating lineups.
  */
-export async function deleteLineupTeams(supabase: SupabaseClient, scheduleId: string) {
-  return (supabase.from('teams') as any)
+export async function deleteLineupTeams(supabase: DbClient, scheduleId: string) {
+  return supabase.from('teams')
     .delete()
     .eq('schedule_id', scheduleId)
     .eq('team_type', 'lineup')
@@ -55,10 +46,10 @@ export async function deleteLineupTeams(supabase: SupabaseClient, scheduleId: st
  * Batch inserts lineup teams and returns their IDs.
  */
 export async function insertLineupTeams(
-  supabase: SupabaseClient,
+  supabase: DbClient,
   teamInserts: Array<{ schedule_id: string; name: string; team_type: string }>,
 ) {
-  return (supabase.from('teams') as any)
+  return supabase.from('teams')
     .insert(teamInserts)
     .select('id')
 }

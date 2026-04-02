@@ -22,8 +22,8 @@ export default async function PaymentsPage({
   }
 
   // Role check (admin only)
-  const serviceSubabase = createServiceClient()
-  const { data: user, error: userError } = await (serviceSubabase.from('users') as any)
+  const serviceSupabase = createServiceClient()
+  const { data: user, error: userError } = await serviceSupabase.from('users')
     .select('role')
     .eq('id', session.user.id)
     .single()
@@ -33,8 +33,8 @@ export default async function PaymentsPage({
   }
 
   // Fetch locations for filter dropdown
-  const { data: locationsData } = await (serviceSubabase.from('locations') as any)
-    .select('id, name, address, is_active')
+  const { data: locationsData } = await serviceSupabase.from('locations')
+    .select('*')
     .eq('is_active', true)
     .order('name', { ascending: true })
 

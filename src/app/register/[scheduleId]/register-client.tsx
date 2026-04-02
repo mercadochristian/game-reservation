@@ -196,7 +196,7 @@ export function RegisterClient({
         .select('*, locations(id, name, address, google_map_url)')
         .eq('status', 'open')
         .gte('start_time', new Date().toISOString())
-        .order('start_time', { ascending: true })) as { data: ScheduleWithLocation[] }
+        .order('start_time', { ascending: true })) as unknown as { data: ScheduleWithLocation[] }
 
       if (!allOpen) {
         setAvailableSchedules([])

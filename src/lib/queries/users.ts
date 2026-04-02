@@ -1,33 +1,24 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+import type { Database } from '@/types/database'
+
+type DbClient = SupabaseClient<Database>
 
 /**
  * Fetches the role of a user by ID.
  * Used by API routes for authorization checks.
  */
-export async function getUserRole(supabase: SupabaseClient, userId: string) {
-  return (supabase.from('users') as any)
+export async function getUserRole(supabase: DbClient, userId: string) {
+  return supabase.from('users')
     .select('role')
     .eq('id', userId)
-    .single() as { data: { role: string } | null; error: any }
-}
-
-/**
- * Fetches the full profile row for a user by ID.
- * Used by get-current-user.ts and profile operations.
- */
-export async function getUserProfile(supabase: SupabaseClient, userId: string) {
-  return supabase
-    .from('users')
-    .select('*')
-    .eq('id', userId)
-    .maybeSingle()
+    .single()
 }
 
 /**
  * Verifies a user exists by fetching their ID only.
  * Used to validate player IDs in registration flows.
  */
-export async function getUserById(supabase: SupabaseClient, userId: string) {
+export async function getUserById(supabase: DbClient, userId: string) {
   return supabase
     .from('users')
     .select('id')
@@ -39,27 +30,17 @@ export async function getUserById(supabase: SupabaseClient, userId: string) {
  * Fetches multiple users by their IDs.
  * Used in registrations and scanner player lookups.
  */
-export async function getUsersByIds(supabase: SupabaseClient, ids: string[]) {
-  return (supabase.from('users') as any)
+export async function getUsersByIds(supabase: DbClient, ids: string[]) {
+  return supabase.from('users')
     .select('id, first_name, last_name, email, skill_level, is_guest')
-    .in('id', ids) as {
-    data: Array<{
-      id: string
-      first_name: string | null
-      last_name: string | null
-      email: string
-      skill_level: string | null
-      is_guest: boolean
-    }> | null
-    error: any
-  }
+    .in('id', ids)
 }
 
 /**
  * Searches non-guest users by name or email (max 10 results).
  * Used by the user search API endpoint.
  */
-export async function searchUsers(supabase: SupabaseClient, query: string) {
+export async function searchUsers(supabase: DbClient, query: string) {
   return supabase
     .from('users')
     .select('id, first_name, last_name, email, skill_level')
@@ -73,11 +54,11 @@ export async function searchUsers(supabase: SupabaseClient, query: string) {
  * Used by profile/complete, profile/edit, and users/[userId] API routes.
  */
 export async function updateUserProfile(
-  supabase: SupabaseClient,
+  supabase: DbClient,
   userId: string,
-  data: Record<string, unknown>,
+  data: Database['public']['Tables']['users']['Update'],
 ) {
-  return (supabase.from('users') as any)
+  return supabase.from('users')
     .update(data)
     .eq('id', userId)
 }
@@ -86,21 +67,9 @@ export async function updateUserProfile(
  * Fetches the first_name of a user.
  * Used for naming teams during registration.
  */
-export async function getUserFirstName(supabase: SupabaseClient, userId: string) {
-  return (supabase.from('users') as any)
+export async function getUserFirstName(supabase: DbClient, userId: string) {
+  return supabase.from('users')
     .select('first_name')
     .eq('id', userId)
-    .single() as { data: { first_name: string | null } | null; error: any }
-}
-
-/**
- * Fetches all users ordered by creation date.
- * Used by the admin users dashboard (browser client).
- */
-export async function getAllUsers(supabase: SupabaseClient) {
-  return (supabase.from('users') as any)
-    .select(
-      'id, first_name, last_name, email, role, skill_level, player_contact_number, emergency_contact_name, emergency_contact_relationship, emergency_contact_number, is_guest, created_at',
-    )
-    .order('created_at', { ascending: false })
+    .single()
 }
