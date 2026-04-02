@@ -45,10 +45,10 @@ export async function GET(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
-    const serviceSubabase = createServiceClient()
+    const serviceSupabase = createServiceClient()
 
     // Fetch payments for the schedule
-    const { data: paymentsData, error: paymentsError } = await getPaymentsBySchedule(serviceSubabase, scheduleId)
+    const { data: paymentsData, error: paymentsError } = await getPaymentsBySchedule(serviceSupabase, scheduleId)
 
     if (paymentsError) throw paymentsError
 
