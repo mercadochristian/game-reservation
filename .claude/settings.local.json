@@ -35,7 +35,12 @@
       "Bash(curl -s http://localhost:3000/auth)",
       "Bash(/tmp/final_summary.txt:*)",
       "Read(//private/tmp/**)",
-      "Bash(grep -A 20 \"CREATE TABLE.*registration_payments\" /Users/christianmercado/Documents/Work/Personal/game-reservation/supabase/migrations/*.sql)"
+      "Bash(grep -A 20 \"CREATE TABLE.*registration_payments\" /Users/christianmercado/Documents/Work/Personal/game-reservation/supabase/migrations/*.sql)",
+      "Bash(npx vitest:*)",
+      "Bash(npx next:*)",
+      "Bash(git -C /Users/christianmercado/Documents/Work/Personal/game-reservation add supabase/migrations/20260402000000_extraction_status.sql supabase/migrations/20260402000001_register_group_transaction.sql supabase/migrations/20260402000002_register_group_transaction_slot_check.sql src/app/api/register/group/route.ts src/app/api/register/group/__tests__/route.test.ts)",
+      "Bash(git -C /Users/christianmercado/Documents/Work/Personal/game-reservation status)",
+      "Bash(git:*)"
     ]
   }
 }
