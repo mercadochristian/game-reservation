@@ -1,16 +1,10 @@
 import { vi } from 'vitest'
 
 /**
- * Creates a chainable query builder mock that can be used with .from(), .select(), .in(), etc.
- * The builder itself is thenable so it can be awaited directly or chained further.
- * By default resolves to { data: null, error: null }.
- *
- * Usage in tests:
- *   const client = createMockServiceClient()
- *   vi.mocked(createServiceClient).mockReturnValue(client)
- *   vi.mocked(client.from).mockReturnValue(queryBuilder)
+ * Creates a chainable query builder mock.
+ * Exported so tests can create per-table builders for complex multi-table mocks.
  */
-function createQueryBuilder() {
+export function createQueryBuilder() {
   const builder: any = {
     select: vi.fn().mockReturnThis(),
     insert: vi.fn().mockReturnThis(),
@@ -29,7 +23,6 @@ function createQueryBuilder() {
     single: vi.fn().mockResolvedValue({ data: null, error: null }),
   }
 
-  // Make the builder itself thenable so `await client.from('x').select('*')` works
   builder.then = vi.fn((onFulfilled: any) => {
     return Promise.resolve({ data: null, error: null }).then(onFulfilled)
   })
@@ -40,26 +33,31 @@ function createQueryBuilder() {
 }
 
 /**
- * Factory for a fully-typed mock Supabase service client.
- * This is used by server-side code that needs unrestricted (service-role) access.
+ * Factory for a mock Supabase service client (bypasses RLS).
+ * Includes `rpc` for Postgres function calls and `storage` for file operations.
  */
 export function createMockServiceClient() {
   const queryBuilder = createQueryBuilder()
 
   return {
     from: vi.fn().mockReturnValue(queryBuilder),
+    rpc: vi.fn().mockResolvedValue({ data: null, error: null }),
     auth: {
       admin: {
         createUser: vi.fn().mockResolvedValue({ data: { user: null }, error: null }),
       },
       getUser: vi.fn().mockResolvedValue({ data: { user: null }, error: null }),
     },
+    storage: {
+      from: vi.fn().mockReturnValue({
+        download: vi.fn().mockResolvedValue({ data: null, error: null }),
+      }),
+    },
   }
 }
 
 /**
- * Factory for a fully-typed mock Supabase server client.
- * This is used by middleware and server-side code with RLS enforcement.
+ * Factory for a mock Supabase server client (respects RLS).
  */
 export function createMockServerClient() {
   const queryBuilder = createQueryBuilder()

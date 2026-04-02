@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
-import { groupRegistrationSchema, GroupPlayer } from '@/lib/validations/group-registration'
+import { groupRegistrationSchema } from '@/lib/validations/group-registration'
+import type { GroupPlayer } from '@/lib/validations/group-registration'
 import { logError, logActivity } from '@/lib/logger'
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
@@ -16,12 +17,8 @@ import {
   getScheduleForRegistration,
   getRegistrationCountForSchedule,
   checkDuplicateRegistrations,
-  createRegistrations,
   getUserById,
   getUserFirstName,
-  createTeam,
-  createTeamMembers,
-  createPayment,
 } from '@/lib/queries'
 
 interface PlayerResolution {
@@ -274,66 +271,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Step 4: Batch insert registrations (using service client to bypass RLS)
-    const registrationInserts = resolvedPlayers
-      .filter((r) => r.user_id)
-      .map((r) => ({
-        schedule_id: validated.schedule_id,
-        player_id: r.user_id!,
-        registered_by: authUser.id,
-        preferred_position: r.player.preferred_position,
-        team_preference: validated.registration_mode as 'group' | 'team',
-        registration_note,
-      }))
-
-    const { data: insertedRegistrations, error: insertError } = await createRegistrations(serviceClient, registrationInserts as any)
-
-    if (insertError) {
-      logError('register.group.batch_insert', insertError, authUser.id, { playerCount: registrationInserts.length })
-      return NextResponse.json(
-        { error: 'Registration failed. Please try again.' },
-        { status: 500 }
-      )
-    }
-
-    // Step 5: Create pre-formed team and assign members (for group/team modes)
-    const { data: registrantUser } = await getUserFirstName(supabase, authUser.id)
-
-    const teamName = `${registrantUser?.first_name || 'Group'}'s ${validated.registration_mode === 'team' ? 'Team' : 'Group'}`
-
-    const { data: team, error: teamError } = await createTeam(serviceClient, { schedule_id: validated.schedule_id, name: teamName })
-
-    if (teamError || !team) {
-      logError('register.group.team_create', teamError || new Error('Unknown team error'), authUser.id, { teamName })
-      return NextResponse.json(
-        { error: 'Team creation failed. Please try again.' },
-        { status: 500 }
-      )
-    }
-
-    // Map inserted registrations by player_id for team member creation
-    const regsByPlayerId = new Map((insertedRegistrations || []).map((r: any) => [r.player_id, r.id]))
-
-    const teamMemberInserts = resolvedPlayers
-      .filter((r): r is PlayerResolution & { user_id: string } => !!r.user_id)
-      .map((r: PlayerResolution & { user_id: string }) => ({
-        team_id: team.id,
-        player_id: r.user_id,
-        registration_id: regsByPlayerId.get(r.user_id) as string | undefined,
-        position: r.player.preferred_position,
-      }))
-
-    const { error: teamMemberError } = await createTeamMembers(serviceClient, teamMemberInserts)
-
-    if (teamMemberError) {
-      logError('register.group.team_members', teamMemberError, authUser.id, { teamId: team?.id, memberCount: teamMemberInserts.length })
-      return NextResponse.json(
-        { error: 'Team member assignment failed. Please try again.' },
-        { status: 500 }
-      )
-    }
-
-    // Step 6: Create single registration_payments record for the group/team
+    // Compute required amount
     const requiredAmount =
       validated.registration_mode === 'team'
         ? computeTeamAmount(schedule)
@@ -344,43 +282,79 @@ export async function POST(request: NextRequest) {
               .map((r) => r.player.preferred_position)
           )
 
-    const { data: userPayment, error: userPaymentError } = await createPayment(serviceClient, {
-      team_id: team.id,
-      payer_id: authUser.id,
-      schedule_id: validated.schedule_id,
-      registration_type: validated.registration_mode,
-      required_amount: requiredAmount,
-      payment_status: 'pending',
-      payment_proof_url: validated.payment_proof_path,
-      payment_channel_id: validated.payment_channel_id || null,
-    })
+    // Get registrant's first name for team naming
+    const { data: registrantUser } = await getUserFirstName(supabase, authUser.id)
+    const teamName = `${registrantUser?.first_name || 'Group'}'s ${
+      validated.registration_mode === 'team' ? 'Team' : 'Group'
+    }`
 
-    if (userPaymentError || !userPayment) {
-      logError('register.group.user_payment', userPaymentError || new Error('Unknown payment error'), authUser.id, { teamId: team?.id })
+    // Build payloads for the RPC
+    const registrationInserts = resolvedPlayers
+      .filter((r) => r.user_id)
+      .map((r) => ({
+        player_id: r.user_id!,
+        registered_by: authUser.id,
+        preferred_position: r.player.preferred_position,
+        team_preference: validated.registration_mode as 'group' | 'team',
+        registration_note,
+      }))
+
+    const teamMemberInserts = resolvedPlayers
+      .filter((r): r is PlayerResolution & { user_id: string } => !!r.user_id)
+      .map((r) => ({
+        player_id: r.user_id,
+        position: r.player.preferred_position,
+      }))
+
+    // Atomic transaction: all 4 tables in one DB call — rolls back on any failure
+    const { data: rpcResult, error: rpcError } = await (serviceClient as any).rpc(
+      'register_group_transaction',
+      {
+        p_schedule_id: validated.schedule_id,
+        p_registrations: registrationInserts,
+        p_team: { name: teamName },
+        p_team_members: teamMemberInserts,
+        p_payment: {
+          payer_id: authUser.id,
+          required_amount: requiredAmount,
+          payment_status: 'pending',
+          payment_proof_url: validated.payment_proof_path,
+          payment_channel_id: validated.payment_channel_id ?? null,
+          registration_type: validated.registration_mode,
+          extraction_status: 'pending',
+        },
+      }
+    )
+
+    if (rpcError || !rpcResult) {
+      logError('register.group.rpc', rpcError || new Error('No result from RPC'), authUser.id, {
+        schedule_id: validated.schedule_id,
+        player_count: registrationInserts.length,
+      })
       return NextResponse.json(
-        { error: 'Payment record creation failed. Please try again.' },
+        { error: 'Registration failed. Please try again.' },
         { status: 500 }
       )
     }
 
-    // Step 7: Trigger AI extraction for registration_payments (non-blocking)
+    // Trigger AI extraction (non-blocking fire-and-forget)
     const origin = new URL(request.url).origin
     fetch(new URL('/api/payment-proof/extract', origin), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        user_payment_id: userPayment.id,
+        user_payment_id: rpcResult.payment_id,
         payment_proof_url: validated.payment_proof_path,
       }),
     })
       .then(() => {
         void logActivity('payment_proof.extract', authUser.id, {
           registration_mode: validated.registration_mode,
-          player_count: insertedRegistrations?.length || 0,
+          player_count: registrationInserts.length,
         })
       })
       .catch((err) => {
-        logError('payment_proof.extract_failed', err, authUser.id, {
+        void logError('payment_proof.extract_failed', err, authUser.id, {
           registration_mode: validated.registration_mode,
         })
       })
