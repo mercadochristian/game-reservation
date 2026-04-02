@@ -80,7 +80,7 @@ export const NAVIGATION_CONFIG: NavigationConfig = {
       ],
     },
   ],
-  profilePage: { label: 'Profile', href: '/dashboard', icon: UserCircle, roles: ['admin', 'super_admin', 'facilitator', 'player'] },
+  profilePage: { label: 'Profile', href: '/dashboard/profile', icon: UserCircle, roles: ['admin', 'super_admin', 'facilitator', 'player'] },
   signOutAction: { label: 'Sign Out', roles: ['admin', 'super_admin', 'facilitator', 'player'] },
 }
 
