@@ -864,7 +864,7 @@ export function RegisterClient({
               onChange={e => setWaiverAccepted(e.target.checked)}
               className="mt-0.5 accent-accent cursor-pointer"
             />
-            <span className="text-xs text-muted-foreground">
+            <span className="text-xs text-foreground">
               I agree to the{' '}
               <a
                 href="/waiver"
@@ -1376,7 +1376,7 @@ export function RegisterClient({
             onChange={e => setWaiverAccepted(e.target.checked)}
             className="mt-0.5 accent-accent cursor-pointer"
           />
-          <span className="text-xs text-muted-foreground">
+          <span className="text-xs text-foreground">
             I agree to the{' '}
             <a
               href="/waiver"
