@@ -74,6 +74,7 @@ describe('RegisterClient - Waiver Checkbox', () => {
     emergency_contact_number: null,
     is_guest: false,
     avatar_url: null,
+    banned_at: null,
     birthday_day: null,
     birthday_month: null,
     birthday_year: null,

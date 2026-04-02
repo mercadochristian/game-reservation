@@ -13,6 +13,7 @@ const mockUser: User = {
   role: 'player',
   skill_level: 'intermediate',
   avatar_url: null,
+  banned_at: null,
   birthday_month: 5,
   birthday_day: 15,
   birthday_year: 1990,

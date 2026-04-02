@@ -51,6 +51,7 @@ function buildMockUser(overrides: Partial<User> = {}): User {
     role: 'admin',
     skill_level: null,
     avatar_url: null,
+    banned_at: null,
     birthday_month: null,
     birthday_day: null,
     birthday_year: null,
