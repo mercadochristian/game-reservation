@@ -65,6 +65,7 @@ On every request:
 ```
 Static asset? → pass through
 No user + not public route? → redirect to /auth
+User + banned? → redirect to /auth?error=banned (except /auth routes)
 User + on /auth? → check profile_completed
   - player + no profile → /create-profile
   - everyone else → /dashboard (role-resolved)
@@ -77,6 +78,8 @@ Otherwise → pass through
 Public routes allowed: `/`, `/auth`, `/auth/callback`
 
 Role-to-path mapping: `admin → /admin`, `facilitator → /facilitator`, `player → /player`
+
+**S5a: Banned user check** — If `banned_at` IS NOT NULL, redirect to `/auth?error=banned` (except on `/auth` and `/auth/callback` routes). This prevents banned users from accessing the app even with valid session cookies.
 
 ### 3. Auth Page (`/auth`)
 **File:** `src/app/auth/page.tsx`
@@ -1886,5 +1889,6 @@ Log all new features, pages, API routes, and significant changes here.
 | 2026-04-03 | Add banned_at to users | `supabase/migrations/20260403000000_add_banned_at_to_users.sql`, `src/types/database.ts` | Adds nullable timestamptz column for soft-ban support. NULL = active user. |
 | 2026-04-03 | Ban user API route | `src/app/api/users/[userId]/ban/route.ts`, `src/app/api/users/[userId]/ban/__tests__/route.test.ts` | PATCH /api/users/[userId]/ban — admin/super_admin only. Sets banned_at timestamp. Validates caller role, prevents self-ban, prevents admin banning admin. |
 | 2026-04-03 | Unban user API route | `src/app/api/users/[userId]/unban/route.ts`, `src/app/api/users/[userId]/unban/__tests__/route.test.ts` | PATCH /api/users/[userId]/unban — admin/super_admin only. Clears banned_at timestamp (recovery action). |
+| 2026-04-03 | Middleware ban enforcement | `src/middleware.ts` (lines 131–154), `src/__tests__/middleware.test.ts` (S5a block) | Authenticated banned users redirected to `/auth?error=banned` on every request except `/auth` routes. Enforces soft-ban at request gateway level. Includes 3 test cases. |
 | | | | |
 

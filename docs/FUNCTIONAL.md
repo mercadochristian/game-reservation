@@ -415,4 +415,5 @@ A record of implemented features. Updated as new features are deployed.
 | 2026-04-01 | Registration & Payment Notes | Players can add optional 200-character notes during registration (visible to player, write-once). Admins can add/edit 200-character notes on payment records for context during payment reviews and corrections. |
 | 2026-04-03 | User Ban Support | Soft-ban functionality adds a nullable `banned_at` timestamp to user profiles. When set, the user is marked as banned; when NULL, the user is active. Enables admin control of player access without deleting accounts. |
 | 2026-04-03 | Unban user API route | Recovery action: admins can clear the banned_at timestamp to reactivate a banned user. Complements the ban functionality for complete access control. |
+| 2026-04-03 | Middleware ban enforcement | Banned users are automatically redirected to `/auth?error=banned` on every request except auth-related routes. This enforces the soft-ban at the request gateway level, preventing banned users from accessing the app even with valid session cookies. |
 

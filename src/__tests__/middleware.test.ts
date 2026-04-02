@@ -108,6 +108,66 @@ describe('middleware(request)', () => {
     })
   })
 
+  describe('S5a: Banned user handling', () => {
+    it('should redirect banned user on protected route to /auth?error=banned', async () => {
+      const { middleware } = await import('@/middleware')
+      const request = createMockRequest('/dashboard', { method: 'GET' })
+      const mockClient = createMockServerClient()
+      const mockResponse = createMockResponse()
+      mockClient.from('users').single.mockResolvedValue({
+        data: { role: 'player', profile_completed: true, banned_at: '2026-04-01T00:00:00Z' },
+        error: null,
+      })
+      vi.mocked(updateSession).mockResolvedValue({
+        supabaseResponse: mockResponse as any,
+        user: { id: 'user123' } as any,
+        supabase: mockClient as any,
+      })
+
+      const response = await middleware(request)
+      expect(response.status).toBe(307)
+      expect(response.headers.get('location')).toContain('/auth?error=banned')
+    })
+
+    it('should allow banned user on /auth route without redirect', async () => {
+      const { middleware } = await import('@/middleware')
+      const request = createMockRequest('/auth', { method: 'GET' })
+      const mockClient = createMockServerClient()
+      const mockResponse = createMockResponse()
+      mockClient.from('users').single.mockResolvedValue({
+        data: { role: 'player', profile_completed: true, banned_at: '2026-04-01T00:00:00Z' },
+        error: null,
+      })
+      vi.mocked(updateSession).mockResolvedValue({
+        supabaseResponse: mockResponse as any,
+        user: { id: 'user123' } as any,
+        supabase: mockClient as any,
+      })
+
+      const response = await middleware(request)
+      expect(response.status).not.toBe(307)
+    })
+
+    it('should allow banned user on /auth/callback route without redirect', async () => {
+      const { middleware } = await import('@/middleware')
+      const request = createMockRequest('/auth/callback', { method: 'GET' })
+      const mockClient = createMockServerClient()
+      const mockResponse = createMockResponse()
+      mockClient.from('users').single.mockResolvedValue({
+        data: { role: 'player', profile_completed: true, banned_at: '2026-04-01T00:00:00Z' },
+        error: null,
+      })
+      vi.mocked(updateSession).mockResolvedValue({
+        supabaseResponse: mockResponse as any,
+        user: { id: 'user123' } as any,
+        supabase: mockClient as any,
+      })
+
+      const response = await middleware(request)
+      expect(response.status).not.toBe(307)
+    })
+  })
+
   describe('authenticated with complete profile visiting /auth', () => {
     it('redirects to /dashboard with no returnUrl', async () => {
       const mockResponse = createMockResponse()

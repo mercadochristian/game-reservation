@@ -128,6 +128,7 @@ export async function middleware(request: NextRequest) {
       .from('users')
       .select('role, profile_completed, banned_at')
       .eq('id', user.id)
+      // Supabase SDK uses PostgrestError for error type; `any` here to avoid importing a type only used for this cast
       .single() as { data: { role: string; profile_completed: boolean; banned_at: string | null } | null; error: any }
 
     if (error) {
