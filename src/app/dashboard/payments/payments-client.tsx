@@ -38,7 +38,7 @@ function ExtractionStatusBadge({ status }: { status: string | null | undefined }
   if (status === 'done') {
     return (
       <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-        <Check className="h-3 w-3 text-green-500" />
+        <Check className="h-3 w-3 text-success" />
         Extracted
       </span>
     )

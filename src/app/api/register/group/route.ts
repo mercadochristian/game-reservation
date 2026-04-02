@@ -345,7 +345,7 @@ export async function POST(request: NextRequest) {
     // Only trigger extraction if it is enabled
     if (extractionEnabled) {
       const origin = new URL(request.url).origin
-      fetch(new URL('/api/payment-proof/extract', origin), {
+      void fetch(new URL('/api/payment-proof/extract', origin), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
