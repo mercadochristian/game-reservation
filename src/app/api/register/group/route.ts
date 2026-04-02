@@ -307,6 +307,7 @@ export async function POST(request: NextRequest) {
       }))
 
     // Atomic transaction: all 4 tables in one DB call — rolls back on any failure
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- database.ts not yet regenerated with register_group_transaction RPC signature; remove after running supabase gen types
     const { data: rpcResult, error: rpcError } = await (serviceClient as any).rpc(
       'register_group_transaction',
       {
@@ -327,7 +328,7 @@ export async function POST(request: NextRequest) {
     )
 
     if (rpcError || !rpcResult) {
-      logError('register.group.rpc', rpcError || new Error('No result from RPC'), authUser.id, {
+      void logError('register.group.rpc', rpcError || new Error('No result from RPC'), authUser.id, {
         schedule_id: validated.schedule_id,
         player_count: registrationInserts.length,
       })

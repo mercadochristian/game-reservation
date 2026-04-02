@@ -10,3 +10,8 @@
 ALTER TABLE public.registration_payments
 ADD COLUMN IF NOT EXISTS extraction_status TEXT
   CHECK (extraction_status IN ('pending', 'done', 'failed'));
+
+-- ==========================================================================
+-- ROLLBACK:
+-- ALTER TABLE public.registration_payments DROP COLUMN IF EXISTS extraction_status;
+-- ==========================================================================
