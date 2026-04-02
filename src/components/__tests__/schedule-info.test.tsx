@@ -17,6 +17,8 @@ const mockSchedule: ScheduleWithLocation = {
   status: 'open',
   created_by: 'admin-1',
   deleted_at: null,
+  discount_type: null,
+  discount_value: null,
   created_at: '2026-01-01T00:00:00Z',
   updated_at: '2026-01-01T00:00:00Z',
   position_prices: { setter: 100, spiker: 100, libero: 100 },

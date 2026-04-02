@@ -36,7 +36,7 @@ type PlayerEntry =
       last_name: string
       email: string
       phone?: string
-      skill_level: string | null
+      skill_level: string
       preferred_position: PlayerPosition | null
     }
 
@@ -69,6 +69,7 @@ export function AdminRegistrationDialog({
   const [guestLastName, setGuestLastName] = useState('')
   const [guestEmail, setGuestEmail] = useState('')
   const [guestPhone, setGuestPhone] = useState('')
+  const [guestSkillLevel, setGuestSkillLevel] = useState('')
   const [guestPosition, setGuestPosition] = useState<PlayerPosition | null>(null)
 
   // Submission state
@@ -88,6 +89,7 @@ export function AdminRegistrationDialog({
       setGuestLastName('')
       setGuestEmail('')
       setGuestPhone('')
+      setGuestSkillLevel('')
       setGuestPosition(null)
     }
   }, [open])
@@ -157,33 +159,38 @@ export function AdminRegistrationDialog({
     )
   }
 
-  const buildPlayersPayload = () => {
-    const allPlayers: PlayerEntry[] = [...players]
-
-    // If in guest mode and there's guest form data, include the current guest form as a player
-    if (
-      playerInputType === 'guest' &&
-      guestFirstName.trim() &&
-      guestLastName.trim() &&
-      guestEmail.trim()
-    ) {
-      allPlayers.push({
-        id: `guest-form-${Date.now()}`,
+  const handleAddGuestPlayer = () => {
+    if (!guestFirstName.trim() || !guestLastName.trim() || !guestEmail.trim()) {
+      toast.error('First name, last name, and email are required')
+      return
+    }
+    if (!guestSkillLevel) {
+      toast.error('Skill level is required for guest players')
+      return
+    }
+    setPlayers((prev) => [
+      ...prev,
+      {
+        id: `guest-${Date.now()}`,
         type: 'guest',
         first_name: guestFirstName.trim(),
         last_name: guestLastName.trim(),
         email: guestEmail.trim(),
         phone: guestPhone.trim() || undefined,
-        skill_level: null,
+        skill_level: guestSkillLevel,
         preferred_position: guestPosition,
-      })
-    }
-
-    return allPlayers
+      },
+    ])
+    setGuestFirstName('')
+    setGuestLastName('')
+    setGuestEmail('')
+    setGuestPhone('')
+    setGuestSkillLevel('')
+    setGuestPosition(null)
   }
 
   const handleSubmit = async () => {
-    const allPlayers = buildPlayersPayload()
+    const allPlayers = players
 
     if (allPlayers.length === 0) {
       toast.error('Add at least one player before registering')
@@ -363,23 +370,35 @@ export function AdminRegistrationDialog({
                 <div className="flex gap-2">
                   <Input
                     type="text"
-                    placeholder="First"
+                    placeholder="First name"
                     value={guestFirstName}
                     onChange={(e) => setGuestFirstName(e.target.value)}
                   />
                   <Input
                     type="text"
-                    placeholder="Last"
+                    placeholder="Last name"
                     value={guestLastName}
                     onChange={(e) => setGuestLastName(e.target.value)}
                   />
                 </div>
                 <Input
                   type="email"
-                  placeholder="email@example.com"
+                  placeholder="Email"
                   value={guestEmail}
                   onChange={(e) => setGuestEmail(e.target.value)}
                 />
+                <select
+                  value={guestSkillLevel}
+                  onChange={(e) => setGuestSkillLevel(e.target.value)}
+                  className="w-full text-sm bg-background border border-border rounded-lg px-2 py-1.5 text-foreground"
+                >
+                  <option value="">Select skill level</option>
+                  <option value="developmental">Developmental</option>
+                  <option value="developmental_plus">Developmental+</option>
+                  <option value="intermediate">Intermediate</option>
+                  <option value="intermediate_plus">Intermediate+</option>
+                  <option value="advanced">Advanced</option>
+                </select>
                 <Input
                   type="tel"
                   placeholder="Phone (optional)"
@@ -398,6 +417,15 @@ export function AdminRegistrationDialog({
                     </option>
                   ))}
                 </select>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="w-full"
+                  onClick={handleAddGuestPlayer}
+                >
+                  Add Guest Player
+                </Button>
               </div>
             )}
           </div>

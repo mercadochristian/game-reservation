@@ -400,6 +400,8 @@ export type Database = {
           created_at: string
           created_by: string
           deleted_at: string | null
+          discount_type: string | null
+          discount_value: number | null
           end_time: string
           id: string
           location_id: string
@@ -416,6 +418,8 @@ export type Database = {
           created_at?: string
           created_by: string
           deleted_at?: string | null
+          discount_type?: string | null
+          discount_value?: number | null
           end_time: string
           id?: string
           location_id: string
@@ -432,6 +436,8 @@ export type Database = {
           created_at?: string
           created_by?: string
           deleted_at?: string | null
+          discount_type?: string | null
+          discount_value?: number | null
           end_time?: string
           id?: string
           location_id?: string

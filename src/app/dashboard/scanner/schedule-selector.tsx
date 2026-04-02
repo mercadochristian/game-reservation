@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { toManilaDateKey } from '@/lib/utils/timezone'
+import { toManilaDateKey, formatScheduleTime } from '@/lib/utils/timezone'
 import type { ScannerSchedule } from '@/lib/hooks/useSchedulesForScanner'
 
 interface ScheduleSelectorProps {
@@ -51,12 +51,7 @@ export function ScheduleSelector({
             {schedules.map((schedule) => {
               const isSelected = selectedScheduleId === schedule.id
               const scheduleDate = toManilaDateKey(schedule.start_time)
-              const scheduleTime = new Date(schedule.start_time).toLocaleTimeString('en-US', {
-                hour: '2-digit',
-                minute: '2-digit',
-                hour12: true,
-                timeZone: 'Asia/Manila',
-              })
+              const scheduleTime = formatScheduleTime(schedule.start_time)
 
               return (
                 <button

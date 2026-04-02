@@ -870,7 +870,7 @@ export function RegisterClient({
                 href="/waiver"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="underline text-accent hover:text-accent/80 transition-colors"
+                className="underline text-[#1d4ed8] hover:text-[#1d4ed8]/80 transition-colors"
               >
                 Waiver Agreement
               </a>

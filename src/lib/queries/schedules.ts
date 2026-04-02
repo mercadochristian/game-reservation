@@ -10,7 +10,7 @@ type DbClient = SupabaseClient<Database>
 export async function getScheduleForRegistration(supabase: DbClient, id: string) {
   return supabase
     .from('schedules')
-    .select('start_time, status, max_players, position_prices, team_price')
+    .select('start_time, status, max_players, position_prices, team_price, discount_type, discount_value')
     .eq('id', id)
     .single()
 }
@@ -22,7 +22,7 @@ export async function getScheduleForRegistration(supabase: DbClient, id: string)
 export async function getSchedulePricing(supabase: DbClient, id: string) {
   return supabase
     .from('schedules')
-    .select('position_prices, team_price')
+    .select('position_prices, team_price, discount_type, discount_value')
     .eq('id', id)
     .single()
 }

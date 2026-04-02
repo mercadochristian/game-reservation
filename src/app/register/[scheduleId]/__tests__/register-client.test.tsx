@@ -51,6 +51,8 @@ describe('RegisterClient - Waiver Checkbox', () => {
     position_prices: { middle_blocker: 300, open_spiker: 300, opposite_spiker: 300, setter: 300 },
     team_price: 1500,
     deleted_at: null,
+    discount_type: null,
+    discount_value: null,
     locations: {
       id: 'location-1',
       name: 'Test Venue',

@@ -15,6 +15,8 @@ describe('formatScheduleLabel', () => {
     position_prices: {},
     team_price: 0,
     deleted_at: null,
+    discount_type: null,
+    discount_value: null,
     created_at: '2026-03-01T00:00:00Z',
     created_by: 'admin-1',
     updated_at: '2026-03-01T00:00:00Z',

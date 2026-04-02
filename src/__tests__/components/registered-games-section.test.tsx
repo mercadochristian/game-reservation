@@ -19,6 +19,8 @@ describe('RegisteredGamesSection', () => {
     price: 500,
     description: null,
     created_at: '2026-03-29',
+    discount_type: null,
+    discount_value: null,
     locations: {
       id: 'loc-1',
       name: 'Test Location',

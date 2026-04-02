@@ -35,6 +35,8 @@ const mockScheduleUpcoming: ScheduleWithLocation = {
   position_prices: {},
   team_price: null,
   deleted_at: null,
+  discount_type: null,
+  discount_value: null,
   locations: {
     id: 'a0a0a0a2-a0a0-4a0a-8a0a-a0a0a0a0a0a2',
     name: 'Makati Sports Complex',

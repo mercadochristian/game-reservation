@@ -18,6 +18,8 @@ const mockSchedule: ScheduleWithSlots = {
   created_by: 'user-1',
   registration_count: 0,
   deleted_at: null,
+  discount_type: null,
+  discount_value: null,
   created_at: new Date().toISOString(),
   updated_at: new Date().toISOString(),
   locations: {
@@ -101,9 +103,9 @@ describe('AdminRegistrationDialog', () => {
       />
     )
     fireEvent.click(screen.getByText('Guest Player'))
-    expect(screen.getByPlaceholderText('First')).toBeInTheDocument()
-    expect(screen.getByPlaceholderText('Last')).toBeInTheDocument()
-    expect(screen.getByPlaceholderText('email@example.com')).toBeInTheDocument()
+    expect(screen.getByPlaceholderText('First name')).toBeInTheDocument()
+    expect(screen.getByPlaceholderText('Last name')).toBeInTheDocument()
+    expect(screen.getByPlaceholderText('Email')).toBeInTheDocument()
   })
 
   it('should call onSuccess and onClose after successful registration', async () => {
@@ -178,12 +180,14 @@ describe('AdminRegistrationDialog', () => {
     )
 
     fireEvent.click(screen.getByText('Guest Player'))
-    fireEvent.change(screen.getByPlaceholderText('First'), { target: { value: 'Jane' } })
-    fireEvent.change(screen.getByPlaceholderText('Last'), { target: { value: 'Smith' } })
-    fireEvent.change(screen.getByPlaceholderText('email@example.com'), { target: { value: 'j@test.com' } })
+    fireEvent.change(screen.getByPlaceholderText('First name'), { target: { value: 'Jane' } })
+    fireEvent.change(screen.getByPlaceholderText('Last name'), { target: { value: 'Smith' } })
+    fireEvent.change(screen.getByPlaceholderText('Email'), { target: { value: 'j@test.com' } })
 
-    const positionSelects = screen.getAllByRole('combobox')
-    fireEvent.change(positionSelects[0], { target: { value: 'setter' } })
+    const [skillSelect] = screen.getAllByRole('combobox')
+    fireEvent.change(skillSelect, { target: { value: 'intermediate' } })
+
+    fireEvent.click(screen.getByText('Add Guest Player'))
 
     fireEvent.click(screen.getByText('Register Players'))
 

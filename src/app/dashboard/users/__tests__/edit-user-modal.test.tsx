@@ -230,8 +230,9 @@ describe('EditUserModal', () => {
     await user.click(saveButton)
 
     // Confirmation dialog should appear (use waitFor since it's rendered conditionally)
+    // Use getByRole to find the heading instead of getByText for better specificity
     await waitFor(() => {
-      expect(screen.getByText('Change Role?')).toBeInTheDocument()
+      expect(screen.getByRole('heading', { name: 'Change Role?' })).toBeInTheDocument()
     })
   })
 
@@ -262,8 +263,8 @@ describe('EditUserModal', () => {
     let saveButton = screen.getByRole('button', { name: 'Save' })
     await user.click(saveButton)
 
-    // Confirmation should appear
-    expect(screen.getByText('Change Role?')).toBeInTheDocument()
+    // Confirmation should appear (use getByRole to find the heading)
+    expect(screen.getByRole('heading', { name: 'Change Role?' })).toBeInTheDocument()
 
     // Click confirm on confirmation dialog
     const confirmButton = screen.getByRole('button', { name: 'Confirm' })

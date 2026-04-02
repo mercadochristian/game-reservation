@@ -22,6 +22,8 @@ describe('Registration Note Integration Flow', () => {
     position_prices: {},
     team_price: null,
     deleted_at: null,
+    discount_type: null,
+    discount_value: null,
     locations: {
       id: 'loc-1',
       name: 'Makati Sports Complex',

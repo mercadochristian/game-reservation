@@ -100,6 +100,8 @@ function makeSchedule(overrides: Partial<ScheduleWithLocation> = {}): ScheduleWi
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
     deleted_at: null,
+    discount_type: null,
+    discount_value: null,
     locations: { id: 'loc-1', name: 'Main Court', address: null, google_map_url: null },
     ...overrides,
   }

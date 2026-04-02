@@ -18,6 +18,8 @@ const mockSchedule: ScheduleWithSlots = {
   created_by: 'user-1',
   registration_count: 8,
   deleted_at: null,
+  discount_type: null,
+  discount_value: null,
   created_at: new Date().toISOString(),
   updated_at: new Date().toISOString(),
   locations: {

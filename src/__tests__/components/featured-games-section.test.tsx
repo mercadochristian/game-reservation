@@ -25,6 +25,8 @@ const mockGames: (ScheduleWithLocation & {
     team_price: null,
     registrations_count: 4,
     deleted_at: null,
+    discount_type: null,
+    discount_value: null,
     position_counts: {
       open_spiker: 2,
       opposite_spiker: 1,
