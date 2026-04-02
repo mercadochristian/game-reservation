@@ -7,6 +7,7 @@ import * as supabaseClientModule from '@/lib/supabase/client'
 import * as registrationsQueries from '@/lib/queries/registrations'
 import { toast } from 'sonner'
 import type { ScheduleWithLocation, Registration } from '@/types'
+import { futureDateISO, pastDateISO, formatExpectedScheduleDate } from '@/__tests__/helpers/date-mock'
 
 vi.mock('@/lib/supabase/client')
 vi.mock('@/lib/queries/registrations')
@@ -17,11 +18,13 @@ vi.mock('sonner', () => ({
   },
 }))
 
+const upcomingStart = futureDateISO(90)
+
 const mockScheduleUpcoming: ScheduleWithLocation = {
   id: 'a0a0a0a1-a0a0-4a0a-8a0a-a0a0a0a0a0a1',
   location_id: 'a0a0a0a2-a0a0-4a0a-8a0a-a0a0a0a0a0a2',
-  start_time: '2026-12-15T11:00:00Z',
-  end_time: '2026-12-15T13:00:00Z',
+  start_time: upcomingStart,
+  end_time: new Date(new Date(upcomingStart).getTime() + 7_200_000).toISOString(),
   max_players: 12,
   num_teams: 2,
   required_levels: ['intermediate'],
@@ -40,11 +43,13 @@ const mockScheduleUpcoming: ScheduleWithLocation = {
   },
 }
 
+const pastStart = pastDateISO(90)
+
 const mockSchedulePast: ScheduleWithLocation = {
   ...mockScheduleUpcoming,
   id: 'a0a0a0a4-a0a0-4a0a-8a0a-a0a0a0a0a0a4',
-  start_time: '2026-01-01T11:00:00Z',
-  end_time: '2026-01-01T13:00:00Z',
+  start_time: pastStart,
+  end_time: new Date(new Date(pastStart).getTime() + 7_200_000).toISOString(),
 }
 
 const mockRegistration: Registration = {
@@ -101,6 +106,7 @@ beforeEach(() => {
 })
 
 afterEach(() => {
+  vi.clearAllMocks()
   cleanup()
 })
 
@@ -332,7 +338,7 @@ describe('MyRegistrationsClient', () => {
       await user.click(showQRButton)
 
       await waitFor(() => {
-        expect(screen.getByText(/December 15, 2026/i)).toBeInTheDocument()
+        expect(screen.getByText(new RegExp(formatExpectedScheduleDate(upcomingStart), 'i'))).toBeInTheDocument()
       })
     })
   })
