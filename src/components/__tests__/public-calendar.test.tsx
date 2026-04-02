@@ -27,6 +27,8 @@ vi.mock('framer-motion', () => ({
   motion: {
     div: ({ children, ...props }: React.HTMLAttributes<HTMLDivElement> & { children?: React.ReactNode }) =>
       React.createElement('div', props, children),
+    button: ({ children, ...props }: React.HTMLAttributes<HTMLDivElement> & { children?: React.ReactNode }) =>
+      React.createElement('button', props, children),
   },
   AnimatePresence: ({ children }: { children: React.ReactNode }) =>
     React.createElement(React.Fragment, null, children),
@@ -75,16 +77,18 @@ vi.mock('@/lib/animations', () => ({
 import { createClient } from '@/lib/supabase/client'
 import { PublicCalendar } from '../public-calendar'
 import type { ScheduleWithLocation } from '@/types'
+import { futureDateISO } from '@/__tests__/helpers/date-mock'
 
 // ---------------------------------------------------------------------------
 // Fixtures
 // ---------------------------------------------------------------------------
 
 function makeSchedule(overrides: Partial<ScheduleWithLocation> = {}): ScheduleWithLocation {
+  const defaultStart = futureDateISO(1)
   return {
     id: 'sched-1',
-    start_time: '2026-03-15T08:00:00',
-    end_time: '2026-03-15T10:00:00',
+    start_time: defaultStart,
+    end_time: new Date(new Date(defaultStart).getTime() + 7_200_000).toISOString(),
     location_id: 'loc-1',
     max_players: 12,
     num_teams: 2,
@@ -93,8 +97,8 @@ function makeSchedule(overrides: Partial<ScheduleWithLocation> = {}): ScheduleWi
     position_prices: {},
     team_price: null,
     created_by: 'admin-1',
-    created_at: '2026-01-01T00:00:00Z',
-    updated_at: '2026-01-01T00:00:00Z',
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
     deleted_at: null,
     locations: { id: 'loc-1', name: 'Main Court', address: null, google_map_url: null },
     ...overrides,
@@ -142,6 +146,7 @@ describe('PublicCalendar', () => {
   })
 
   afterEach(() => {
+    vi.clearAllMocks()
     globalThis.fetch = originalFetch
   })
 
@@ -157,7 +162,7 @@ describe('PublicCalendar', () => {
         json: vi.fn().mockResolvedValue({ counts: {}, positionCounts: {} }),
       } as any)
 
-      const schedule = makeSchedule({ start_time: '2026-03-15T08:00:00', id: 'sched-1' })
+      const schedule = makeSchedule({ start_time: futureDateISO(1), id: 'sched-1' })
       render(<PublicCalendar schedules={[schedule]} />)
 
       // The calendar should render without crashing — component mounts successfully
@@ -175,9 +180,9 @@ describe('PublicCalendar', () => {
         json: vi.fn().mockResolvedValue({ counts: {}, positionCounts: {} }),
       } as any)
 
-      const s1 = makeSchedule({ id: 'sched-1', start_time: '2026-03-15T08:00:00' })
-      const s2 = makeSchedule({ id: 'sched-2', start_time: '2026-03-15T10:00:00' })
-      const s3 = makeSchedule({ id: 'sched-3', start_time: '2026-03-20T08:00:00' })
+      const s1 = makeSchedule({ id: 'sched-1', start_time: futureDateISO(1) })
+      const s2 = makeSchedule({ id: 'sched-2', start_time: futureDateISO(1) })
+      const s3 = makeSchedule({ id: 'sched-3', start_time: futureDateISO(1) })
 
       // Should render without errors — grouping handled internally
       expect(() => render(<PublicCalendar schedules={[s1, s2, s3]} />)).not.toThrow()
