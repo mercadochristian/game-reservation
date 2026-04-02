@@ -341,7 +341,6 @@ describe('Registered Games Integration', () => {
     const mockSchedule2: ScheduleWithLocation = {
       ...mockSchedule,
       id: 'schedule-3',
-      title: 'Friday Volleyball Game',
       start_time: '2026-04-16T11:00:00Z',
       end_time: '2026-04-16T13:00:00Z',
     }

@@ -10,7 +10,6 @@ const mockGames: (ScheduleWithLocation & {
 })[] = [
   {
     id: '1',
-    title: 'Thursday Volleyball Game',
     location_id: 'loc1',
     start_time: '2026-03-31T19:00:00Z',
     end_time: '2026-03-31T21:00:00Z',
@@ -24,6 +23,7 @@ const mockGames: (ScheduleWithLocation & {
     position_prices: {},
     team_price: null,
     registrations_count: 4,
+    deleted_at: null,
     position_counts: {
       open_spiker: 2,
       opposite_spiker: 1,

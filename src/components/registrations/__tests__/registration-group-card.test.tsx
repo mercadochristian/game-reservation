@@ -6,7 +6,6 @@ import type { ScheduleWithSlots, RegistrationWithDetails } from '@/types'
 
 const mockSchedule: ScheduleWithSlots = {
   id: 'sch-123',
-  title: 'Wednesday Volleyball',
   start_time: new Date('2026-04-01T18:00:00').toISOString(),
   end_time: new Date('2026-04-01T20:00:00').toISOString(),
   location_id: 'loc-1',
@@ -18,6 +17,7 @@ const mockSchedule: ScheduleWithSlots = {
   team_price: 20,
   created_by: 'user-1',
   registration_count: 8,
+  deleted_at: null,
   created_at: new Date().toISOString(),
   updated_at: new Date().toISOString(),
   locations: {
