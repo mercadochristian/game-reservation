@@ -126,9 +126,9 @@ export async function middleware(request: NextRequest) {
     // Authenticated: always fetch fresh profile data from DB
     const { data, error } = await supabase
       .from('users')
-      .select('role, profile_completed')
+      .select('role, profile_completed, banned_at')
       .eq('id', user.id)
-      .single() as { data: { role: string; profile_completed: boolean } | null; error: any }
+      .single() as { data: { role: string; profile_completed: boolean; banned_at: string | null } | null; error: any }
 
     if (error) {
       void logError('middleware.profile_query_failed', error)
@@ -143,6 +143,16 @@ export async function middleware(request: NextRequest) {
     const role = data?.role ?? 'player'
     // profile_completed could be null (legacy data) or false — treat both as incomplete
     const profileCompleted = data?.profile_completed === true
+
+    // S5a: Banned user — redirect to auth with error message
+    if (data?.banned_at) {
+      if (pathname.startsWith('/auth')) return supabaseResponse
+      return redirectWithSession(
+        new URL('/auth?error=banned', request.url).toString(),
+        request,
+        supabaseResponse,
+      )
+    }
 
     // S5/S6: Profile incomplete
     if (!profileCompleted) {
