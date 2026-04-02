@@ -4,7 +4,7 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { createClient } from '@/lib/supabase/server'
 import { logActivity, logError } from '@/lib/logger'
 
-export async function POST(
+export async function PATCH(
   _request: NextRequest,
   { params }: { params: Promise<{ userId: string }> },
 ) {
