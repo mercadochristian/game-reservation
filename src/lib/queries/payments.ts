@@ -81,18 +81,25 @@ export async function createPayment(
     .single()
 }
 
+// Extends the generated Update type with extraction_status, which is added by a pending
+// migration (supabase/migrations/20260402000000_extraction_status.sql). Remove this
+// extension and the cast below once `database.ts` is regenerated after `supabase db push`.
+type PaymentUpdateData = Database['public']['Tables']['registration_payments']['Update'] & {
+  extraction_status?: string | null
+}
+
 /**
  * Updates AI extraction fields on a payment record.
- * Used by api/admin/payments/[id]/edit.
+ * Used by api/admin/payments/[id]/edit and api/payment-proof/extract.
  */
 export async function updatePaymentExtraction(
   supabase: DbClient,
   id: string,
-  data: Database['public']['Tables']['registration_payments']['Update'],
+  data: PaymentUpdateData,
 ) {
   return supabase
     .from('registration_payments')
-    .update(data)
+    .update(data as Database['public']['Tables']['registration_payments']['Update'])
     .eq('id', id)
 }
 
