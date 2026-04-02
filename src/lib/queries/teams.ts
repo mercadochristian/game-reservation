@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
-import type { Database, PlayerPosition } from '@/types/database'
+import type { Database } from '@/types/database'
+import type { PlayerPosition } from '@/types';
 
 type DbClient = SupabaseClient<Database>
 

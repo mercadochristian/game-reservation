@@ -5,7 +5,6 @@ import type { ScheduleWithLocation } from '@/types'
 describe('formatScheduleLabel', () => {
   const mockSchedule: ScheduleWithLocation = {
     id: '123',
-    title: '', // Title field removed from DB, using empty string as temporary workaround
     start_time: '2026-03-20T19:00:00Z', // Friday, March 20, 2026 at 7:00 PM UTC (3:00 AM+8 Saturday)
     end_time: '2026-03-20T21:00:00Z', // 9:00 PM UTC (5:00 AM+8 Saturday)
     location_id: 'loc-1',
@@ -15,6 +14,7 @@ describe('formatScheduleLabel', () => {
     status: 'open',
     position_prices: {},
     team_price: 0,
+    deleted_at: null,
     created_at: '2026-03-01T00:00:00Z',
     created_by: 'admin-1',
     updated_at: '2026-03-01T00:00:00Z',

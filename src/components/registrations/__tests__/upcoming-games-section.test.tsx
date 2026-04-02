@@ -18,6 +18,7 @@ const mockSchedules: ScheduleWithSlots[] = Array.from({ length: 12 }, (_, i) => 
   team_price: 20,
   created_by: 'user-1',
   registration_count: i + 1,
+  deleted_at: null,
   created_at: new Date().toISOString(),
   updated_at: new Date().toISOString(),
   locations: {

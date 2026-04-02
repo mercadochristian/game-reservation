@@ -1,7 +1,7 @@
 import { createServiceClient } from '@/lib/supabase/service'
 import { NextRequest, NextResponse } from 'next/server'
 import { logError } from '@/lib/logger'
-import type { PlayerPosition } from '@/types/database'
+import type { PlayerPosition } from '@/types'
 
 export async function GET(request: NextRequest) {
   try {
