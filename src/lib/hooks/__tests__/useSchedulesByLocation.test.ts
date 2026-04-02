@@ -1,11 +1,15 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { renderHook, waitFor } from '@testing-library/react'
+import { renderHook, waitFor, act } from '@testing-library/react'
 import { useSchedulesByLocation } from '../useSchedulesByLocation'
 
 describe('useSchedulesByLocation', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ schedules: [], registrations: [] }),
+    }))
   })
 
   it('should fetch schedules when location id changes', async () => {
@@ -52,5 +56,37 @@ describe('useSchedulesByLocation', () => {
     expect(result.current.pastSchedules).toEqual([])
     expect(result.current.registrationsByScheduleId).toEqual({})
     expect(result.current.loading).toBe(false)
+  })
+
+  it('should expose a refetch function', async () => {
+    const { result } = renderHook(() => useSchedulesByLocation('loc-1', 'all'))
+    expect(typeof result.current.refetch).toBe('function')
+  })
+
+  it('should re-trigger fetch when refetch is called', async () => {
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ schedules: [], registrations: [] }),
+    })
+    vi.stubGlobal('fetch', mockFetch)
+
+    const { result } = renderHook(() => useSchedulesByLocation('loc-1', 'all'))
+
+    // Wait for the initial fetch to complete
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false)
+    })
+
+    const callsAfterMount = mockFetch.mock.calls.length
+    expect(callsAfterMount).toBeGreaterThanOrEqual(1)
+
+    // Call refetch and verify fetch is triggered again
+    await act(async () => {
+      result.current.refetch()
+    })
+
+    await waitFor(() => {
+      expect(mockFetch.mock.calls.length).toBeGreaterThan(callsAfterMount)
+    })
   })
 })
