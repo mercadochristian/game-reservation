@@ -115,6 +115,7 @@ export function PaymentChannelsClient({ initialChannels }: PaymentChannelsClient
       if (crudDialog.editingId) {
         // Update - only include updatable fields
         const updateData: Record<string, any> = {
+          id: crudDialog.editingId,
           name: formData.name,
           provider: formData.provider,
           account_number: formData.account_number,
@@ -127,18 +128,13 @@ export function PaymentChannelsClient({ initialChannels }: PaymentChannelsClient
           updateData.qr_code_url = qrCodeUrl
         }
 
-        const { error } = await supabase.from('payment_channels').update(updateData).eq('id', crudDialog.editingId)
+        const res = await fetch('/api/admin/payment-channels', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updateData),
+        })
 
-        if (error) throw error
-
-        if (userId) {
-          await logActivity('payment_channel.update', userId, {
-            channel_id: crudDialog.editingId,
-            provider: formData.provider,
-            name: formData.name,
-            qr_updated: !!qrCodeUrl,
-          })
-        }
+        if (!res.ok) throw new Error(await res.text())
 
         toast.success('Payment channel updated')
         setChannels((prev) =>
@@ -162,17 +158,15 @@ export function PaymentChannelsClient({ initialChannels }: PaymentChannelsClient
           qr_code_url: qrCodeUrl,
         }
 
-        const { data, error } = await supabase.from('payment_channels').insert([insertData]).select()
+        const res = await fetch('/api/admin/payment-channels', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(insertData),
+        })
 
-        if (error) throw error
+        if (!res.ok) throw new Error(await res.text())
+        const data = await res.json()
         if (data?.[0]) {
-          await logActivity('payment_channel.create', currentUser.id, {
-            channel_id: data[0].id,
-            provider: formData.provider,
-            name: formData.name,
-            has_qr: !!qrCodeUrl,
-          })
-
           setChannels((prev) => [data[0], ...prev])
           toast.success('Payment channel created')
           router.refresh()
@@ -223,18 +217,13 @@ export function PaymentChannelsClient({ initialChannels }: PaymentChannelsClient
   // Handle toggle active
   const handleToggleActive = async (id: string, currentStatus: boolean) => {
     try {
-      const { error } = await supabase.from('payment_channels').update({ is_active: !currentStatus }).eq('id', id)
+      const res = await fetch('/api/admin/payment-channels', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, is_active: !currentStatus }),
+      })
 
-      if (error) throw error
-
-      const channel = channels.find((ch) => ch.id === id)
-      if (currentUser?.id && channel) {
-        await logActivity('payment_channel.toggle_status', currentUser.id, {
-          channel_id: id,
-          provider: channel.provider,
-          new_status: !currentStatus,
-        })
-      }
+      if (!res.ok) throw new Error(await res.text())
 
       setChannels((prev) => prev.map((ch) => (ch.id === id ? { ...ch, is_active: !currentStatus } : ch)))
       toast.success(currentStatus ? 'Channel deactivated' : 'Channel activated')
@@ -252,19 +241,11 @@ export function PaymentChannelsClient({ initialChannels }: PaymentChannelsClient
   const handleDelete = async () => {
     if (!crudDialog.deleteTarget) return
     try {
-      const channel = channels.find((ch) => ch.id === crudDialog.deleteTarget?.id)
+      const res = await fetch(`/api/admin/payment-channels?id=${crudDialog.deleteTarget.id}`, {
+        method: 'DELETE',
+      })
 
-      const { error } = await supabase.from('payment_channels').delete().eq('id', crudDialog.deleteTarget.id)
-
-      if (error) throw error
-
-      if (currentUser?.id && channel) {
-        await logActivity('payment_channel.delete', currentUser.id, {
-          channel_id: crudDialog.deleteTarget.id,
-          provider: channel.provider,
-          name: channel.name,
-        })
-      }
+      if (!res.ok) throw new Error(await res.text())
 
       setChannels((prev) => prev.filter((ch) => ch.id !== crudDialog.deleteTarget?.id))
       crudDialog.onCancelDelete()

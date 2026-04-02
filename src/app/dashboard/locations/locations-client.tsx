@@ -60,15 +60,20 @@ export function LocationsClient({ initialLocations }: LocationsClientProps) {
       if (crudDialog.editingId) {
         // Update - only include updatable fields
         const updateData = {
+          id: crudDialog.editingId,
           name: formData.name,
           address: formData.address || null,
           google_map_url: formData.google_map_url || null,
           notes: formData.notes || null,
           is_active: formData.is_active,
         }
-        const { error } = await supabase.from('locations').update(updateData).eq('id', crudDialog.editingId)
+        const res = await fetch('/api/admin/locations', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updateData),
+        })
 
-        if (error) throw error
+        if (!res.ok) throw new Error(await res.text())
         toast.success('Location updated')
         setLocations((prev) =>
           prev.map((loc) => (loc.id === crudDialog.editingId ? { ...loc, ...updateData } : loc))
@@ -90,9 +95,14 @@ export function LocationsClient({ initialLocations }: LocationsClientProps) {
           created_by: currentUser.id,
         }
 
-        const { data, error } = await supabase.from('locations').insert([insertData]).select()
+        const res = await fetch('/api/admin/locations', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(insertData),
+        })
 
-        if (error) throw error
+        if (!res.ok) throw new Error(await res.text())
+        const data = await res.json()
         if (data?.[0]) {
           setLocations((prev) => [data[0], ...prev])
           toast.success('Location created')
@@ -124,9 +134,13 @@ export function LocationsClient({ initialLocations }: LocationsClientProps) {
   // Handle toggle active
   const handleToggleActive = async (id: string, currentStatus: boolean) => {
     try {
-      const { error } = await supabase.from('locations').update({ is_active: !currentStatus }).eq('id', id)
+      const res = await fetch('/api/admin/locations', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, is_active: !currentStatus }),
+      })
 
-      if (error) throw error
+      if (!res.ok) throw new Error(await res.text())
       setLocations((prev) => prev.map((loc) => (loc.id === id ? { ...loc, is_active: !currentStatus } : loc)))
       toast.success(currentStatus ? 'Location deactivated' : 'Location activated')
       router.refresh()
@@ -140,9 +154,11 @@ export function LocationsClient({ initialLocations }: LocationsClientProps) {
   const handleDelete = async () => {
     if (!crudDialog.deleteTarget) return
     try {
-      const { error } = await supabase.from('locations').delete().eq('id', crudDialog.deleteTarget.id)
+      const res = await fetch(`/api/admin/locations?id=${crudDialog.deleteTarget.id}`, {
+        method: 'DELETE',
+      })
 
-      if (error) throw error
+      if (!res.ok) throw new Error(await res.text())
       setLocations((prev) => prev.filter((loc) => loc.id !== crudDialog.deleteTarget?.id))
       crudDialog.onCancelDelete()
       toast.success('Location deleted')

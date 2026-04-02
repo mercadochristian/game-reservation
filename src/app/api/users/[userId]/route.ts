@@ -1,3 +1,4 @@
+import { revalidatePath } from 'next/cache'
 import { NextRequest, NextResponse } from 'next/server'
 import type { UserRole } from '@/types'
 import { createServiceClient } from '@/lib/supabase/service'
@@ -191,6 +192,8 @@ export async function PATCH(
         void logError('users.role_change.audit_failed', logErr instanceof Error ? logErr : new Error(String(logErr)), authUser.id, { userId })
       }
     }
+
+    revalidatePath('/dashboard/users')
 
     return NextResponse.json(updatedUser, { status: 200 })
   } catch (error) {
