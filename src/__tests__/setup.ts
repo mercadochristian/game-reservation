@@ -7,6 +7,11 @@ import '@testing-library/jest-dom/vitest'
  * Tests then configure these mocks using vi.mocked(...).mockReturnValue(...).
  */
 
+// Expose vi as jest so @testing-library/dom's jestFakeTimersAreEnabled() detection
+// works correctly with vi.useFakeTimers(). This enables waitFor() to properly
+// advance fake timers when used in tests that call vi.useFakeTimers().
+;(globalThis as any).jest = vi
+
 // Mock IntersectionObserver for Framer Motion's whileInView
 class MockIntersectionObserver {
   observe = vi.fn()
