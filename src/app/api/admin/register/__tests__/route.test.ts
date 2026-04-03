@@ -1,6 +1,9 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { POST } from '../route'
 import { createMockRequest } from '@/__tests__/helpers/next-mock'
+import { createMockServiceClient, createMockServerClient, createQueryBuilder } from '@/__tests__/helpers/supabase-mock'
+import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 
 // Global setup (src/__tests__/setup.ts) auto-mocks these modules.
 // Per-test configuration is done via vi.mocked(...).mockResolvedValue(...).
@@ -40,62 +43,29 @@ const validGroupBody = {
 
 // ─── Mock builder helpers ──────────────────────────────────────────────────────
 
-function createTableBuilder() {
-  const builder: any = {
-    select: vi.fn().mockReturnThis(),
-    insert: vi.fn().mockReturnThis(),
-    update: vi.fn().mockReturnThis(),
-    delete: vi.fn().mockReturnThis(),
-    upsert: vi.fn().mockReturnThis(),
-    in: vi.fn().mockReturnThis(),
-    eq: vi.fn().mockReturnThis(),
-    neq: vi.fn().mockReturnThis(),
-    is: vi.fn().mockReturnThis(),
-    or: vi.fn().mockReturnThis(),
-    order: vi.fn().mockReturnThis(),
-    limit: vi.fn().mockReturnThis(),
-    ilike: vi.fn().mockReturnThis(),
-    single: vi.fn().mockResolvedValue({ data: null, error: null }),
-  }
-  builder.then = vi.fn((onFulfilled: any) =>
-    Promise.resolve({ data: null, error: null }).then(onFulfilled)
-  )
-  builder.catch = vi.fn()
-  builder.finally = vi.fn()
-  return builder
-}
-
 function buildMockClients() {
   const serverTables: Record<string, any> = {
-    users: createTableBuilder(),
-    registrations: createTableBuilder(),
-    teams: createTableBuilder(),
-    team_members: createTableBuilder(),
+    users: createQueryBuilder(),
+    registrations: createQueryBuilder(),
+    teams: createQueryBuilder(),
+    team_members: createQueryBuilder(),
   }
   const serviceTables: Record<string, any> = {
-    users: createTableBuilder(),
-    schedules: createTableBuilder(),
-    registrations: createTableBuilder(),
-    teams: createTableBuilder(),
-    team_members: createTableBuilder(),
+    users: createQueryBuilder(),
+    schedules: createQueryBuilder(),
+    registrations: createQueryBuilder(),
+    teams: createQueryBuilder(),
+    team_members: createQueryBuilder(),
   }
 
-  const serverClient = {
-    from: vi.fn((table: string) => serverTables[table] ?? createTableBuilder()),
-    auth: {
-      getUser: vi.fn().mockResolvedValue({ data: { user: null }, error: null }),
-    },
-  }
+  const serverClient = createMockServerClient()
+  serverClient.from.mockImplementation((table: string) => serverTables[table] ?? createQueryBuilder())
 
-  const serviceClient = {
-    from: vi.fn((table: string) => serviceTables[table] ?? createTableBuilder()),
-    auth: {
-      admin: {
-        createUser: vi.fn().mockResolvedValue({ data: { user: null }, error: null }),
-      },
-      getUser: vi.fn().mockResolvedValue({ data: { user: null }, error: null }),
-    },
-  }
+  const serviceClient = createMockServiceClient()
+  serviceClient.from.mockImplementation((table: string) => serviceTables[table] ?? createQueryBuilder())
+
+  vi.mocked(createClient).mockResolvedValue(serverClient as any)
+  vi.mocked(createServiceClient).mockReturnValue(serviceClient as any)
 
   return {
     serverClient,
@@ -749,7 +719,7 @@ describe('POST /api/admin/register', () => {
       setupSinglePlayerHappyPath(serverClient, tables)
 
       // Add registration_payments table mock
-      tables.service.registration_payments = createTableBuilder()
+      tables.service.registration_payments = createQueryBuilder()
 
       const request = makeRequest({ ...validSingleBody, payment_status: 'review' as const })
       await POST(request as any)
