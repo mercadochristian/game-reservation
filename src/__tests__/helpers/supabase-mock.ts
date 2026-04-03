@@ -19,6 +19,10 @@ export function createQueryBuilder() {
     order: vi.fn().mockReturnThis(),
     limit: vi.fn().mockReturnThis(),
     ilike: vi.fn().mockReturnThis(),
+    gte: vi.fn().mockReturnThis(),
+    lte: vi.fn().mockReturnThis(),
+    gt: vi.fn().mockReturnThis(),
+    lt: vi.fn().mockReturnThis(),
     maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
     single: vi.fn().mockResolvedValue({ data: null, error: null }),
   }
