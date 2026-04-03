@@ -206,11 +206,7 @@ describe('POST /api/admin/register', () => {
     })
 
     it('accepts request without payment_status (defaults to pending)', async () => {
-      const { createClient } = await import('@/lib/supabase/server')
-      const { createServiceClient } = await import('@/lib/supabase/service')
       const { serverClient, serviceClient, tables } = buildMockClients()
-      vi.mocked(createClient).mockResolvedValue(serverClient as any)
-      vi.mocked(createServiceClient).mockReturnValue(serviceClient as any)
       setupSinglePlayerHappyPath(serverClient, tables)
 
       const { payment_status: _omit, ...bodyWithoutStatus } = validSingleBody
@@ -225,11 +221,7 @@ describe('POST /api/admin/register', () => {
 
   describe('Authentication', () => {
     it('returns 401 when user is not authenticated', async () => {
-      const { createClient } = await import('@/lib/supabase/server')
-      const { createServiceClient } = await import('@/lib/supabase/service')
-      const { serverClient, serviceClient } = buildMockClients()
-      vi.mocked(createClient).mockResolvedValue(serverClient as any)
-      vi.mocked(createServiceClient).mockReturnValue(serviceClient as any)
+      const { serverClient } = buildMockClients()
       serverClient.auth.getUser.mockResolvedValue({ data: { user: null }, error: null })
 
       const request = makeRequest(validSingleBody)
@@ -245,11 +237,7 @@ describe('POST /api/admin/register', () => {
 
   describe('Authorization', () => {
     it('returns 403 for a player role user', async () => {
-      const { createClient } = await import('@/lib/supabase/server')
-      const { createServiceClient } = await import('@/lib/supabase/service')
-      const { serverClient, serviceClient, tables } = buildMockClients()
-      vi.mocked(createClient).mockResolvedValue(serverClient as any)
-      vi.mocked(createServiceClient).mockReturnValue(serviceClient as any)
+      const { serverClient, tables } = buildMockClients()
       serverClient.auth.getUser.mockResolvedValue({ data: { user: { id: AUTH_ID } }, error: null })
       tables.server.users.single.mockResolvedValueOnce({ data: { role: 'player' }, error: null })
 
@@ -262,11 +250,7 @@ describe('POST /api/admin/register', () => {
     })
 
     it('returns 403 for a facilitator role user', async () => {
-      const { createClient } = await import('@/lib/supabase/server')
-      const { createServiceClient } = await import('@/lib/supabase/service')
-      const { serverClient, serviceClient, tables } = buildMockClients()
-      vi.mocked(createClient).mockResolvedValue(serverClient as any)
-      vi.mocked(createServiceClient).mockReturnValue(serviceClient as any)
+      const { serverClient, tables } = buildMockClients()
       serverClient.auth.getUser.mockResolvedValue({ data: { user: { id: AUTH_ID } }, error: null })
       tables.server.users.single.mockResolvedValueOnce({ data: { role: 'facilitator' }, error: null })
 
@@ -277,11 +261,7 @@ describe('POST /api/admin/register', () => {
     })
 
     it('returns 403 when role lookup returns a DB error', async () => {
-      const { createClient } = await import('@/lib/supabase/server')
-      const { createServiceClient } = await import('@/lib/supabase/service')
-      const { serverClient, serviceClient, tables } = buildMockClients()
-      vi.mocked(createClient).mockResolvedValue(serverClient as any)
-      vi.mocked(createServiceClient).mockReturnValue(serviceClient as any)
+      const { serverClient, tables } = buildMockClients()
       serverClient.auth.getUser.mockResolvedValue({ data: { user: { id: AUTH_ID } }, error: null })
       tables.server.users.single.mockResolvedValueOnce({ data: null, error: { message: 'DB error' } })
 
@@ -292,11 +272,7 @@ describe('POST /api/admin/register', () => {
     })
 
     it('allows admin role user through', async () => {
-      const { createClient } = await import('@/lib/supabase/server')
-      const { createServiceClient } = await import('@/lib/supabase/service')
-      const { serverClient, serviceClient, tables } = buildMockClients()
-      vi.mocked(createClient).mockResolvedValue(serverClient as any)
-      vi.mocked(createServiceClient).mockReturnValue(serviceClient as any)
+      const { serverClient, tables } = buildMockClients()
       setupSinglePlayerHappyPath(serverClient, tables, 'admin')
 
       const request = makeRequest(validSingleBody)
@@ -306,11 +282,7 @@ describe('POST /api/admin/register', () => {
     })
 
     it('allows super_admin role user through', async () => {
-      const { createClient } = await import('@/lib/supabase/server')
-      const { createServiceClient } = await import('@/lib/supabase/service')
-      const { serverClient, serviceClient, tables } = buildMockClients()
-      vi.mocked(createClient).mockResolvedValue(serverClient as any)
-      vi.mocked(createServiceClient).mockReturnValue(serviceClient as any)
+      const { serverClient, tables } = buildMockClients()
       setupSinglePlayerHappyPath(serverClient, tables, 'super_admin')
 
       const request = makeRequest(validSingleBody)
@@ -324,11 +296,7 @@ describe('POST /api/admin/register', () => {
 
   describe('Player Resolution', () => {
     it('resolves an existing player and returns success result', async () => {
-      const { createClient } = await import('@/lib/supabase/server')
-      const { createServiceClient } = await import('@/lib/supabase/service')
-      const { serverClient, serviceClient, tables } = buildMockClients()
-      vi.mocked(createClient).mockResolvedValue(serverClient as any)
-      vi.mocked(createServiceClient).mockReturnValue(serviceClient as any)
+      const { serverClient, tables } = buildMockClients()
       setupSinglePlayerHappyPath(serverClient, tables)
 
       const request = makeRequest(validSingleBody)
@@ -341,11 +309,7 @@ describe('POST /api/admin/register', () => {
     })
 
     it('returns 400 with error result when player user_id is not found', async () => {
-      const { createClient } = await import('@/lib/supabase/server')
-      const { createServiceClient } = await import('@/lib/supabase/service')
-      const { serverClient, serviceClient, tables } = buildMockClients()
-      vi.mocked(createClient).mockResolvedValue(serverClient as any)
-      vi.mocked(createServiceClient).mockReturnValue(serviceClient as any)
+      const { serverClient, tables } = buildMockClients()
       serverClient.auth.getUser.mockResolvedValue({ data: { user: { id: AUTH_ID } }, error: null })
       tables.server.users.single
         .mockResolvedValueOnce({ data: { role: 'admin' }, error: null })
@@ -362,11 +326,7 @@ describe('POST /api/admin/register', () => {
     })
 
     it('returns 400 when player lookup returns a DB error', async () => {
-      const { createClient } = await import('@/lib/supabase/server')
-      const { createServiceClient } = await import('@/lib/supabase/service')
-      const { serverClient, serviceClient, tables } = buildMockClients()
-      vi.mocked(createClient).mockResolvedValue(serverClient as any)
-      vi.mocked(createServiceClient).mockReturnValue(serviceClient as any)
+      const { serverClient, tables } = buildMockClients()
       serverClient.auth.getUser.mockResolvedValue({ data: { user: { id: AUTH_ID } }, error: null })
       tables.server.users.single
         .mockResolvedValueOnce({ data: { role: 'admin' }, error: null })
@@ -383,12 +343,8 @@ describe('POST /api/admin/register', () => {
     })
 
     it('calls createGuestUser for a guest player type', async () => {
-      const { createClient } = await import('@/lib/supabase/server')
-      const { createServiceClient } = await import('@/lib/supabase/service')
       const { createGuestUser } = await import('@/lib/services/guest-user')
-      const { serverClient, serviceClient, tables } = buildMockClients()
-      vi.mocked(createClient).mockResolvedValue(serverClient as any)
-      vi.mocked(createServiceClient).mockReturnValue(serviceClient as any)
+      const { serverClient, tables } = buildMockClients()
       serverClient.auth.getUser.mockResolvedValue({ data: { user: { id: AUTH_ID } }, error: null })
       tables.server.users.single.mockResolvedValueOnce({ data: { role: 'admin' }, error: null })
       // Need to mock schedule twice: once for validation, once for team price check
@@ -424,21 +380,14 @@ describe('POST /api/admin/register', () => {
       const response = await POST(request as any)
 
       const body = await response.json()
-      if (response.status !== 200) {
-        console.error('Expected 200 but got', response.status, 'Body:', JSON.stringify(body, null, 2))
-      }
       expect(response.status).toBe(200)
       expect(vi.mocked(createGuestUser)).toHaveBeenCalledOnce()
       expect(body.results[0].success).toBe(true)
     })
 
     it('returns 400 when createGuestUser returns an error', async () => {
-      const { createClient } = await import('@/lib/supabase/server')
-      const { createServiceClient } = await import('@/lib/supabase/service')
       const { createGuestUser } = await import('@/lib/services/guest-user')
-      const { serverClient, serviceClient, tables } = buildMockClients()
-      vi.mocked(createClient).mockResolvedValue(serverClient as any)
-      vi.mocked(createServiceClient).mockReturnValue(serviceClient as any)
+      const { serverClient, tables } = buildMockClients()
       serverClient.auth.getUser.mockResolvedValue({ data: { user: { id: AUTH_ID } }, error: null })
       tables.server.users.single.mockResolvedValueOnce({ data: { role: 'admin' }, error: null })
       tables.service.schedules.single.mockResolvedValueOnce({
@@ -480,11 +429,7 @@ describe('POST /api/admin/register', () => {
 
   describe('Duplicate Detection', () => {
     it('returns 400 with per-player error when player is already registered', async () => {
-      const { createClient } = await import('@/lib/supabase/server')
-      const { createServiceClient } = await import('@/lib/supabase/service')
-      const { serverClient, serviceClient, tables } = buildMockClients()
-      vi.mocked(createClient).mockResolvedValue(serverClient as any)
-      vi.mocked(createServiceClient).mockReturnValue(serviceClient as any)
+      const { serverClient, tables } = buildMockClients()
       serverClient.auth.getUser.mockResolvedValue({ data: { user: { id: AUTH_ID } }, error: null })
       tables.server.users.single
         .mockResolvedValueOnce({ data: { role: 'admin' }, error: null })
@@ -505,11 +450,7 @@ describe('POST /api/admin/register', () => {
     })
 
     it('marks only the duplicate player as failed in a mixed batch', async () => {
-      const { createClient } = await import('@/lib/supabase/server')
-      const { createServiceClient } = await import('@/lib/supabase/service')
-      const { serverClient, serviceClient, tables } = buildMockClients()
-      vi.mocked(createClient).mockResolvedValue(serverClient as any)
-      vi.mocked(createServiceClient).mockReturnValue(serviceClient as any)
+      const { serverClient, tables } = buildMockClients()
       serverClient.auth.getUser.mockResolvedValue({ data: { user: { id: AUTH_ID } }, error: null })
       tables.server.users.single
         .mockResolvedValueOnce({ data: { role: 'admin' }, error: null })
@@ -537,11 +478,7 @@ describe('POST /api/admin/register', () => {
 
   describe('Batch Insert Errors', () => {
     it('returns 500 when registrations batch insert fails', async () => {
-      const { createClient } = await import('@/lib/supabase/server')
-      const { createServiceClient } = await import('@/lib/supabase/service')
-      const { serverClient, serviceClient, tables } = buildMockClients()
-      vi.mocked(createClient).mockResolvedValue(serverClient as any)
-      vi.mocked(createServiceClient).mockReturnValue(serviceClient as any)
+      const { serverClient, tables } = buildMockClients()
       serverClient.auth.getUser.mockResolvedValue({ data: { user: { id: AUTH_ID } }, error: null })
       tables.server.users.single
         .mockResolvedValueOnce({ data: { role: 'admin' }, error: null })
@@ -568,11 +505,7 @@ describe('POST /api/admin/register', () => {
 
   describe('Registration Modes', () => {
     it('does not create team or team_members for single mode', async () => {
-      const { createClient } = await import('@/lib/supabase/server')
-      const { createServiceClient } = await import('@/lib/supabase/service')
-      const { serverClient, serviceClient, tables } = buildMockClients()
-      vi.mocked(createClient).mockResolvedValue(serverClient as any)
-      vi.mocked(createServiceClient).mockReturnValue(serviceClient as any)
+      const { serverClient, tables } = buildMockClients()
       setupSinglePlayerHappyPath(serverClient, tables)
 
       const request = makeRequest(validSingleBody)
@@ -584,11 +517,7 @@ describe('POST /api/admin/register', () => {
     })
 
     it('creates team and team_members for group mode', async () => {
-      const { createClient } = await import('@/lib/supabase/server')
-      const { createServiceClient } = await import('@/lib/supabase/service')
-      const { serverClient, serviceClient, tables } = buildMockClients()
-      vi.mocked(createClient).mockResolvedValue(serverClient as any)
-      vi.mocked(createServiceClient).mockReturnValue(serviceClient as any)
+      const { serverClient, tables } = buildMockClients()
       setupGroupHappyPath(serverClient, tables)
 
       const request = makeRequest(validGroupBody)
@@ -600,11 +529,7 @@ describe('POST /api/admin/register', () => {
     })
 
     it('creates team and team_members for team mode', async () => {
-      const { createClient } = await import('@/lib/supabase/server')
-      const { createServiceClient } = await import('@/lib/supabase/service')
-      const { serverClient, serviceClient, tables } = buildMockClients()
-      vi.mocked(createClient).mockResolvedValue(serverClient as any)
-      vi.mocked(createServiceClient).mockReturnValue(serviceClient as any)
+      const { serverClient, tables } = buildMockClients()
       serverClient.auth.getUser.mockResolvedValue({ data: { user: { id: AUTH_ID } }, error: null })
       tables.server.users.single
         .mockResolvedValueOnce({ data: { role: 'admin' }, error: null })
@@ -636,11 +561,7 @@ describe('POST /api/admin/register', () => {
     })
 
     it('returns 500 when team insert fails for group mode', async () => {
-      const { createClient } = await import('@/lib/supabase/server')
-      const { createServiceClient } = await import('@/lib/supabase/service')
-      const { serverClient, serviceClient, tables } = buildMockClients()
-      vi.mocked(createClient).mockResolvedValue(serverClient as any)
-      vi.mocked(createServiceClient).mockReturnValue(serviceClient as any)
+      const { serverClient, tables } = buildMockClients()
       serverClient.auth.getUser.mockResolvedValue({ data: { user: { id: AUTH_ID } }, error: null })
       tables.server.users.single
         .mockResolvedValueOnce({ data: { role: 'admin' }, error: null })
@@ -670,11 +591,7 @@ describe('POST /api/admin/register', () => {
     })
 
     it('returns 500 when team_members insert fails', async () => {
-      const { createClient } = await import('@/lib/supabase/server')
-      const { createServiceClient } = await import('@/lib/supabase/service')
-      const { serverClient, serviceClient, tables } = buildMockClients()
-      vi.mocked(createClient).mockResolvedValue(serverClient as any)
-      vi.mocked(createServiceClient).mockReturnValue(serviceClient as any)
+      const { serverClient, tables } = buildMockClients()
       serverClient.auth.getUser.mockResolvedValue({ data: { user: { id: AUTH_ID } }, error: null })
       tables.server.users.single
         .mockResolvedValueOnce({ data: { role: 'admin' }, error: null })
@@ -711,11 +628,7 @@ describe('POST /api/admin/register', () => {
 
   describe('Request Body Field Forwarding', () => {
     it('passes payment_status from request body into registration_payments insert', async () => {
-      const { createClient } = await import('@/lib/supabase/server')
-      const { createServiceClient } = await import('@/lib/supabase/service')
-      const { serverClient, serviceClient, tables } = buildMockClients()
-      vi.mocked(createClient).mockResolvedValue(serverClient as any)
-      vi.mocked(createServiceClient).mockReturnValue(serviceClient as any)
+      const { serverClient, tables } = buildMockClients()
       setupSinglePlayerHappyPath(serverClient, tables)
 
       // Add registration_payments table mock
@@ -732,11 +645,7 @@ describe('POST /api/admin/register', () => {
     })
 
     it('passes team_preference from request body into registration insert', async () => {
-      const { createClient } = await import('@/lib/supabase/server')
-      const { createServiceClient } = await import('@/lib/supabase/service')
-      const { serverClient, serviceClient, tables } = buildMockClients()
-      vi.mocked(createClient).mockResolvedValue(serverClient as any)
-      vi.mocked(createServiceClient).mockReturnValue(serviceClient as any)
+      const { serverClient, tables } = buildMockClients()
       setupSinglePlayerHappyPath(serverClient, tables)
 
       const request = makeRequest({ ...validSingleBody, team_preference: 'teammate' as const })
@@ -750,11 +659,7 @@ describe('POST /api/admin/register', () => {
     })
 
     it('does not include payment_proof_url in registration insert (admin sets status, not proof)', async () => {
-      const { createClient } = await import('@/lib/supabase/server')
-      const { createServiceClient } = await import('@/lib/supabase/service')
-      const { serverClient, serviceClient, tables } = buildMockClients()
-      vi.mocked(createClient).mockResolvedValue(serverClient as any)
-      vi.mocked(createServiceClient).mockReturnValue(serviceClient as any)
+      const { serverClient, tables } = buildMockClients()
       setupSinglePlayerHappyPath(serverClient, tables)
 
       const request = makeRequest(validSingleBody)
@@ -772,11 +677,7 @@ describe('POST /api/admin/register', () => {
 
   describe('Happy Path', () => {
     it('returns 200 with success result for single player registration', async () => {
-      const { createClient } = await import('@/lib/supabase/server')
-      const { createServiceClient } = await import('@/lib/supabase/service')
-      const { serverClient, serviceClient, tables } = buildMockClients()
-      vi.mocked(createClient).mockResolvedValue(serverClient as any)
-      vi.mocked(createServiceClient).mockReturnValue(serviceClient as any)
+      const { serverClient, tables } = buildMockClients()
       setupSinglePlayerHappyPath(serverClient, tables)
 
       const request = makeRequest(validSingleBody)
@@ -790,11 +691,7 @@ describe('POST /api/admin/register', () => {
     })
 
     it('returns 200 with success results for 2-player group registration', async () => {
-      const { createClient } = await import('@/lib/supabase/server')
-      const { createServiceClient } = await import('@/lib/supabase/service')
-      const { serverClient, serviceClient, tables } = buildMockClients()
-      vi.mocked(createClient).mockResolvedValue(serverClient as any)
-      vi.mocked(createServiceClient).mockReturnValue(serviceClient as any)
+      const { serverClient, tables } = buildMockClients()
       setupGroupHappyPath(serverClient, tables)
 
       const request = makeRequest(validGroupBody)
