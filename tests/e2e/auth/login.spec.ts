@@ -27,6 +27,7 @@ test.describe('Login flow', () => {
     unauthenticatedPage: page,
   }) => {
     await page.goto('/auth?error=banned')
+    await page.waitForSelector('input#email') // ensures component has fully hydrated before checking toast
 
     await expect(
       page.locator('[data-sonner-toast]').filter({ hasText: 'Your account has been banned' })

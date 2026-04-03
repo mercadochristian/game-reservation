@@ -96,7 +96,7 @@ test('sign-up form shows validation error for short password', async ({
   await page.fill('input#confirm-password', '123')
   await page.click('button[type="submit"]')
   await expect(
-    page.locator('[data-sonner-toast]').filter({ hasText: 'at least 6 characters' })
+    page.locator('[data-sonner-toast]').filter({ hasText: 'Password must be at least 6 characters' })
   ).toBeVisible()
 })
 ```
@@ -160,7 +160,6 @@ Go to your repo → Settings → Secrets and variables → Actions → New repos
 | `PLAYWRIGHT_TEST_SUPABASE_SERVICE_ROLE_KEY` | Test project service role key |
 | `PLAYWRIGHT_TEST_EMAIL` | Test user email |
 | `PLAYWRIGHT_TEST_PASSWORD` | Test user password |
-| `PLAYWRIGHT_BASE_URL` | `http://localhost:3000` |
 
 ### When tests fail in CI
 

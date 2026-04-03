@@ -26,12 +26,11 @@ async function globalSetup(config: FullConfig) {
   await page.click('button[type="submit"]')
 
   // Wait for redirect away from /auth (confirms login succeeded)
-  await page.waitForURL((url) => !url.href.includes('/auth'), { timeout: 15_000 })
-
-  const currentUrl = page.url()
-  if (currentUrl.includes('/auth')) {
+  try {
+    await page.waitForURL((url) => !url.href.includes('/auth'), { timeout: 15_000 })
+  } catch {
     throw new Error(
-      `Global setup failed: still on /auth after login. Check credentials in .env.test.\nCurrent URL: ${currentUrl}`
+      `Global setup failed: still on /auth after login attempt. Check credentials in .env.test.\nCurrent URL: ${page.url()}`
     )
   }
 
@@ -39,7 +38,9 @@ async function globalSetup(config: FullConfig) {
   await page.context().storageState({ path: AUTH_FILE })
   await browser.close()
 
-  console.log(`✅ Global setup: signed in as ${email}, session saved to tests/e2e/.auth/user.json`)
+  // console.log is intentional here — global setup runs outside the Next.js request cycle
+  // where the app logger is not available
+  process.stdout.write(`Global setup: signed in as ${email}, session saved to tests/e2e/.auth/user.json\n`)
 }
 
 export default globalSetup
