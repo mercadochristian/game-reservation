@@ -69,12 +69,12 @@ src/
 │   ├── waiver/                   # Waiver agreement
 │   ├── register/[scheduleId]/    # Player self-registration for a game
 │   ├── dashboard/                # Role-aware unified dashboard
-│   │   ├── scanner/              # QR attendance scanner (facilitator/admin)
-│   │   ├── registrations/        # Registrations dashboard (admin/facilitator)
+│   │   ├── scanner/              # QR attendance scanner (facilitator, admin)
+│   │   ├── registrations/        # Registrations dashboard (admin)
 │   │   ├── schedules/            # Schedule management (admin)
 │   │   ├── users/                # User management with ban/unban (admin)
 │   │   ├── payments/             # Payment verification (admin)
-│   │   ├── lineups/[scheduleId]/ # Lineup builder (admin/facilitator)
+│   │   ├── lineups/[scheduleId]/ # Lineup builder (admin)
 │   │   ├── locations/            # Location management (admin)
 │   │   ├── payment-channels/     # Payment method management (admin)
 │   │   ├── logs/                 # Activity/error logs (super_admin)
@@ -138,6 +138,7 @@ docs/
 - Waiver flow
 - Profile management
 - Admin player registration
+- MVP awards (nav coming soon)
 - E2E test suite (Playwright)
 
 ### Coming Soon
@@ -169,4 +170,4 @@ Follow conventions in [CLAUDE.md](CLAUDE.md):
 
 ---
 
-**Last updated:** April 2026
+**Last updated:** 2026-04-06

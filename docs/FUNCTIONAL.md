@@ -27,8 +27,6 @@ The **Volleyball Game Reservation System** is a web platform that manages game r
 
 ### Facilitator
 - Scan player QR codes at game start to mark attendance per schedule
-- View all registrations at a location (filtered by date)
-- Build and save game-day lineups (assign players to teams and court positions)
 
 ### Player
 - Browse upcoming game schedules on the public calendar
@@ -62,10 +60,10 @@ Players upload a payment proof screenshot during registration. Admins review the
 Each registered player receives a unique QR code. On game day, facilitators open the scanner page, select the schedule, and scan each player's QR code to mark them as attended. The scanner shows payment status alongside attendance so facilitators can flag unpaid players at the door.
 
 **Registrations Dashboard**
-Unified view for admins and facilitators showing all registrations at a location, split into upcoming and past game sections. Filterable by date range. Admins can verify payments, edit registrations, reassign teams, and manage lineups directly from this view. Facilitators can mark attendance.
+Admin-only view showing all registrations at a location, split into upcoming and past game sections. Filterable by date range. Admins can verify payments, edit registrations, reassign teams, and manage lineups directly from this view.
 
 **Team and Lineup Builder**
-Before game day, admins or facilitators use the drag-and-drop lineup builder to assign registered players to teams. Solo players drag individually; group registrations drag as a block and cannot be split. Team names are customizable. Once saved, the assigned team appears on each player's registration record.
+Before game day, admins use the drag-and-drop lineup builder to assign registered players to teams. Solo players drag individually; group registrations drag as a block and cannot be split. Team names are customizable. Once saved, the assigned team appears on each player's registration record.
 
 **User Management**
 Admins view all users with filter chips by role (admin, facilitator, player) and status (active, banned). Each user entry shows role badge, skill level, and account status. Admins can:

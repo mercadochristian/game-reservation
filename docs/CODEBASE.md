@@ -459,10 +459,12 @@ Read-only view of all locations including soft-deleted ones. Used to preserve sc
 | `/dashboard/payment-channels` | admin, super_admin | Live | Manage accepted payment methods |
 | `/dashboard/lineups/[scheduleId]` | admin, super_admin | Live | Drag-and-drop lineup builder |
 | `/dashboard/users` | admin, super_admin | Live | User list with ban/unban actions |
-| `/dashboard/register` | admin, super_admin | Live | Admin registers a player for a game |
+| `/dashboard/register` | admin, super_admin | Live† | Admin registers a player for a game |
 | `/dashboard/logs` | super_admin | Live | System error/activity log viewer |
-| `/dashboard/mvp` | facilitator | Live (nav disabled) | MVP award management |
-| `/dashboard/teams` | facilitator | Live (nav disabled) | Team management |
+| `/dashboard/mvp` | facilitator | Live (nav disabled)† | MVP award management |
+| `/dashboard/teams` | facilitator | Live (nav disabled)† | Team management |
+
+† UI-restricted only — no middleware role enforcement. These paths are commented out in `ROLE_PROTECTED_PAGES` in `src/middleware.ts` and rely solely on nav visibility and UI-level guards.
 
 ---
 
