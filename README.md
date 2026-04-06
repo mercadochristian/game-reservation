@@ -130,6 +130,7 @@ docs/
 - Game schedule management
 - Player registration (solo, group, team)
 - Payment tracking and verification
+- Promotions / schedule discounts (percent or fixed)
 - QR code attendance scanning
 - Registrations dashboard
 - Team lineup builder

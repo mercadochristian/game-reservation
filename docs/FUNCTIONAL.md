@@ -80,6 +80,9 @@ Players must accept the liability waiver before they can register for any game. 
 **Payment Channels**
 Admins manage the list of accepted payment methods shown to players during registration. Each channel includes a provider name (GCash, Maya, BDO, etc.), account number, account holder name, and an optional QR code image. Channels can be activated or deactivated.
 
+**Promotions / Discounts**
+Admins attach a discount to any schedule — either a percentage off (e.g. 20%) or a fixed amount off (e.g. ₱50). The discount is applied automatically to all registration modes (solo, group, team) when computing the required payment amount.
+
 **Profile Management**
 All users can edit their profile at any time from `/dashboard/profile`: name, phone, birthday, gender, skill level, and emergency contact. Profile data is required to be complete before accessing the dashboard.
 
@@ -92,9 +95,6 @@ Admins can register any player (including guest players) for a game directly fro
 ---
 
 ### Coming Soon
-
-**Promotions**
-Offer discounts (BOTO or percentage) to specific game schedules. Admin-controlled; displayed on schedule cards during registration.
 
 **Announcements**
 Admins create and broadcast announcements to users. Target by role. Users see an announcement center in their dashboard.

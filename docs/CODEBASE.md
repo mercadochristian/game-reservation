@@ -558,6 +558,13 @@ All DB queries must live here. Never write inline Supabase queries in pages, API
 | `user-edit.ts` | Admin user edit (role, skill level) |
 | `user-search.ts` | Search query parameter sanitization |
 
+### Utility Functions (`src/lib/utils/`)
+
+| File | Purpose |
+|------|---------|
+| `pricing.ts` | Computes registration amounts. `computeSoloAmount`, `computeGroupAmount`, `computeTeamAmount` apply `discount_type` (`percent` or `fixed`) and `discount_value` from the schedule automatically. `applyDiscount` is the core helper. |
+| `schedule-label.ts` | Maps schedule status enums to display strings |
+
 ### Logger (`src/lib/logger.ts`)
 
 All server-side logging goes to the `logs` table via `createServiceClient()`. Logging failures fall back to `console.error` without re-throwing.
