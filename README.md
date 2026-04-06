@@ -1,154 +1,172 @@
-# 🏐 Volleyball Game Reservation System
+# Volleyball Game Reservation System
 
-A full-stack web application for managing volleyball game reservations, player registrations, and administrative operations with role-based access control.
+A full-stack web application for managing volleyball game reservations, player registrations, and game-day operations. Supports three user roles: **Admin**, **Facilitator**, and **Player**.
 
 ## Features
 
-- **Player Role** — Browse schedules, register for games, upload payment proofs, view registration history
-- **Facilitator Role** — Manage game-day operations, track attendance via QR codes, manage team assignments
-- **Admin Role** — Manage schedules, review payments, manage locations, view detailed logs
+- **Admin** — Schedule management, location management, user management (including ban/unban), payment verification, player registration, activity logs
+- **Facilitator** — QR code attendance scanning, team lineup builder, MVP awards
+- **Player** — Browse schedules, solo and group registration, payment proof upload, registration history, profile management
 
 ## Tech Stack
 
 - **Frontend** — Next.js 15 + React 19 + TypeScript 5 + Tailwind CSS v4
-- **Backend** — Supabase (PostgreSQL) + Auth (magic link, email, OAuth)
+- **Backend** — Supabase (PostgreSQL + email/password auth)
 - **Forms** — React Hook Form + Zod validation
 - **Animations** — Framer Motion v12
-- **UI** — Custom shadcn-style components on @base-ui/react primitives
+- **UI** — Custom shadcn-style components on `@base-ui/react` primitives
+- **Testing** — Vitest (unit) + Playwright (E2E)
 
 ## Quick Start
 
 ### Prerequisites
 - Node.js 18+
-- npm or yarn
-- Supabase account
+- npm
+- Supabase account + project
 
 ### Installation
 
 1. **Clone and install:**
    ```bash
-   git clone <repo>
+   git clone git@github.com:mercadochristian/game-reservation.git
    cd game-reservation
    npm install
    ```
 
-2. **Setup Supabase** — See [docs/setup/INITIAL_SETUP.md](docs/setup/INITIAL_SETUP.md)
+2. **Set up environment variables:**
+   ```bash
+   cp .env.example .env.local
+   # Fill in your Supabase URL and keys
+   ```
 
-3. **Run dev server:**
+3. **Set up Supabase** — See [docs/setup/INITIAL_SETUP.md](docs/setup/INITIAL_SETUP.md)
+
+4. **Run dev server:**
    ```bash
    npm run dev
    # Open http://localhost:3000
    ```
-
-## Documentation
-
-| Document | Purpose |
-|----------|---------|
-| [**CLAUDE.md**](CLAUDE.md) | Project instructions & conventions |
-| **Setup** | |
-| [docs/setup/INITIAL_SETUP.md](docs/setup/INITIAL_SETUP.md) | Complete setup guide (5-15 min) |
-| **Development** | |
-| [docs/CODEBASE.md](docs/CODEBASE.md) | Technical reference (routes, components, types) |
-| [docs/FUNCTIONAL.md](docs/FUNCTIONAL.md) | Feature overview for stakeholders |
-| [docs/STYLE_GUIDE.md](docs/STYLE_GUIDE.md) | Design system & component patterns |
-| [docs/TESTING.md](docs/TESTING.md) | Testing strategy & coverage |
-| **Architecture** | |
-| [docs/architecture/LINEUP_FEATURE.md](docs/architecture/LINEUP_FEATURE.md) | Volleyball team formation & positions |
-| [docs/architecture/REFACTORING.md](docs/architecture/REFACTORING.md) | Planned refactoring work |
-| [docs/architecture/PWA.md](docs/architecture/PWA.md) | Progressive Web App strategy |
-| **Database** | |
-| [docs/database/MIGRATIONS.md](docs/database/MIGRATIONS.md) | Migration strategy |
 
 ## Development Commands
 
 ```bash
 npm run dev              # Start dev server
 npm run build            # Production build
-npm run start            # Start production server
 npm run lint             # Run ESLint
-npm run test             # Run unit tests
-npm run test:watch       # Watch mode for tests
-npm run test:coverage    # Generate coverage report
+npm run test             # Run unit tests (Vitest)
+npm run test:watch       # Unit tests in watch mode
+npm run test:coverage    # Unit test coverage report
+npx playwright test      # Run E2E tests
 ```
 
 ## Project Structure
 
 ```
 src/
-├── app/                 # Next.js app router
-│   ├── admin/          # Admin dashboard & features
-│   ├── player/         # Player dashboard & features
-│   ├── facilitator/    # Facilitator dashboard & features
-│   ├── auth/           # Authentication pages
-│   └── layout.tsx      # Root layout with AppShell
+├── app/
+│   ├── auth/                     # Sign in / sign up
+│   ├── create-profile/           # New player profile setup
+│   ├── waiver/                   # Waiver agreement
+│   ├── register/[scheduleId]/    # Player self-registration for a game
+│   ├── dashboard/                # Role-aware unified dashboard
+│   │   ├── scanner/              # QR attendance scanner (facilitator/admin)
+│   │   ├── registrations/        # Registrations dashboard (admin/facilitator)
+│   │   ├── schedules/            # Schedule management (admin)
+│   │   ├── users/                # User management with ban/unban (admin)
+│   │   ├── payments/             # Payment verification (admin)
+│   │   ├── lineups/[scheduleId]/ # Lineup builder (admin/facilitator)
+│   │   ├── locations/            # Location management (admin)
+│   │   ├── payment-channels/     # Payment method management (admin)
+│   │   ├── logs/                 # Activity/error logs (super_admin)
+│   │   ├── mvp/                  # MVP awards (facilitator)
+│   │   ├── profile/              # Profile management (all roles)
+│   │   ├── register/             # Admin player registration
+│   │   └── my-registrations/     # Registration history (all roles)
+│   └── api/                      # API routes
 ├── components/
-│   ├── ui/             # Primitive UI components
-│   └── *.tsx           # Shared layout components
+│   ├── ui/                       # Styled UI primitives
+│   └── app-shell.tsx             # Universal nav (role-based)
 ├── lib/
-│   ├── supabase/       # Client, server, middleware
-│   ├── validations/    # Zod schemas
-│   ├── errors/         # Error handling
-│   └── utils/          # Helper functions
-└── types/              # TypeScript definitions
+│   ├── supabase/                 # Client factories (server, browser, service)
+│   ├── queries/                  # DB query functions (by table)
+│   ├── validations/              # Zod schemas
+│   ├── hooks/                    # Custom React hooks
+│   └── logger.ts                 # logActivity, logError, logWarn
+└── types/
+    └── database.ts               # Generated Supabase types
 
 docs/
-├── setup/              # Installation & deployment
-├── architecture/       # Technical decisions & features
-└── database/           # Migrations & schema
+├── CODEBASE.md                   # Technical reference
+├── FUNCTIONAL.md                 # Feature overview
+├── SECURITY.md                   # Security architecture
+├── TESTING.md                    # Testing strategy
+├── STYLE_GUIDE.md                # Design system
+├── playwright-guide.md           # E2E testing guide
+├── setup/                        # Setup guides
+├── architecture/                 # Architecture decisions
+└── database/                     # Migration strategy
 ```
 
-## Architecture Highlights
+## Authentication Flow
 
-### Authentication Flow
-1. User visits `/` → redirected to `/auth`
-2. Sign up/login via email, magic link, or OAuth
-3. `handle_new_user` trigger assigns role based on email whitelist
-4. Middleware redirects to role-specific dashboard
-5. Session auto-refreshes on every request
+1. User visits any protected route → redirected to `/auth`
+2. Signs up or logs in with email + password
+3. Middleware checks profile completion → `/create-profile` if not done
+4. Redirected to role-based dashboard (`/dashboard`)
+5. Banned users → `/auth?error=banned`
 
-### Role-Based Access
-- **Admin** — Full platform access, schedule/payment management
-- **Facilitator** — Game operations, attendance tracking
-- **Player** — Registration, payment, profile management
+## Database Security
 
-### Database Security
-- RLS policies on all tables
-- Admin checks via inline subquery (prevents privilege escalation)
-- Storage bucket private (users can only access own files)
-- Unique constraints prevent double-booking
+- RLS policies enabled on all tables
+- Role checked from database on every privileged API call (not from request headers)
+- Admin operations use service role client (server-side only)
+- Storage bucket private — users access only their own files
 
 ## Implementation Status
 
-### ✅ Complete
-- Authentication system (email, magic link, OAuth)
-- Database schema & migrations
-- Role-based routing & permissions
-- TypeScript types & validation schemas
-- UI primitive components
-- Core App Shell & navigation
+### Live
+- Authentication (email + password)
+- Role-based routing and permissions
+- Game schedule management
+- Player registration (solo, group, team)
+- Payment tracking and verification
+- QR code attendance scanning
+- Registrations dashboard
+- Team lineup builder
+- User management with ban/unban
+- Activity logs
+- Waiver flow
+- Profile management
+- Admin player registration
+- E2E test suite (Playwright)
 
-### 🚀 Next Features (Priority Order)
-1. Player registration flow
-2. Schedule management (CRUD)
-3. Payment processing & verification
-4. Team management & shuffling
-5. QR code attendance tracking
-6. MVP awards system
+### Coming Soon
+- Promotions / discounts
+- Announcements
+- PWA (installable, push notifications)
+- Webhooks
+
+## Documentation
+
+| Document | Purpose |
+|----------|---------|
+| [CLAUDE.md](CLAUDE.md) | Project conventions for AI-assisted development |
+| [docs/CODEBASE.md](docs/CODEBASE.md) | Technical reference (routes, API, schema, components) |
+| [docs/FUNCTIONAL.md](docs/FUNCTIONAL.md) | Feature overview for stakeholders |
+| [docs/SECURITY.md](docs/SECURITY.md) | Security architecture and threat model |
+| [docs/TESTING.md](docs/TESTING.md) | Testing strategy, coverage, and patterns |
+| [docs/STYLE_GUIDE.md](docs/STYLE_GUIDE.md) | Design system and component patterns |
+| [docs/playwright-guide.md](docs/playwright-guide.md) | E2E testing guide |
+| [docs/setup/INITIAL_SETUP.md](docs/setup/INITIAL_SETUP.md) | Full setup guide |
 
 ## Contributing
 
-Follow the patterns established in [CLAUDE.md](CLAUDE.md):
-- Use the specialized agents for implementation tasks
-- Write unit tests for new features
-- Follow style guide conventions
-- Update documentation with new features
-
-## Support
-
-- **Questions about setup?** → See [docs/setup/INITIAL_SETUP.md](docs/setup/INITIAL_SETUP.md)
-- **Unsure about conventions?** → Check [CLAUDE.md](CLAUDE.md)
-- **Need technical details?** → See [docs/CODEBASE.md](docs/CODEBASE.md)
+Follow conventions in [CLAUDE.md](CLAUDE.md):
+- Use specialized agents for implementation tasks
+- Write unit tests for new features (90% coverage threshold)
+- Follow the style guide
+- Update `docs/CODEBASE.md` and `docs/FUNCTIONAL.md` with new features
 
 ---
 
-**Last updated:** March 2026 | **Status:** Foundation complete, ready for feature development
+**Last updated:** April 2026
