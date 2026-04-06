@@ -579,7 +579,7 @@ Never use `console.log` in committed code. Use `logActivity`, `logError`, or `lo
 
 | Date | Feature | Key Files | Status |
 |------|---------|-----------|--------|
-| 2026-04-06 | E2E Playwright Infrastructure | `playwright.config.ts`, `tests/e2e/`, `docs/playwright-guide.md` | Live |
+| 2026-04-03 | E2E Playwright Infrastructure | `playwright.config.ts`, `tests/e2e/`, `docs/playwright-guide.md` | Live |
 | 2026-04-03 | User Management Redesign (filter chips, type badges) | `src/app/dashboard/users/` | Live |
 | 2026-04-03 | Ban/Unban Users | `src/app/api/users/[userId]/ban/route.ts`, `src/app/api/users/[userId]/unban/route.ts`, `src/middleware.ts` | Live |
 | 2026-04-03 | Banned account message on auth page | `src/app/auth/` | Live |
