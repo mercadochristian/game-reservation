@@ -1,419 +1,216 @@
-# Functional Reference — Volleyball Game Reservation System
+# Functional Overview
 
-> For stakeholders: plain-language overview of what the system does, how it works, and who uses it.
+> Plain-language feature guide for stakeholders. For technical details, see [CODEBASE.md](CODEBASE.md).
+
+**Last Updated:** 2026-04-06
 
 ---
 
-## What Is This System?
+## What This App Does
 
-The **Volleyball Game Reservation System** is a web platform that manages game reservations and player registrations for volleyball clubs. Members can sign up with email/password, browse upcoming games, register themselves or entire teams, and check in via QR codes on game day. Administrators manage game schedules, locations, and player profiles. Facilitators oversee on-court operations and attendance tracking.
+The **Volleyball Game Reservation System** is a web platform that manages game reservations and player registrations for volleyball clubs. Administrators schedule games and manage players end-to-end; players browse upcoming games and register; facilitators handle game-day operations including attendance scanning and team lineups.
 
 ---
 
 ## User Roles
 
-### 🔐 Admin
-**Who:** Club leadership, system operators
-
-**Can do:**
-- Create, edit, delete game schedules (date, time, location, team count, skill level requirements)
+### Admin
+- Create, edit, and delete game schedules (date, time, location, capacity, skill level, pricing)
 - Manage game venues/locations
-- View all player registrations and payment statuses
-- Approve/reject player profiles
-- Review activity logs and system errors
-- Manage facilitator and admin accounts
+- View and manage all player registrations across all schedules
+- Verify or reject player payment submissions
+- Register players directly for a game on their behalf
+- Manage accepted payment methods (GCash, bank transfer, etc.) with optional QR code images
+- View all users, filter by role and status, and ban or unban accounts
+- Edit user roles and skill levels
+- View system activity logs
 
-**Access:** Dashboard, Locations management, Schedules management
+### Facilitator
+- Scan player QR codes at game start to mark attendance per schedule
+- View all registrations at a location (filtered by date)
+- Build and save game-day lineups (assign players to teams and court positions)
 
-**Admin page experience improvements:**
-- All admin list pages show an animated loading placeholder (skeleton rows) while data is being fetched, so the page layout does not jump when records appear
-- Filter controls on list pages are hidden by default inside a collapsible panel to keep the page clean; the panel header shows how many filters are currently active
-
----
-
-### 👥 Facilitator
-**Who:** Game-day staff, match coordinators
-
-**Can do:**
-- ✅ Build and finalize game-day lineups (assign players to teams and positions)
-- ✅ View game rosters and team assignments
-- 🔄 Mark players as present/absent via QR code scanning (coming soon)
-- 🔄 Award MVP (most valuable player) to standout players (coming soon)
-- View upcoming games and player details
-
-**Access:** Dashboard, Lineup Builder, QR scanner (coming soon), MVP awards (coming soon)
-
----
-
-### ⚽ Player
-**Who:** Volleyball club members
-
-**Can do:**
-- Browse upcoming games on a calendar
-- Register for games (solo or as part of a group/team)
-- View their own game schedule and confirmation details
-- Update their profile (name, skill level, contact info, emergency contact)
-- Generate a QR code for check-in on game day
-
-**Access:** Dashboard, Game calendar, Game registration
+### Player
+- Browse upcoming game schedules on the public calendar
+- Register for games in solo, group, or team mode
+- Upload payment proof during registration
+- View all past and upcoming registrations with QR codes for check-in
+- Manage their own profile (name, contact info, skill level, emergency contact)
+- Accept the liability waiver before registering
 
 ---
 
 ## Key Features
 
-### 📅 Game Schedule Management
-Admins create game sessions with:
-- **Date & Time** — when the game happens
-- **Location** — which venue (gym, court, etc.)
-- **Number of Teams** — how many teams will play (usually 2 for a single match)
-- **Player Capacity** — how many total players can register
-- **Skill Level Requirements** — minimum or specific skill levels required to play
-- **Status** — Open (accepting registrations), Full (at capacity), Cancelled, Completed
+### Live
 
-Players see upcoming games in an interactive calendar view with:
-- Live counts of available spots per position (open spiker, setter, middle blocker, opposite spiker) — these update automatically as registrations come in
-- Clicking a position badge opens a details panel showing who has already registered for that position slot
-- Estimated teams that will form
-- Location and timing details
+**Game Schedules**
+Admins create game sessions with date, location, max players, number of teams, skill level requirements, and per-position pricing. Schedules move through statuses: Open → Full → Completed (or Cancelled). Players see upcoming games in an interactive public calendar with live spot counts per position. Clicking a position badge shows who has already registered for that slot.
 
----
+**Player Registration**
+Three modes are available:
+- **Shuffle** — Individual player registers solo; assigned to a team by the facilitator on game day.
+- **Group** — One player registers 2–5 teammates together. Each gets a position assignment. The group stays together when lineups are built.
+- **Team** — One player registers a complete team of 6+ with a minimum required lineup (1 setter, 2 middle blockers, 2 open spikers, 1 opposite spiker).
 
-### 🏟️ Location Management
-Admins create and maintain a list of game venues with:
-- **Name** — facility name (e.g., "City Sports Complex")
-- **Address** — physical location
-- **Google Maps Link** — for easy navigation
-- **Notes** — parking, access info, special instructions
-- **Active Status** — whether the location is currently in use
+All modes require a completed player profile, a waiver acceptance, and payment proof upload.
 
----
+**Payment Tracking**
+Players upload a payment proof screenshot during registration. Admins review the proof on the payments dashboard and mark the status as reviewed, paid, or rejected. Admins can also edit payment details (amount, reference number, notes) when correcting records. The system uses AI to extract the amount, reference number, and sender from payment screenshots to assist admin review.
 
-### 📋 Player Registration (Three Modes)
+**QR Code Attendance**
+Each registered player receives a unique QR code. On game day, facilitators open the scanner page, select the schedule, and scan each player's QR code to mark them as attended. The scanner shows payment status alongside attendance so facilitators can flag unpaid players at the door.
 
-#### Solo Registration
-A single player registers for one or more games independently. On game day, the facilitator assigns them to a team.
+**Registrations Dashboard**
+Unified view for admins and facilitators showing all registrations at a location, split into upcoming and past game sections. Filterable by date range. Admins can verify payments, edit registrations, reassign teams, and manage lineups directly from this view. Facilitators can mark attendance.
 
-#### Group Registration
-One player registers 2+ friends/teammates for the same game. **They must have a valid team composition** (see below). They stay together as a group when teams are formed.
+**Team and Lineup Builder**
+Before game day, admins or facilitators use the drag-and-drop lineup builder to assign registered players to teams. Solo players drag individually; group registrations drag as a block and cannot be split. Team names are customizable. Once saved, the assigned team appears on each player's registration record.
 
-#### Team Registration
-One player registers a complete, position-assigned team. **Must have a valid team composition** (see below). The team plays together as-is.
+**User Management**
+Admins view all users with filter chips by role (admin, facilitator, player) and status (active, banned). Each user entry shows role badge, skill level, and account status. Admins can:
+- Edit a user's role or skill level
+- Ban an account (sets a `banned_at` timestamp; the user is immediately redirected to a "banned" message on next request)
+- Unban an account (clears the timestamp; user regains access)
 
-**All modes require:**
-- A completed player profile (name, contact info, skill level, emergency contact)
-- Payment proof (e.g., screenshot of bank transfer) uploaded
-- Preferred position selection (for group/team modes)
+**Activity Logs**
+Super-admins view a full audit trail of system events: registrations, payments, attendance marks, bans, and errors. Each log entry includes the action, level, user, timestamp, and structured metadata.
 
----
+**Waiver**
+Players must accept the liability waiver before they can register for any game. The waiver checkbox is enforced at the registration step — it cannot be bypassed.
 
-### 💰 Payment Tracking
-Players submit proof of payment (photo/screenshot) during registration. Admins can:
-- View payment status (pending, submitted for review, approved, rejected)
-- Access payment proof images
-- Mark payments as reviewed/approved
+**Payment Channels**
+Admins manage the list of accepted payment methods shown to players during registration. Each channel includes a provider name (GCash, Maya, BDO, etc.), account number, account holder name, and an optional QR code image. Channels can be activated or deactivated.
+
+**Profile Management**
+All users can edit their profile at any time from `/dashboard/profile`: name, phone, birthday, gender, skill level, and emergency contact. Profile data is required to be complete before accessing the dashboard.
+
+**My Registrations**
+Players view all their past and upcoming game registrations in one place. Upcoming games show the QR code for check-in and current payment status. Past games show attendance status.
+
+**Admin Player Registration**
+Admins can register any player (including guest players) for a game directly from the registrations dashboard or from `/dashboard/register`. Supports solo, group, and team modes. Admins set payment status manually.
 
 ---
 
-### 📝 Registration & Payment Notes
+### Coming Soon
 
-**Players** can add optional context notes when registering (max 200 characters). These notes are visible only to the player in their registrations dashboard and are write-once (not editable).
+**Promotions**
+Offer discounts (BOTO or percentage) to specific game schedules. Admin-controlled; displayed on schedule cards during registration.
 
-**Admins** can add or edit notes when manually correcting payment information (max 200 characters). Payment notes appear in the payment table as a separate column and are editable.
+**Announcements**
+Admins create and broadcast announcements to users. Target by role. Users see an announcement center in their dashboard.
 
-**Use Cases:**
-- **Registration Notes:** Player explains their team preference, position flexibility, or special requirements during registration
-- **Payment Notes:** Admin documents why a payment was flagged for review, tracks investigation progress, or notes payment corrections
+**PWA (Progressive Web App)**
+Installable app experience on mobile devices with push notifications for registration reminders.
 
-**Constraints:**
-- Both notes limited to 200 characters (plain text only)
-- Registration notes: write-once (cannot be edited after registration)
-- Payment notes: editable by admins anytime
-- Validation at three layers: client-side, Zod schema, database CHECK constraint
-
----
-
-### ⚙️ Lineup Builder
-**For admins and facilitators before the game**
-
-Before game day, admins or facilitators build the official lineup to assign players to teams. The **Lineup Builder** is a drag-and-drop tool accessible from the registrations page:
-
-1. **Select a game** from the registrations view
-2. **Click "Set Lineup"** to open the builder
-3. **See all registered players:**
-   - **Unassigned pool** on the left shows all players not yet assigned
-   - Solo players (registered alone) drag individually
-   - Group players (registered together) drag as a block — they stay together in whatever team you assign them
-4. **Team columns** on the right show game-day teams (e.g., "Team 1", "Team 2")
-   - Customize team names by clicking to edit
-5. **Drag players** from the pool to team columns
-   - Drop individual players one at a time
-   - Drop entire groups together (they don't split)
-6. **Save** when lineup is finalized
-   - This records the official team assignments for the game
-   - Registrations page updates to show assigned teams
-
-**Benefits:**
-- Clear visualization of who plays where before the game
-- No need to manually assign teams on game day — it's already done
-- Group members guaranteed to stay together
-- Facilitators have official roster when match starts
-
----
-
-### 📋 Registrations Dashboard (Merged View)
-**Roles:** Admin, Facilitator
-**Access:** `/dashboard/registrations`
-
-Unified dashboard showing all registrations at a location, split into upcoming/past game sections with location-first filtering and pagination.
-
-**Workflow:**
-
-1. **Select Location** — User navigates to Registrations dashboard
-   - Must select a location from dropdown (required to proceed)
-   - Dashboard displays all games at that location
-
-2. **View Upcoming Games** (expanded by default)
-   - Shows all games with future start times
-   - Games displayed with full registration details
-   - Paginated: 10 games per page
-   - Can collapse individual game cards
-
-3. **View Past Games** (collapsed by default, expandable)
-   - Shows all games with past start times
-   - Games collapsed to save space, click to expand
-   - Paginated: 10 games per page
-   - Read-only view (no action buttons)
-
-4. **Filter by Date Range** (optional)
-   - **All** — Show all games at location
-   - **Last 7 Days** — Show only games from past 7 days
-   - **Last 30 Days** — Show only games from past 30 days
-
-5. **Manage Individual Registrations** (upcoming games only)
-   - For each player in a game's registration table:
-     - **View Details** — Opens player details panel
-     - **Mark Attendance** — Records attendance (facilitator only)
-     - **Reassign Team** — Moves player to different team (admin only)
-     - **Verify Payment** — Confirms payment received (admin only)
-     - **Edit/Delete** — Modify or remove registration (admin only)
-
-6. **Set Lineup** (upcoming games only)
-   - Click "Set Lineup" on a game card to open the Lineup Builder
-   - Assign players to teams before the game
-   - Teams display in the registration table after assignment
-
-7. **Register New Players** (upcoming games only)
-   - Click "Register Player" to add solo/group/team registrations
-   - Admin can register players on behalf of others
-
-**Facilitators** see:
-- Location filter + date range filter
-- All game cards with registration tables
-- Mark Attendance action (upcoming games)
-- No payment verification or edit/delete actions
-
-**Admins** see:
-- Location filter + date range filter
-- All game cards with registration tables
-- All actions: Mark Attendance, Reassign Team, Verify Payment, Edit, Delete
-- Manage Lineups action
-
-**Benefits:**
-- Location-first view for venue managers
-- See all registrations without switching between games
-- Upcoming/past separation reduces clutter
-- Pagination keeps page responsive
-- Role-based actions prevent accidental operations
-
----
-
-### 🎫 Game Check-In
-On game day, players show their unique QR code (generated at registration) to the facilitator. The QR code contains:
-- Player name and contact info
-- Game details (location, time)
-- Assigned position and team (from the lineup)
-
-Facilitators use a QR scanner to:
-- Check players in quickly
-- Confirm they're registered
-- Track attendance
-
----
-
-### 🏆 MVP Awards
-Post-game, facilitators award MVP to standout players. This is used for:
-- Recognizing top performers
-- Building player statistics over time
-- Motivating engagement
+**Webhooks**
+External system integration via webhook events (registration created, payment verified, attendance marked).
 
 ---
 
 ## User Journeys
 
 ### New Player Onboarding
-1. Visit the website
-2. Click "Create Account" and enter email + password
-3. Create account (password confirmation required)
-4. Automatically signed in
-5. Complete profile: name, birthday, skill level, contact info, emergency contact
-6. Redirected to dashboard
-7. Ready to register for games
-
-### Playing a Game (Solo Mode)
-1. Browse calendar of upcoming games
-2. Click a game to see details: location, time, available spots
-3. Click "Register"
-4. Select preferred position (if team-based)
-5. Upload payment proof
-6. Submit registration
-7. Receive confirmation + QR code
-8. On game day: show QR code at check-in
+1. Visits `/auth` and signs up with email + password
+2. Completes profile at `/create-profile` (name, birthday, skill level, contact info, emergency contact)
+3. Redirected to dashboard
+4. Reviews and accepts the waiver at `/waiver` before first registration
+5. Browses available games on dashboard
+6. Registers for a game (solo or group), uploads payment proof
+7. Admin verifies payment
+8. Attends game — facilitator scans their QR code to mark attendance
 
 ### Group Registration
-1. Gather friend list (email addresses)
-2. Click "Register for Game"
-3. Toggle "Group Mode"
-4. Search for and add each friend (or add as guest)
-5. Assign positions to each group member
-6. Upload single payment proof for group
-7. Submit
-8. All players receive confirmation
+1. One player (the group leader) navigates to registration for a schedule
+2. Selects Group mode and adds teammates by name or searches existing users
+3. Assigns a preferred position to each person
+4. Submits and uploads payment proof for the group
+5. Admin verifies payment; all group members appear in the registrations dashboard
 
-### Admin Creating a Schedule
-1. Login to admin dashboard
-2. Click "Manage Schedules"
-3. Click "New Schedule"
-4. Enter: game title, date, time, location, number of teams, skill level requirements
-5. Save
-6. Game appears in public calendar
-7. Players can now register
+### Admin — Creating a Schedule
+1. Navigates to `/dashboard/schedules`
+2. Clicks "New Schedule"
+3. Sets date/time, location, max players, number of teams, per-position prices, and any skill level requirements
+4. Saves — game appears on the public calendar immediately
+
+### Admin — Verifying a Payment
+1. Player registers and uploads payment screenshot
+2. Admin navigates to `/dashboard/payments`
+3. Reviews the payment proof (with AI-extracted amount and reference number highlighted)
+4. Marks as paid or rejected; optionally adds a payment note
+5. Player's registration status updates
+
+### Admin — Registering a Player
+1. Admin navigates to the registrations dashboard or `/dashboard/register`
+2. Searches for a player by name or email (or creates a guest)
+3. Selects a schedule and registration mode
+4. Submits and sets payment status as needed
+5. Player appears in the schedule's registrations list
+
+### Facilitator — Game Day
+1. Opens `/dashboard/scanner`
+2. Selects the day's schedule
+3. Scans each player's QR code as they arrive
+4. Scanner marks attendance and shows payment status
+5. Players who are not paid are flagged
 
 ---
 
-## Registration Modes Explained (Plain Language)
+## Registration Modes
 
-| Mode | Who Registers | How Many Players | Requirements | Best For |
-|---|---|---|---|---|
-| **Shuffle** | Individual | 1 | None | Casual players |
-| **Group** | One person | 2+ friends together | Must have valid volleyball lineup | Friends playing as unit |
-| **Team** | One person | 2+ players | Must have valid volleyball lineup | Organized teams |
-
-### Position Rules by Registration Mode
-
-#### Group Mode (Flexible)
-- **Player count:** 2–5 players
-- **Position limits (no minimums, only maximums):**
-  - Setter: max 1
-  - Opposite Spiker: max 1
-  - Middle Blocker: max 2
-  - Open Spiker: max 2
-
-**Examples:**
-- ✅ 1 Setter + 1 Open Spiker (2 players) — OK
-- ✅ 2 Middle Blockers + 1 Opposite Spiker (3 players) — OK
-- ✅ 1 Setter + 2 Middle Blockers + 2 Open Spikers (5 players) — OK
-- ❌ 2 Setters (exceeds max 1) — NOT OK
-- ❌ 3 Open Spikers (exceeds max 2) — NOT OK
-- ❌ 6 players (exceeds group max of 5) — NOT OK
-
-#### Team Mode (Strict Minimum)
-- **Player count:** 6+ players (minimum)
-- **Required minimum lineup:**
-
-| Required Position | Minimum Count |
-|---|---|
-| Setter | 1 |
-| Middle Blocker | 2 |
-| Open Spiker | 2 |
-| Opposite Spiker | 1 |
-
-- **No position maximums** — can have any number of players in each position (e.g., 5 open spikers is valid)
-
-**Examples:**
-- ✅ 1 Setter + 2 Middle Blockers + 2 Open Spikers + 1 Opposite Spiker (6 players minimum) — OK
-- ✅ 1 Setter + 2 Middle Blockers + 3 Open Spikers + 1 Opposite Spiker (7 players, extra bench) — OK
-- ✅ 1 Setter + 2 Middle Blockers + 4 Open Spikers + 2 Opposite Spikers (10 players, bench included) — OK
-- ❌ 2 Open Spikers + 1 Opposite Spiker (only 3 players, missing setter & MB) — NOT OK
-- ❌ 5 players total (minimum 6 required) — NOT OK
+| Mode | Who Registers | Player Count | Requirements |
+|------|--------------|-------------|-------------|
+| Shuffle | Individual | 1 | None |
+| Group | One person for a group | 2–5 | Max 1 setter, 1 opposite, 2 middle blockers, 2 open spikers |
+| Team | One person for a full team | 6+ | Min 1 setter, 2 middle blockers, 2 open spikers, 1 opposite spiker |
 
 ---
 
 ## Data & Privacy
 
-### What Data We Collect
+**What we collect:**
+- Players: name, email, phone, birthday, gender, skill level, emergency contact, payment proof images, game history
+- Facilitators/Admins: name, email, role, action logs
 
-**From Players:**
-- Name, email, phone number, birthday, gender, skill level
-- Emergency contact (name, relationship, phone)
-- Payment proof (screenshots/photos)
-- Game attendance history
-- Performance (MVP awards)
+**Where it's stored:**
+- User profiles: encrypted database
+- Payment proofs: private file storage (players access only their own files)
+- Activity logs: database (visible to admins/super_admins only)
 
-**From Facilitators & Admins:**
-- Name, email, role
-- Action logs (what they did, when)
-
-### Where It's Stored
-- **User profiles** — encrypted in database
-- **Payment proofs** — secure private file storage
-- **Activity logs** — server logs (admins only)
-
-### Who Sees What
-- **Players** see only their own profile and registrations
-- **Admins** see all player data, registrations, and logs
-- **Facilitators** see game rosters and attendance only
-- **The public** can see game schedule and availability (no personal info)
-
----
-
-## Status of Key Features
-
-### ✅ Fully Implemented & Live
-- **User Authentication** — Magic link sign-in, role-based access
-- **Profile Management** — Players create and edit profiles with skill level, contact info, emergency contact
-- **Game Schedule Management** — Admins create, edit, delete game schedules with location and capacity
-- **Location Management** — Admins manage venues with maps integration
-- **Game Registration** — Players register solo, in groups, or as teams with position validation
-- **Registrations Admin View** — Admins view all registrations for each game with filtering by date and location
-- **Payments Admin View** — Admins review and approve/reject payment submissions with payment channel management
-- **My Registrations (Player)** — Players view all their registrations (past and upcoming) with QR codes
-- **My Profile (Player)** — Players edit their profile after initial setup
-- **Lineup Builder** — Admins/facilitators organize registered players into game-day teams with drag-and-drop
-- **QR Code Generation** — Players receive unique QR codes for game check-in
-- **Activity Logs** — Admins view system activity logs
-- **Merged Registrations Dashboard** — Admins and facilitators view all registrations at a location with location-first filtering, upcoming/past game separation, and role-based actions
-
-### 🔄 Coming Soon (Scaffolded Pages)
-- **QR Scanner** — Facilitators scan QR codes to mark attendance on game day
-- **Award MVP** — Facilitators award post-game MVP to standout players
+**Who sees what:**
+- Players see only their own profile and registrations
+- Admins see all player data, registrations, payments, and logs
+- Facilitators see game rosters and attendance only
+- The public can see game schedule availability (no personal info)
 
 ---
 
 ## Feature Log
 
-A record of implemented features. Updated as new features are deployed.
-
 | Date | Feature | Description |
-|---|---|---|
-| 2026-03-18 | User Auth & Onboarding | Magic link sign-in, player profile creation |
-| 2026-03-18 | Game Schedule Management | Admins can create, edit, delete game schedules |
-| 2026-03-18 | Location Management | Admins can manage game venues |
-| 2026-03-18 | Game Registration (Solo/Group/Team) | Players can register for games individually or in groups |
-| 2026-03-18 | QR Code Generation | Players receive unique QR codes for check-in |
-| 2026-03-18 | Public Game Calendar | Players and public can browse upcoming games |
-| 2026-03-18 | Team Composition Validation | Group: min 1 max 2 per position. Team: strict complete lineup per team size. |
-| 2026-03-18 | Registration Mode Refinement | Group: 2–5 players, per-position max. Team: 6+ players, minimum lineup only (no max). |
-| 2026-03-18 | Error Handling & Reliability | Database/network errors now show user-friendly messages with retry actions instead of silent failures. Schedule, locations, and dashboard pages show "Try Again" when data fails to load. |
-| 2026-03-18 | Timezone Centralization | All date/time displays now consistently use Manila time (UTC+8) from a single shared utility, eliminating scattered timezone logic and reducing the risk of display bugs as the app grows. |
-| 2026-03-18 | Database Performance Improvements (#39) | Added database indices to speed up player name search, position filtering, and role-based queries as data grows. No change to visible functionality. |
-| 2026-03-18 | Safe Delete for Venues and Schedules (#38) | Deleting a location or game schedule now archives it rather than destroying it permanently. Past registration records, payment history, and attendance data are fully preserved. Admins can view and restore archived items. |
-| 2026-03-19 | Real-Time Position Availability | The public game calendar now shows live spot counts per position on each game card. Counts update automatically as players register. Clicking a position badge opens a panel listing the names of players who have already claimed that slot. |
-| 2026-03-19 | Admin Page UX Improvements | Admin list pages (locations, schedules, registrations) now display animated placeholder rows while data loads, preventing layout jumps. Filter controls are collapsed by default into a toggle panel that shows the number of active filters in its label. |
-| 2026-03-26 | Lineup Builder | Admins and facilitators can now organize registered players into game-day teams before each game using an interactive drag-and-drop interface. Solo players drag individually; group registrations drag together as a unit. Team names are customizable. Once saved, the lineup appears in the registrations list and ensures everyone knows their assigned team before game day. |
-| 2026-03-28 | My Registrations (Player View) | Players can now view all their past and upcoming game registrations in one place. Shows game details, location, payment status, QR codes for check-in on upcoming games, and attendance status for completed games. Available from the main dashboard for all authenticated users. |
-| 2026-03-29 | Merged Registrations Dashboard | New admin view combining all registrations with location-first filtering and grouped games by time. Enables admins to manage payments and lineup assignments more efficiently. |
-| 2026-04-01 | Registration & Payment Notes | Players can add optional 200-character notes during registration (visible to player, write-once). Admins can add/edit 200-character notes on payment records for context during payment reviews and corrections. |
-| 2026-04-03 | User Ban Support | Soft-ban functionality adds a nullable `banned_at` timestamp to user profiles. When set, the user is marked as banned; when NULL, the user is active. Enables admin control of player access without deleting accounts. |
-| 2026-04-03 | Unban user API route | Recovery action: admins can clear the banned_at timestamp to reactivate a banned user. Complements the ban functionality for complete access control. |
-| 2026-04-03 | Middleware ban enforcement | Banned users are automatically redirected to `/auth?error=banned` on every request except auth-related routes. This enforces the soft-ban at the request gateway level, preventing banned users from accessing the app even with valid session cookies. |
-
+|------|---------|-------------|
+| 2026-04-06 | E2E Test Suite (Playwright) | Playwright infrastructure added with authenticated session fixtures, login tests, and GitHub Actions CI workflow |
+| 2026-04-03 | User Management Redesign | Users page redesigned with filter chips (by role and ban status), role badges, and improved layout |
+| 2026-04-03 | Ban/Unban Users | Admins can ban accounts (sets `banned_at`); banned users are immediately redirected to a ban message on login; admins can unban to restore access |
+| 2026-04-02 | Admin Registration Dialog | Admin can register a player (solo/group/team) directly from the registrations dashboard |
+| 2026-04-01 | Registration & Payment Notes | Players add optional 200-char notes at registration (write-once). Admins can add/edit 200-char notes on payment records |
+| 2026-03-29 | Registrations Dashboard (merged view) | Unified dashboard showing all registrations at a location split into upcoming/past sections. Filterable by date range. Role-based actions (admin vs facilitator) |
+| 2026-03-29 | QR Code Attendance Scanner | Facilitators and admins scan player QR codes on game day to mark attendance. Shows payment status alongside attendance |
+| 2026-03-28 | My Registrations (Player View) | Players view all past and upcoming registrations with QR codes for check-in and attendance/payment status |
+| 2026-03-26 | Profile Page | All users can edit their own profile from the dashboard nav |
+| 2026-03-26 | Lineup Builder | Drag-and-drop tool for assigning players to game-day teams. Groups drag as a unit; solo players drag individually. Team names are customizable |
+| 2026-03-20 | Rate Limiting | In-memory sliding-window rate limiting on registration and payment-proof endpoints |
+| 2026-03-19 | Atomic Group Registration | Group registration uses a Postgres transaction RPC to atomically insert all registrations and payment in one operation, preventing partial or duplicate registrations |
+| 2026-03-19 | Real-Time Position Availability | Public calendar shows live spot counts per position. Clicking a position badge lists the names of already-registered players |
+| 2026-03-18 | Waiver | Players must accept the liability waiver before registering for a game |
+| 2026-03-18 | User Auth & Onboarding | Email + password sign-up, profile completion, role-based access |
+| 2026-03-18 | Game Schedule Management | Admins create, edit, soft-delete game schedules with location, capacity, pricing, and skill requirements |
+| 2026-03-18 | Location Management | Admins manage game venues with address, map link, and notes. Soft-delete preserves historical data |
+| 2026-03-18 | Game Registration (Solo/Group/Team) | Players register for games individually or in groups/teams with position assignment and payment proof upload |
+| 2026-03-18 | Payment Tracking & Verification | Payment proof upload, AI extraction of amount/reference, admin approve/reject workflow |
+| 2026-03-18 | Payment Channels Management | Admin configures accepted payment methods with provider, account details, and optional QR code image |
+| 2026-03-18 | Public Game Calendar | Unauthenticated visitors can browse upcoming games and see spot availability |
+| 2026-03-18 | Activity Logs | Admins view an audit trail of system events with level, action, user, and metadata |
+| 2026-03-18 | Safe Delete for Venues and Schedules | Deleting a location or schedule archives it (`deleted_at`) rather than destroying it; past registration and payment records are preserved |
+| 2026-03-18 | QR Code Generation | Each registered player receives a unique QR token for game-day check-in |
